@@ -1,0 +1,302 @@
+package com.github.adamyork.sparrow.wasm.service.v1
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asSkiaBitmap
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import com.charleskorn.kaml.Yaml
+import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.CustomImageWrapper
+import com.github.adamyork.sparrow.wasm.GameConfig
+import com.github.adamyork.sparrow.wasm.MapElementYamlEntry
+import com.github.adamyork.sparrow.wasm.common.data.Sounds
+import com.github.adamyork.sparrow.wasm.data.map.GameMap
+import com.github.adamyork.sparrow.wasm.data.map.GameMapState
+import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
+import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
+import com.github.adamyork.sparrow.wasm.service.data.TextAsset
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.js.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import me.tatarka.inject.annotations.Inject
+import org.jetbrains.skia.EncodedImageFormat
+import org.jetbrains.skia.Image
+
+@AppScope
+@Inject
+class DefaultAssetService : AssetService {
+
+    private val httpClient = HttpClient(Js)
+    val mapAssetMap: HashMap<Int, ImageAsset> = HashMap()
+
+    private val logger = KotlinLogging.logger {}
+
+    override lateinit var gameConfig: GameConfig
+    override lateinit var applicationYamlFile: String
+    override lateinit var backgroundMusicBytesMap: HashMap<Int, ByteArray>
+
+    private lateinit var enemyInfoMap: HashMap<Int, MapElementYamlEntry>
+    private lateinit var itemInfoMap: HashMap<Int, MapElementYamlEntry>
+    private lateinit var soundInfoMap: HashMap<Sounds, String>
+    private lateinit var textAssetMap: HashMap<GameMapState, TextAsset>
+
+    override suspend fun initialize() {
+        logger.info { "initialize called loading yaml" }
+        val response = httpClient.get("application.yml")
+        check(response.status.isSuccess()) { "Failed to load YAML: ${response.status}" }
+        logger.info { "yaml loaded" }
+        val yamlString = response.bodyAsText()
+        gameConfig = Yaml.default.decodeFromString(GameConfig.serializer(), yamlString)
+        logger.info { "game config created" }
+        enemyInfoMap = HashMap()
+        repeat(gameConfig.map.enemy.positions.size) { index ->
+            logger.info { "repeating enemy" }
+            val position = gameConfig.map.enemy.positions[index]
+            logger.info { index.toWord() }
+            val t = gameConfig.map.enemy.asset
+            val dimensions = gameConfig.map.enemy.asset[(index + 1).toWord()]
+            logger.info { dimensions?.path }
+            logger.info { position.type }
+            enemyInfoMap[index] = MapElementYamlEntry(
+                dimensions?.path ?: "",
+                dimensions?.width ?: 0,
+                dimensions?.height ?: 0,
+                position.x,
+                position.y,
+                position.type
+            )
+        }
+        itemInfoMap = HashMap()
+        repeat(gameConfig.map.item.positions.size) { index ->
+            logger.info { "repeating item" }
+            val position = gameConfig.map.item.positions[index]
+            val dimensions = gameConfig.map.item.asset[(index + 1).toWord()]
+            itemInfoMap[index] = MapElementYamlEntry(
+                dimensions?.path ?: "",
+                dimensions?.width ?: 0,
+                dimensions?.height ?: 0,
+                position.x,
+                position.y,
+                position.type
+            )
+        }
+        soundInfoMap = HashMap()
+        soundInfoMap[Sounds.PLAYER_COLLISION] = gameConfig.audio.player.collision
+        soundInfoMap[Sounds.ITEM_COLLECT] = gameConfig.audio.item.collect
+        soundInfoMap[Sounds.ENEMY_SHOOT] = gameConfig.audio.enemy.shoot
+        soundInfoMap[Sounds.JUMP] = gameConfig.audio.player.jump
+
+        textAssetMap = HashMap()
+        logger.info { "game config created" }
+    }
+
+    @Composable
+    @Suppress("SameParameterValue")
+    fun buildTextAsset(
+        viewPortWidth: Int,
+        viewPortHeight: Int,
+        font: FontFamily,
+        color: Color,
+        message: String,
+        centerX: Boolean,
+        centerY: Boolean
+    ) {
+        val alignment = when {
+            centerX && centerY -> Alignment.Center
+            centerX -> Alignment.TopCenter
+            centerY -> Alignment.CenterStart
+            else -> Alignment.TopStart
+        }
+        return Box(
+            modifier = Modifier.size(
+                width = viewPortWidth.dp,
+                height = viewPortHeight.dp
+            )
+        ) {
+            Text(
+                text = message,
+                color = color,
+                style = TextStyle(fontFamily = font),
+                modifier = Modifier.align(alignment)
+            )
+        }
+    }
+
+    fun Int.toWord(): String = when (this) {
+        0 -> "zero"
+        1 -> "one"
+        2 -> "two"
+        3 -> "three"
+        4 -> "four"
+        5 -> "five"
+        6 -> "six"
+        7 -> "seven"
+        8 -> "eight"
+        9 -> "nine"
+        else -> this.toString()
+    }
+
+    override suspend fun loadBufferedImageAsync(file: String): ImageBitmap {
+        logger.info { "loadBufferedImageAsync called to load $file" }
+        val response = httpClient.get(file)
+        check(response.status.isSuccess()) { "Failed to load image from URL: $file (status=${response.status})" }
+        logger.info { "image loaded" }
+        val skiaImage = Image.makeFromEncoded(response.body<ByteArray>())
+        try {
+            logger.info { "bitmap created. complete" }
+            return skiaImage.toComposeImageBitmap()
+        } finally {
+            skiaImage.close()
+        }
+    }
+
+    suspend fun loadAllMapImages(paths: List<String>): List<ImageBitmap> = coroutineScope {
+        paths.map { path ->
+            async {
+                loadBufferedImageAsync(path)
+            }
+        }.awaitAll()
+    }
+
+    suspend fun createCustomImageWrappers(loadAllMapImages: List<ImageBitmap>): List<CustomImageWrapper> =
+        coroutineScope {
+            loadAllMapImages.map { imageBitmap ->
+                async(Dispatchers.Default) {
+                    logger.info { "making a skia image from bitmap" }
+                    val skiaBitmap = imageBitmap.asSkiaBitmap()
+                    val image = Image.makeFromBitmap(skiaBitmap)
+                    logger.info { "skia image made. getting bytes" }
+                    val bytes = image.encodeToData(EncodedImageFormat.PNG)?.bytes
+                        ?: throw IllegalStateException("Failed to encode ImageBitmap to ByteArray")
+                    logger.info { "bytes accessed. wrapper created" }
+                    CustomImageWrapper(bytes, imageBitmap)
+                }
+            }.awaitAll()
+        }
+
+    override suspend fun loadMap(id: Int): GameMap {
+        logger.info { "loading map $id" }
+        val bgAssetPaths: ArrayList<String> = ArrayList()
+        bgAssetPaths.add(gameConfig.map.bg)
+        bgAssetPaths.add(gameConfig.map.mg)
+        bgAssetPaths.add(gameConfig.map.fg)
+        bgAssetPaths.add(gameConfig.map.col)
+        val allMapImages = loadAllMapImages(bgAssetPaths)
+        val customImages = createCustomImageWrappers(allMapImages)
+        logger.info { "map $id loaded building custom images wrappers" }
+        mapAssetMap[id] = ImageAsset(gameConfig.map.width, gameConfig.map.height, customImages[0])
+        mapAssetMap[id + 1] = ImageAsset(gameConfig.map.width, gameConfig.map.height, customImages[1])
+        mapAssetMap[id + 2] = ImageAsset(gameConfig.map.width, gameConfig.map.height, customImages[2])
+        logger.info { "game map created" }
+        return GameMap(
+            GameMapState.COLLECTING,
+            mapAssetMap[id]!!,
+            mapAssetMap[id + 1]!!,
+            mapAssetMap[id + 2]!!,
+            customImages[3],
+            customImages[3].imageBitmap.width,
+            customImages[3].imageBitmap.height,
+            ArrayList(),
+            ArrayList(),
+            ArrayList()
+        )
+
+    }
+
+    override suspend fun loadItem(id: Int): ImageAsset {
+        val path: String = itemInfoMap[id]?.path ?: ""
+        val width: Int = itemInfoMap[id]?.width ?: 0
+        val height: Int = itemInfoMap[id]?.height ?: 0
+        val itemBitMap = loadBufferedImageAsync(path)
+        val skiaBitmap = itemBitMap.asSkiaBitmap()
+        val skiaImage = Image.makeFromBitmap(skiaBitmap)
+        val bytes = skiaImage.encodeToData(EncodedImageFormat.PNG)?.bytes
+            ?: throw IllegalStateException("Failed to encode")
+        val customImageWrapper = CustomImageWrapper(bytes, itemBitMap)
+        return ImageAsset(width, height, customImageWrapper)
+    }
+
+    override suspend fun loadEnemy(id: Int): ImageAsset {
+        val path: String = enemyInfoMap[id]?.path ?: ""
+        val width: Int = enemyInfoMap[id]?.width ?: 0
+        val height: Int = enemyInfoMap[id]?.height ?: 0
+        val itemBitMap = loadBufferedImageAsync(path)
+        val skiaBitmap = itemBitMap.asSkiaBitmap()
+        val skiaImage = Image.makeFromBitmap(skiaBitmap)
+        val bytes = skiaImage.encodeToData(EncodedImageFormat.PNG)?.bytes
+            ?: throw IllegalStateException("Failed to encode")
+        val customImageWrapper = CustomImageWrapper(bytes, itemBitMap)
+        return ImageAsset(width, height, customImageWrapper)
+    }
+
+    override fun getTotalEnemies(): Int {
+        return gameConfig.map.enemy.positions.size
+    }
+
+    override fun getEnemyPosition(id: Int): ItemPositionAndType {
+        return ItemPositionAndType(enemyInfoMap[id]?.x ?: 0, enemyInfoMap[id]?.y ?: 0, enemyInfoMap[id]?.type ?: "")
+    }
+
+    override fun getTotalItems(): Int {
+        return gameConfig.map.item.positions.size
+    }
+
+    override fun getItemPosition(id: Int): ItemPositionAndType {
+        return ItemPositionAndType(itemInfoMap[id]?.x ?: 0, itemInfoMap[id]?.y ?: 0, itemInfoMap[id]?.type ?: "")
+    }
+
+    override suspend fun loadPlayer(): ImageAsset {
+        val itemBitMap = loadBufferedImageAsync(gameConfig.player.asset.path)
+        val skiaBitmap = itemBitMap.asSkiaBitmap()
+        val skiaImage = Image.makeFromBitmap(skiaBitmap)
+        val bytes = skiaImage.encodeToData(EncodedImageFormat.PNG)?.bytes
+            ?: throw IllegalStateException("Failed to encode")
+        val customImageWrapper = CustomImageWrapper(bytes, itemBitMap)
+        return ImageAsset(gameConfig.player.width, gameConfig.player.height, customImageWrapper)
+    }
+
+    override suspend fun getSoundStream(sound: Sounds): ByteArray {
+        val path: String = soundInfoMap[sound]!!
+        val response = httpClient.get(path)
+        logger.info { "sound loaded" }
+        return response.body<ByteArray>()
+    }
+
+    override fun getTextAsset(gameMapState: GameMapState): TextAsset {
+        return textAssetMap[gameMapState] ?: TextAsset(
+            CustomImageWrapper(
+                ByteArray(0), ImageBitmap(
+                    width = 100,
+                    height = 100,
+                    config = androidx.compose.ui.graphics.ImageBitmapConfig.Argb8888,
+                    hasAlpha = true,
+                    colorSpace = ColorSpaces.Srgb
+                )
+            )
+        )
+    }
+
+    override fun showCollisionMap(): Boolean {
+        return gameConfig.map.collision.visible
+    }
+
+}

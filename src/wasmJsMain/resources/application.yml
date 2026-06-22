@@ -1,0 +1,117 @@
+engine:
+  fps:
+    min: 12
+    max: 24
+viewport:
+  x: 0
+  y: 0
+  width: 1024
+  height: 768
+player:
+  asset:
+    path: "/sparrow-comp.png"
+  width: 128
+  height: 128
+  x: 128
+  y: 100
+map:
+  width: 2048
+  height: 1536
+  bg: "/map1-bg-full-comp.png"
+  mg: "/map1-mg-full-comp.png"
+  fg: "/map1-fg-full-comp.png"
+  col: "/map1-collision.png"
+  collision:
+    visible: false
+  item:
+    asset:
+      one:
+        width: 64
+        height: 64
+        path: "/greenie-full.png"
+      two:
+        width: 64
+        height: 64
+        path: "/finish-item.png"
+    position:
+      # noinspection SpringBootApplicationYaml
+      0:
+        x: 0
+        y: 450
+        type: "collectable"
+      # noinspection SpringBootApplicationYaml
+      1:
+        x: 797
+        y: 450
+        type: "finish"
+  enemy:
+    asset:
+      one:
+        width: 128
+        height: 128
+        path: "/vacuum.png"
+      two:
+        width: 128
+        height: 64
+        path: "/deebot-full.png"
+    position:
+      # noinspection SpringBootApplicationYaml
+      0:
+        x: 1600
+        y: 450
+        type: "blocker"
+      # noinspection SpringBootApplicationYaml
+      1:
+        x: 1500
+        y: 224
+        type: "shooter"
+      # noinspection SpringBootApplicationYaml
+      2:
+        x: 500
+        y: 672
+        type: "runner"
+  directive:
+    initial:
+      text: "Collect all the greenies!"
+      color: "green"
+    finish:
+      text: "Find the finish flag!"
+      color: "black"
+    complete:
+      text: "You won!"
+      color: "black"
+
+
+particle:
+  player:
+    movement:
+      # noinspection SpringBootApplicationYaml
+      color:
+        r: 230
+        g: 234
+        b: 218
+        a: 255
+    collision:
+      # noinspection SpringBootApplicationYaml
+      color:
+        r: 255
+        g: 255
+        b: 255
+        a: 255
+  enemy:
+    projectile:
+      # noinspection SpringBootApplicationYaml
+      color:
+        r: 0
+        g: 0
+        b: 255
+        a: 255
+audio:
+  player:
+    jump: "/jump-sound.wav"
+    collision: "/player-collision.wav"
+  item:
+    collect: "/item-collect.wav"
+  background: "/level-1-music.wav"
+  enemy:
+    shoot: "/shoot.wav"
