@@ -1,11 +1,11 @@
 package com.github.adamyork.sparrow.wasm.engine
 
 import com.github.adamyork.sparrow.wasm.CustomImageWrapper
+import com.github.adamyork.sparrow.wasm.DrawResult
 import com.github.adamyork.sparrow.wasm.data.ViewPort
 import com.github.adamyork.sparrow.wasm.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
-import org.jetbrains.skia.Surface
 
 interface Engine {
 
@@ -29,6 +29,6 @@ interface Engine {
         map: GameMap,
         viewPort: ViewPort,
         player: Player
-    ): Surface
+    ): DrawResult
 
 }

@@ -2,17 +2,20 @@ package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.github.adamyork.sparrow.wasm.DrawResult
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.Direction
@@ -31,7 +34,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.awaitCancellation
 import me.tatarka.inject.annotations.Inject
-import org.jetbrains.skia.Surface
 import kotlin.time.Clock
 
 @Inject
@@ -55,7 +57,7 @@ class GameScreen(
     lateinit var mapEnemyShooterAsset: ImageAsset
     var isInitialized: Boolean = false
 
-    fun next(): Surface? {
+    fun next(): DrawResult {
         if (statusProvider.running) {
             val lastPaintMs = statusProvider.lastPaintTime
             val nextPaintTimeMs = Clock.System.now().toEpochMilliseconds()
@@ -82,7 +84,7 @@ class GameScreen(
             //return null
             //}
         }
-        return null
+        return DrawResult(null, null)
     }
 
     @Composable
@@ -95,12 +97,15 @@ class GameScreen(
             if (isRunning) {
                 var frameId = 0
                 fun loop(time: Double) {
-                    val surface = next()
-                    if (surface != null) {
-                        composeScreenLayer.draw(surface.makeImageSnapshot().toComposeImageBitmap())
-                        val currentFps = statusProvider.getFps()
-                        fpsLabel = "FPS: ${currentFps.toInt()}"
+                    val drawResult = next()
+                    drawResult.backgroundSurface?.let { surface ->
+                        composeScreenLayer.drawBackground(surface.makeImageSnapshot().toComposeImageBitmap())
                     }
+                    drawResult.foregroundSurface?.let { surface ->
+                        composeScreenLayer.drawForeground(surface.makeImageSnapshot().toComposeImageBitmap())
+                    }
+                    val currentFps = statusProvider.getFps()
+                    fpsLabel = "FPS: ${currentFps.toInt()}"
                     println("Frame rendered at: $time")
                     frameId = window.requestAnimationFrame { timestamp ->
                         loop(timestamp)
@@ -171,7 +176,7 @@ class GameScreen(
                 particles.populateColorMap(assetService)
                 scoreService.gameMapItem = gameMap.items
                 isInitialized = true
-                composeScreenLayer.draw(loadedImage)
+                composeScreenLayer.drawBackground(loadedImage)
             }.onFailure { failure ->
                 logger.error { "init failed $failure" }
             }
@@ -215,10 +220,15 @@ class GameScreen(
                     Text(
                         text = fpsLabel,
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color.White, // Set text color to white
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp)
+                            .background(
+                                color = Color.Black.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                             .semantics { contentDescription = "FPS label" }
                             .testTag("fps-label")
                     )

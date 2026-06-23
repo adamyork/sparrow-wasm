@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.graphics.toArgb
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.CustomImageWrapper
+import com.github.adamyork.sparrow.wasm.DrawResult
 import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.data.*
@@ -250,12 +251,14 @@ class DefaultEngine @AppScope @Inject constructor(
         map: GameMap,
         viewPort: ViewPort,
         player: Player
-    ): Surface {
+    ): DrawResult {
         val imageInfo = ImageInfo.makeN32Premul(viewPort.width, viewPort.height)
-        val surface = Surface.makeRaster(imageInfo)
-        val canvas = surface.canvas
+        val backgroundSurface = Surface.makeRaster(imageInfo)
+        val foregroundSurface = Surface.makeRaster(imageInfo)
+        val backgroundCanvas = backgroundSurface.canvas
+        val foregroundCanvas = foregroundSurface.canvas
         val paint = Paint().apply {
-            isAntiAlias = false // Disabling this mimics "VALUE_RENDER_SPEED"
+            isAntiAlias = false
             blendMode = BlendMode.SRC_OVER
         }
         paint.blendMode = BlendMode.SRC_OVER
@@ -267,30 +270,32 @@ class DefaultEngine @AppScope @Inject constructor(
 
         //if (viewPort.x != viewPort.lastX || viewPort.y != viewPort.lastY) {
         //LOGGER.info("view port has moved need to redraw background")
-        val compositeBackgroundImage = compositeBackground(map, viewPort)
+        //val compositeBackgroundImage = compositeBackground(map, viewPort)
         //statusProvider.lastBackgroundComposite.store(compositeBackgroundImage)
-        canvas.drawImage(compositeBackgroundImage.makeImageSnapshot(), 0F, 0F, null)
+        // backgroundCanvas.drawImage(compositeBackgroundImage.makeImageSnapshot(), 0F, 0F, null)
         //} else {
         //canvas.drawImage(statusProvider.lastBackgroundComposite.load(), 0F, 0F, null)
         // }
 
-        drawStatusText(map, canvas)
-        drawMapElements(
-            map.items.map { item -> item as GameElement }.toCollection(ArrayList()),
-            viewPort,
-            surface,
-            false
-        )
-        drawMapElements(
-            map.enemies.map { item -> item as GameElement }.toCollection(ArrayList()),
-            viewPort,
-            surface,
-            true
-        )
-        drawParticles(map, viewPort, canvas)
-        drawPlayer(player, viewPort, canvas)
+        //drawStatusText(map, foregroundCanvas)
+//        drawMapElements(
+//            map.items.map { item -> item as GameElement }.toCollection(ArrayList()),
+//            viewPort,
+//            foregroundSurface,
+//            false
+//        )
+//        drawMapElements(
+//            map.enemies.map { item -> item as GameElement }.toCollection(ArrayList()),
+//            viewPort,
+//            foregroundSurface,
+//            true
+//        )
+//        drawParticles(map, viewPort, foregroundCanvas)
+        //TODO cache this
+        val playerImage = Image.makeFromBitmap(player.customImageWrapper.imageBitmap.asSkiaBitmap())
+        drawPlayer(player, viewPort, foregroundCanvas, playerImage)
 
-        return surface
+        return DrawResult(foregroundSurface, null)
     }
 
     private fun compositeBackground(map: GameMap, viewPort: ViewPort): Surface {
@@ -336,20 +341,43 @@ class DefaultEngine @AppScope @Inject constructor(
         return bgCompositeImageSurface
     }
 
-    private fun drawPlayer(player: Player, viewPort: ViewPort, canvas: Canvas) {
-        val playerSubImage = getSubImage(
-            player.customImageWrapper.imageBitmap,
-            player.frameMetadata.cell.x,
-            player.frameMetadata.cell.y,
-            player.width,
-            player.height
-        )
+    private fun drawPlayer(
+        player: Player,
+        viewPort: ViewPort,
+        canvas: Canvas,
+        image: Image
+    ) {
         val localCord = viewPort.globalToLocal(player.x, player.y)
-        canvas.drawImage(
-            transformDirection(playerSubImage, player.direction, player.width),
-            localCord.first.toFloat(),
-            localCord.second.toFloat()
+        canvas.save()
+        if (player.direction == Direction.LEFT) {
+            val pivotX = localCord.first + (player.width / 2f)
+            val pivotY = localCord.second + (player.height / 2f)
+            canvas.translate(pivotX, pivotY)
+            canvas.scale(-1f, 1f)
+            canvas.translate(-pivotX, -pivotY)
+        }
+        val paint = Paint().apply {
+            isAntiAlias = true
+        }
+        canvas.drawImageRect(
+            image = image,
+            src = Rect.makeXYWH(
+                player.frameMetadata.cell.x.toFloat(),
+                player.frameMetadata.cell.y.toFloat(),
+                player.width.toFloat(),
+                player.height.toFloat()
+            ),
+            dst = Rect.makeXYWH(
+                localCord.first.toFloat(),
+                localCord.second.toFloat(),
+                player.width.toFloat(),
+                player.height.toFloat()
+            ),
+            samplingMode = SamplingMode.LINEAR,
+            paint = paint,
+            strict = true
         )
+        canvas.restore()
     }
 
     private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas) {
