@@ -19,6 +19,7 @@ import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.ScoreService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Image
@@ -36,6 +37,8 @@ class DefaultCollision(
     companion object {
         const val COLLISION_COLOR_VALUE: Int = -16711906
     }
+
+    private val logger = KotlinLogging.logger {}
 
     override lateinit var collisionImage: CustomImageWrapper
 
@@ -70,18 +73,31 @@ class DefaultCollision(
     ): GameMap {
         var gameState = gameMap.state
         val managedMapItems = gameMap.items.map { item ->
-            val itemRect = Rect(item.x.toFloat(), item.y.toFloat(), item.width.toFloat(), item.height.toFloat())
-            val playerRect =
-                Rect(player.x.toFloat(), player.y.toFloat(), player.width.toFloat(), player.height.toFloat())
+            val itemRight = item.x + item.width
+            val itemBottom = item.y + item.height
+            val itemRect = Rect(
+                item.x.toFloat(),
+                item.y.toFloat(),
+                itemRight.toFloat(),
+                itemBottom.toFloat()
+            )
+            val playerRight = player.x + player.width
+            val playerBottom = player.y + player.height
+            val playerRect = Rect(
+                player.x.toFloat(),
+                player.y.toFloat(),
+                playerRight.toFloat(),
+                playerBottom.toFloat()
+            )
             var nextItemState = item.state
             var nextFrameMetaData = item.frameMetadata
             if (playerRect.overlaps(itemRect) && nextItemState == GameElementState.ACTIVE) {
                 if (item.type == ItemType.FINISH) {
-                    //LOGGER.info("finish reached")
+                    logger.info { "finish reached" }
                     gameState = GameMapState.COMPLETED
                     nextItemState = GameElementState.INACTIVE
                 } else {
-                    //LOGGER.info("item collision")
+                    logger.info { "item collision" }
                     nextItemState = GameElementState.DEACTIVATING
                     audioQueue.queue.add(Sounds.ITEM_COLLECT)
                     nextFrameMetaData = item.getFirstDeactivatingFrame()
@@ -115,7 +131,7 @@ class DefaultCollision(
                 val playerRect =
                     Rect(player.x.toFloat(), player.y.toFloat(), player.width.toFloat(), player.height.toFloat())
                 if (playerRect.overlaps(enemyRect)) {
-                    //LOGGER.info("enemy collision !")
+                    logger.info { "enemy collision !" }
                     targetRect = enemyRect
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                     val collisionParticles = particles.createCollisionParticles(enemy.x, enemy.y)
@@ -136,7 +152,7 @@ class DefaultCollision(
                         val managedProjectileParticlesResult =
                             particles.createProjectileParticle(player, enemy, gameMap.particles)
                         if (managedProjectileParticlesResult.second) {
-                            //LOGGER.info("enemy shoots")
+                            logger.info { "enemy shoots" }
                             isInteracting = true
                             audioQueue.queue.add(Sounds.ENEMY_SHOOT)
                         }
@@ -206,7 +222,7 @@ class DefaultCollision(
             }
         }.toCollection(ArrayList())
         val nextPlayer: Player = if (playerIsColliding) {
-            //LOGGER.info("player is colliding apply physics")
+            logger.info { "player is colliding apply physics" }
             physics.applyPlayerCollisionPhysics(player, targetRect, viewPort)
         } else {
             player
@@ -277,7 +293,7 @@ class DefaultCollision(
             return collisionImage.imageBitmap.height - player.height
         }
         val normalizedX = player.x.coerceAtMost(collisionImage.imageBitmap.width - player.width)
-        return if (testForColorCollision(normalizedX, startY, player.width, 1, collisionImage)) {
+        return if (testForColorCollision(normalizedX, startY, player.width, 1)) {
             startY - player.height
         } else {
             findFloor(startY + 1, player, collisionImage)
@@ -289,7 +305,7 @@ class DefaultCollision(
             return 0
         }
         val normalizedX = player.x.coerceAtMost(collisionImage.imageBitmap.width - player.width)
-        return if (testForColorCollision(normalizedX, startY, player.width, 1, collisionImage)) {
+        return if (testForColorCollision(normalizedX, startY, player.width, 1)) {
             startY + 1
         } else {
             findCeiling(startY - 1, player, collisionImage)
@@ -308,7 +324,7 @@ class DefaultCollision(
         if (startX > collisionImage.imageBitmap.width - player.width) {
             return collisionImage.imageBitmap.width - player.width
         }
-        return if (testForColorCollision(startX, player.y, 1, player.height, collisionImage)) {
+        return if (testForColorCollision(startX, player.y, 1, player.height)) {
             if (direction == Direction.RIGHT) {
                 startX - player.width
             } else {
@@ -327,8 +343,7 @@ class DefaultCollision(
         x: Int,
         y: Int,
         width: Int,
-        height: Int,
-        collisionImage: CustomImageWrapper
+        height: Int
     ): Boolean {
         try {
             val pixelMap = collisionBitmap.peekPixels() ?: return false
@@ -342,7 +357,7 @@ class DefaultCollision(
             }
             return false
         } catch (exception: Exception) {
-            //LOGGER.info("ArrayIndexOutOfBoundsException x $x y:$y width:$width height:$height $exception")
+            logger.warn { "ArrayIndexOutOfBoundsException x $x y:$y width:$width height:$height $exception" }
             return true
         }
     }

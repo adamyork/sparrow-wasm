@@ -24,7 +24,7 @@ class DefaultStatusProvider(
             val deltaTimePercent: Double = (deltaTime - targetDeltaTimeMs).toDouble() / targetDeltaTimeMs.toDouble()
             val numOfFramesDropped = assetService.gameConfig.engine.fps.max * deltaTimePercent
             return if ((assetService.gameConfig.engine.fps.max - numOfFramesDropped.toInt()) < assetService.gameConfig.engine.fps.min) {
-                logger.info { "FPS drop detected; long deltaTime $deltaTimePercent percent; frames: $numOfFramesDropped" }
+                //logger.info { "FPS drop detected; long deltaTime $deltaTimePercent percent; frames: $numOfFramesDropped" }
                 1.0 + deltaTimePercent
             } else {
                 1.0
