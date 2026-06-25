@@ -2,30 +2,29 @@ package com.github.adamyork.sparrow.wasm.common
 
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.service.AssetService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
-import org.jetbrains.skia.Surface
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Clock
 
-@OptIn(ExperimentalAtomicApi::class)
 @AppScope
 @Inject
 class DefaultStatusProvider(
     val assetService: AssetService
 ) : StatusProvider {
 
+    private val logger = KotlinLogging.logger {}
+
     override var running: Boolean = false
     override var lastPaintTime: Long = 0L
-    override var lastBackgroundComposite: Surface? = null
 
-    override fun getDeltaTime(): Double {
+    override fun getDeltaTimeCoefficient(): Double {
         val targetDeltaTimeMs = 1000 / assetService.gameConfig.engine.fps.max
         val deltaTime = Clock.System.now().toEpochMilliseconds() - lastPaintTime
         if (deltaTime > targetDeltaTimeMs) {
             val deltaTimePercent: Double = (deltaTime - targetDeltaTimeMs).toDouble() / targetDeltaTimeMs.toDouble()
             val numOfFramesDropped = assetService.gameConfig.engine.fps.max * deltaTimePercent
             return if ((assetService.gameConfig.engine.fps.max - numOfFramesDropped.toInt()) < assetService.gameConfig.engine.fps.min) {
-                //LOGGER.info("FPS drop detected; long deltaTime $deltaTimePercent percent; frames: $numOfFramesDropped")
+                logger.info { "FPS drop detected; long deltaTime $deltaTimePercent percent; frames: $numOfFramesDropped" }
                 1.0 + deltaTimePercent
             } else {
                 1.0
@@ -34,9 +33,15 @@ class DefaultStatusProvider(
         return 1.0
     }
 
+    override fun atOrUnderFpsMax(nextPaintTimeMs: Long): Boolean {
+        val maxFps = assetService.gameConfig.engine.fps.max
+        val targetIntervalMs = 1000.0 / maxFps
+        val elapsedSinceLastPaint = (nextPaintTimeMs - lastPaintTime).toDouble()
+        return elapsedSinceLastPaint >= targetIntervalMs
+    }
+
     fun reset() {
         lastPaintTime = 0L
-        lastBackgroundComposite = null
     }
 
     override fun getFps(): Double {

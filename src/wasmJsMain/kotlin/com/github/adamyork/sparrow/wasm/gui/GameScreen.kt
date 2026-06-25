@@ -17,6 +17,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.wasm.DrawResult
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
+import com.github.adamyork.sparrow.wasm.common.data.ControlAction
+import com.github.adamyork.sparrow.wasm.common.data.ControlType
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.Direction
 import com.github.adamyork.sparrow.wasm.data.map.GameMap
@@ -34,6 +36,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.awaitCancellation
 import me.tatarka.inject.annotations.Inject
+import org.w3c.dom.events.Event
+import org.w3c.dom.events.KeyboardEvent
 import kotlin.time.Clock
 
 @Inject
@@ -57,70 +61,11 @@ class GameScreen(
     lateinit var mapEnemyShooterAsset: ImageAsset
     var isInitialized: Boolean = false
 
-    fun next(): DrawResult {
-        if (statusProvider.running) {
-            val lastPaintMs = statusProvider.lastPaintTime
-            val nextPaintTimeMs = Clock.System.now().toEpochMilliseconds()
-            val deltaTime = nextPaintTimeMs - lastPaintMs
-            val fpsMaxDeltaTimeMs = 1000 / assetService.gameConfig.engine.fps.max
-            //if (deltaTime >= fpsMaxDeltaTimeMs) {
-            //logger.info { "getting collision boundaries" }
-            val collisionBoundaries = engine.getCollisionBoundaries(player)
-            //logger.info { "managing player" }
-            player = engine.managePlayer(player, collisionBoundaries)
-            //logger.info { "managing viewport" }
-            viewPort = engine.manageViewport(player, viewPort)
-            //logger.info { "managing map" }
-            gameMap = engine.manageMap(player, gameMap)
-            //logger.info { "handling collision" }
-            val nextPlayerAndMap = engine.manageEnemyAndItemCollision(player, gameMap, viewPort)
-            player = nextPlayerAndMap.first
-            gameMap = nextPlayerAndMap.second
-            scoreService.gameMapItem = gameMap.items
-            statusProvider.lastPaintTime = nextPaintTimeMs
-            logger.info { "drawing" }
-            return engine.draw(gameMap, viewPort, player)
-            //} else {
-            //return null
-            //}
-        }
-        return DrawResult(null, null)
-    }
-
     @Composable
     override fun build() {
         val composeScreenLayer = remember { ComposeScreenLayer() }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
         var isRunning by remember { mutableStateOf(false) }
-
-        LaunchedEffect(isRunning) {
-            if (isRunning) {
-                var frameId = 0
-                fun loop(time: Double) {
-                    val drawResult = next()
-                    drawResult.backgroundSurface?.let { surface ->
-                        composeScreenLayer.drawBackground(surface.makeImageSnapshot().toComposeImageBitmap())
-                    }
-                    drawResult.foregroundSurface?.let { surface ->
-                        composeScreenLayer.drawForeground(surface.makeImageSnapshot().toComposeImageBitmap())
-                    }
-                    val currentFps = statusProvider.getFps()
-                    fpsLabel = "FPS: ${currentFps.toInt()}"
-                    println("Frame rendered at: $time")
-                    frameId = window.requestAnimationFrame { timestamp ->
-                        loop(timestamp)
-                    }
-                }
-                frameId = window.requestAnimationFrame { timestamp ->
-                    loop(timestamp)
-                }
-                try {
-                    awaitCancellation()
-                } finally {
-                    window.cancelAnimationFrame(frameId)
-                }
-            }
-        }
 
         LaunchedEffect(Unit) {
             runCatching {
@@ -176,9 +121,98 @@ class GameScreen(
                 particles.populateColorMap(assetService)
                 scoreService.gameMapItem = gameMap.items
                 isInitialized = true
-                composeScreenLayer.drawBackground(loadedImage)
+                composeScreenLayer.drawSplash(loadedImage)
+                statusProvider.lastPaintTime = Clock.System.now().toEpochMilliseconds()
             }.onFailure { failure ->
                 logger.error { "init failed $failure" }
+            }
+        }
+
+        LaunchedEffect(Unit) {
+            fun toControlAction(event: KeyboardEvent): ControlAction? {
+                return when (event.key.lowercase()) {
+                    "arrowleft" -> ControlAction.LEFT
+                    "arrowright" -> ControlAction.RIGHT
+                    " ", "space", "spacebar" -> ControlAction.JUMP
+                    else -> null
+                }
+            }
+
+            val keyDownListener: (Event) -> Unit = { event ->
+                if (event is KeyboardEvent) {
+                    val action = toControlAction(event)
+                    if (action != null) {
+                        event.preventDefault()
+                        logger.info { "key down: ${event.key}" }
+                        applyInput(ControlType.START, action)
+                    }
+                }
+            }
+
+            val keyUpListener: (Event) -> Unit = { event ->
+                if (event is KeyboardEvent) {
+                    val action = toControlAction(event)
+                    if (action != null) {
+                        event.preventDefault()
+                        logger.info { "key up: ${event.key}" }
+                        applyInput(ControlType.STOP, action)
+                    }
+                }
+            }
+
+            window.addEventListener("keydown", keyDownListener)
+            window.addEventListener("keyup", keyUpListener)
+            try {
+                awaitCancellation()
+            } finally {
+                window.removeEventListener("keydown", keyDownListener)
+                window.removeEventListener("keyup", keyUpListener)
+            }
+        }
+
+        LaunchedEffect(isRunning) {
+            if (isRunning) {
+                var frameId: Int
+                fun loop() {
+                    val drawResult = next()
+                    drawResult.farGroundBitmap?.let { image ->
+                        composeScreenLayer.drawFarGround(
+                            image,
+                            drawResult.farGroundOffsetX,
+                            drawResult.farGroundOffsetY
+                        )
+                    }
+                    drawResult.midGroundBitmap?.let { image ->
+                        composeScreenLayer.drawMidGround(
+                            image,
+                            drawResult.midGroundOffsetX,
+                            drawResult.midGroundOffsetY
+                        )
+                    }
+                    drawResult.collisionBitmap?.let { image ->
+                        composeScreenLayer.drawCollision(
+                            image,
+                            drawResult.collisionOffsetX,
+                            drawResult.collisionOffsetY
+                        )
+                    }
+                    drawResult.foregroundSurface?.let { surface ->
+                        composeScreenLayer.drawForeground(surface.makeImageSnapshot().toComposeImageBitmap())
+                    }
+                    val currentFps = statusProvider.getFps()
+                    fpsLabel = "FPS: ${currentFps.toInt()}"
+                    frameId = window.requestAnimationFrame { _ ->
+                        loop()
+                    }
+                }
+                frameId = window.requestAnimationFrame { _ ->
+                    loop()
+                }
+                try {
+                    awaitCancellation()
+                } finally {
+                    window.cancelAnimationFrame(frameId)
+                }
             }
         }
 
@@ -279,4 +313,118 @@ class GameScreen(
             }
         }
     }
+
+    private fun next(): DrawResult {
+        if (statusProvider.running) {
+            val nextPaintTimeMs = Clock.System.now().toEpochMilliseconds()
+            if (statusProvider.atOrUnderFpsMax(nextPaintTimeMs)) {
+                val collisionBoundaries = engine.getCollisionBoundaries(player)
+                player = engine.managePlayer(player, collisionBoundaries)
+                viewPort = engine.manageViewport(player, viewPort)
+                gameMap = engine.manageMap(player, gameMap)
+                val nextPlayerAndMap = engine.manageEnemyAndItemCollision(player, gameMap, viewPort)
+                player = nextPlayerAndMap.first
+                gameMap = nextPlayerAndMap.second
+                scoreService.gameMapItem = gameMap.items
+                statusProvider.lastPaintTime = nextPaintTimeMs
+                return engine.draw(gameMap, viewPort, player)
+            } else {
+                return DrawResult(
+                    null,
+                    null,
+                    0f,
+                    0f, null,
+                    0f,
+                    0f,
+                    null,
+                    0f,
+                    0f,
+                    0f,
+                    0f
+                )
+            }
+        }
+        return DrawResult(
+            null,
+            null,
+            0f,
+            0f, null,
+            0f,
+            0f,
+            null,
+            0f,
+            0f,
+            0f,
+            0f
+        )
+    }
+
+    private fun applyInput(controlType: ControlType, controlAction: ControlAction) {
+        when (controlType) {
+            ControlType.START -> startInput(controlAction)
+            ControlType.STOP -> stopInput(controlAction)
+        }
+    }
+
+    private fun startInput(controlAction: ControlAction) {
+        when (controlAction) {
+            ControlAction.LEFT -> {
+                val nextVx = adjustXVelocity(controlAction)
+                player = player.copy(moving = PlayerMovingState.MOVING, direction = Direction.LEFT, vx = nextVx)
+            }
+
+            ControlAction.RIGHT -> {
+                val nextVx = adjustXVelocity(controlAction)
+                player = player.copy(moving = PlayerMovingState.MOVING, direction = Direction.RIGHT, vx = nextVx)
+            }
+
+            ControlAction.JUMP -> {
+                if (player.jumping == PlayerJumpingState.GROUNDED) {
+                    //LOGGER.info("starting player jump")
+                    player = player.copy(jumping = PlayerJumpingState.INITIAL)
+                }
+            }
+        }
+    }
+
+    private fun adjustXVelocity(controlAction: ControlAction): Double {
+        if (controlAction == ControlAction.LEFT) {
+            if (player.direction == Direction.RIGHT) {
+                logger.info { getDirectionChangedLogMessage() }
+                return 0.0
+            } else {
+                return player.vx
+            }
+        } else {
+            if (player.direction == Direction.LEFT) {
+                logger.info { getDirectionChangedLogMessage() }
+                return 0.0
+            } else {
+                return player.vx
+            }
+        }
+    }
+
+    private fun getDirectionChangedLogMessage(): String {
+        return "direction changed player vx was: ${player.vx} and is now 0"
+    }
+
+    private fun stopInput(controlAction: ControlAction) {
+        if (controlAction == ControlAction.LEFT && player.direction == Direction.RIGHT) {
+            logger.warn { "stop player left called before right started" }
+        }
+        if (controlAction == ControlAction.RIGHT && player.direction == Direction.LEFT) {
+            logger.warn { "stop player right called before left started" }
+        }
+        if (controlAction == ControlAction.RIGHT) {
+            if (player.direction == Direction.RIGHT) {
+                player = player.copy(moving = PlayerMovingState.STATIONARY, direction = Direction.RIGHT)
+            }
+        } else if (controlAction == ControlAction.LEFT) {
+            if (player.direction == Direction.LEFT) {
+                player = player.copy(moving = PlayerMovingState.STATIONARY, direction = Direction.LEFT)
+            }
+        }
+    }
+
 }

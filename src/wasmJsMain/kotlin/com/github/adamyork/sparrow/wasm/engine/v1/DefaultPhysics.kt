@@ -143,7 +143,7 @@ class DefaultPhysics @AppScope @Inject constructor(
         collisionBoundaries: CollisionBoundaries
     ): PhysicsXResult {
         var targetX = playerX
-        val deltaTime = statusProvider.getDeltaTime()
+        val deltaTime = statusProvider.getDeltaTimeCoefficient()
         if (playerMoving == PlayerMovingState.MOVING || playerVx != 0.0) {
             if (playerDirection == Direction.LEFT) {
                 targetX -= (playerVx * deltaTime).roundToInt()
@@ -173,7 +173,7 @@ class DefaultPhysics @AppScope @Inject constructor(
         var destinationY = playerY + physicsSettingsService.gravity.roundToInt()
         var nextPlayerJumping = playerJumping
         var nextPlayerVy = vy
-        val deltaTime = statusProvider.getDeltaTime()
+        val deltaTime = statusProvider.getDeltaTimeCoefficient()
         destinationY -= (vy * deltaTime).roundToInt()
         if (nextPlayerJumping == PlayerJumpingState.HEIGHT_REACHED) {
             //LOGGER.info("player jump is FALLING")

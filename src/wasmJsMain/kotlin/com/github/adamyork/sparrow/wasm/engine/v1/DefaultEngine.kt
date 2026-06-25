@@ -1,6 +1,5 @@
 package com.github.adamyork.sparrow.game.engine.v1
 
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.graphics.toArgb
 import com.github.adamyork.sparrow.wasm.AppScope
@@ -30,7 +29,6 @@ import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 
 class DefaultEngine @AppScope @Inject constructor(
@@ -44,6 +42,13 @@ class DefaultEngine @AppScope @Inject constructor(
 ) : Engine {
 
     private val statusProvider: DefaultStatusProvider get() = statusProviderFactory()
+    private var mapItem: Item? = null
+    private var mapItemImage: Image? = null
+    private var playerImage: Image? = null
+
+    private val itemImageCache: HashMap<String, Image> = hashMapOf()
+    private val enemyImageCache: HashMap<String, Image> = hashMapOf()
+    private val testAssetImageCache: HashMap<String, Image> = hashMapOf()
 
     override fun setCollisionBufferedImage(customImageWrapper: CustomImageWrapper) {
         this.collision.collisionImage = customImageWrapper
@@ -246,99 +251,78 @@ class DefaultEngine @AppScope @Inject constructor(
         }.toCollection(ArrayList())
     }
 
-    @OptIn(ExperimentalAtomicApi::class)
     override fun draw(
         map: GameMap,
         viewPort: ViewPort,
         player: Player
     ): DrawResult {
         val imageInfo = ImageInfo.makeN32Premul(viewPort.width, viewPort.height)
-        val backgroundSurface = Surface.makeRaster(imageInfo)
         val foregroundSurface = Surface.makeRaster(imageInfo)
-        val backgroundCanvas = backgroundSurface.canvas
         val foregroundCanvas = foregroundSurface.canvas
         val paint = Paint().apply {
             isAntiAlias = false
             blendMode = BlendMode.SRC_OVER
         }
         paint.blendMode = BlendMode.SRC_OVER
-
-//        if (statusProvider.lastBackgroundComposite.load().width == 1) {
-//            val compositeBackgroundImage = compositeBackground(map, viewPort)
-//            statusProvider.lastBackgroundComposite.store(compositeBackgroundImage)
-//        }
-
-        //if (viewPort.x != viewPort.lastX || viewPort.y != viewPort.lastY) {
-        //LOGGER.info("view port has moved need to redraw background")
-        //val compositeBackgroundImage = compositeBackground(map, viewPort)
-        //statusProvider.lastBackgroundComposite.store(compositeBackgroundImage)
-        // backgroundCanvas.drawImage(compositeBackgroundImage.makeImageSnapshot(), 0F, 0F, null)
-        //} else {
-        //canvas.drawImage(statusProvider.lastBackgroundComposite.load(), 0F, 0F, null)
-        // }
-
-        //drawStatusText(map, foregroundCanvas)
-//        drawMapElements(
-//            map.items.map { item -> item as GameElement }.toCollection(ArrayList()),
-//            viewPort,
-//            foregroundSurface,
-//            false
-//        )
-//        drawMapElements(
-//            map.enemies.map { item -> item as GameElement }.toCollection(ArrayList()),
-//            viewPort,
-//            foregroundSurface,
-//            true
-//        )
-//        drawParticles(map, viewPort, foregroundCanvas)
-        //TODO cache this
-        val playerImage = Image.makeFromBitmap(player.customImageWrapper.imageBitmap.asSkiaBitmap())
-        drawPlayer(player, viewPort, foregroundCanvas, playerImage)
-
-        return DrawResult(foregroundSurface, null)
-    }
-
-    private fun compositeBackground(map: GameMap, viewPort: ViewPort): Surface {
-        val imageInfo = ImageInfo.makeN32Premul(viewPort.width, viewPort.height)
-        val bgCompositeImageSurface = Surface.makeRaster(imageInfo)
-        val bgCompositeImageCanvas = bgCompositeImageSurface.canvas
-        val farGroundSubImage = getSubImage(
-            map.farGroundAsset.customImageWrapper.imageBitmap,
-            map.getFarGroundX(viewPort),
-            viewPort.y,
-            viewPort.width,
-            viewPort.height
-        )
-        val midGroundSubImage = getSubImage(
-            map.midGroundAsset.customImageWrapper.imageBitmap,
-            map.getMidGroundX(viewPort),
-            viewPort.y,
-            viewPort.width,
-            viewPort.height
-        )
-        val nearFieldSubImage =
-            getSubImage(
-                map.nearFieldAsset.customImageWrapper.imageBitmap,
-                viewPort.x,
-                viewPort.y,
-                viewPort.width,
-                viewPort.height
-            )
-        val collisionSubImage =
-            getSubImage(
-                map.collisionAsset.imageBitmap,
-                viewPort.x,
-                viewPort.y,
-                viewPort.width,
-                viewPort.height
-            )
-        bgCompositeImageCanvas.drawImage(farGroundSubImage, 0F, 0F, null)
-        bgCompositeImageCanvas.drawImage(midGroundSubImage, 0F, 0F, null)
-        bgCompositeImageCanvas.drawImage(nearFieldSubImage, 0F, 0F, null)
-        if (assetService.showCollisionMap()) {
-            bgCompositeImageCanvas.drawImage(collisionSubImage, 0F, 0F, null)
+        GameMapState.entries.forEach { state ->
+            if (testAssetImageCache[map.state.name] == null) {
+                val gameStatusTextImage = assetService.getTextAsset(map.state)
+                testAssetImageCache[map.state.name] =
+                    Image.makeFromBitmap(gameStatusTextImage.customImageWrapper.imageBitmap.asSkiaBitmap())
+            }
         }
-        return bgCompositeImageSurface
+        drawStatusText(map, foregroundCanvas)
+        map.items.forEach { item ->
+            if (itemImageCache[item.type.name] == null) {
+                itemImageCache[item.type.name] =
+                    Image.makeFromBitmap(item.customImageWrapper.imageBitmap.asSkiaBitmap())
+            }
+        }
+        map.enemies.forEach { enemy ->
+            if (enemyImageCache[enemy.type.name] == null) {
+                enemyImageCache[enemy.type.name] =
+                    Image.makeFromBitmap(enemy.customImageWrapper.imageBitmap.asSkiaBitmap())
+            }
+        }
+        drawMapElements(
+            map.items.map { item -> item as GameElement }.toCollection(ArrayList()),
+            viewPort,
+            foregroundCanvas,
+            transformDirection = false,
+            forEnemies = false
+        )
+        drawMapElements(
+            map.enemies.map { item -> item as GameElement }.toCollection(ArrayList()),
+            viewPort,
+            foregroundCanvas,
+            transformDirection = true,
+            forEnemies = true
+        )
+        if (mapItem == null) {
+            mapItem = map.items.firstOrNull()
+        }
+        if (mapItemImage == null && mapItem != null) {
+            mapItemImage = Image.makeFromBitmap(mapItem!!.customImageWrapper.imageBitmap.asSkiaBitmap())
+        }
+        drawParticles(map, viewPort, foregroundCanvas, mapItem, mapItemImage)
+        if (playerImage == null) {
+            playerImage = Image.makeFromBitmap(player.customImageWrapper.imageBitmap.asSkiaBitmap())
+        }
+        drawPlayer(player, viewPort, foregroundCanvas, playerImage!!)
+        return DrawResult(
+            foregroundSurface = foregroundSurface,
+            foregroundOffsetX = viewPort.x.toFloat(),
+            foregroundOffsetY = viewPort.y.toFloat(),
+            farGroundBitmap = map.farGroundAsset.customImageWrapper.imageBitmap,
+            farGroundOffsetX = map.getFarGroundX(viewPort).toFloat(),
+            farGroundOffsetY = viewPort.y.toFloat(),
+            midGroundBitmap = map.midGroundAsset.customImageWrapper.imageBitmap,
+            midGroundOffsetX = map.getMidGroundX(viewPort).toFloat(),
+            midGroundOffsetY = viewPort.y.toFloat(),
+            collisionBitmap = if (assetService.showCollisionMap()) map.collisionAsset.imageBitmap else null,
+            collisionOffsetX = viewPort.x.toFloat(),
+            collisionOffsetY = viewPort.y.toFloat(),
+        )
     }
 
     private fun drawPlayer(
@@ -380,27 +364,36 @@ class DefaultEngine @AppScope @Inject constructor(
         canvas.restore()
     }
 
-    private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas) {
-        val surface = Surface.makeRaster(ImageInfo.makeN32Premul(viewPort.width, viewPort.height))
-        val particleCanvas = surface.canvas
+    private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas, mapItem: Item?, mapItemImage: Image?) {
+        val paint = Paint().apply {
+            isAntiAlias = true
+        }
         map.particles.forEach { particle ->
             val localCord = viewPort.globalToLocal(particle.x, particle.y)
-            particleCanvas.clear(particle.color.toArgb())
-            if (particle.type == ParticleType.MAP_ITEM_RETURN) {
-                val mapItemReference = map.items.first { _ -> true }
-                val mapItemReferenceSubImage = getSubImage(
-                    mapItemReference.customImageWrapper.imageBitmap,
-                    0,
-                    0,
-                    mapItemReference.width,
-                    mapItemReference.height
-                )
-                particleCanvas.drawImage(
-                    mapItemReferenceSubImage,
-                    localCord.first.toFloat(),
-                    localCord.second.toFloat()
+            if (particle.type == ParticleType.MAP_ITEM_RETURN && mapItem != null && mapItemImage != null) {
+                canvas.drawImageRect(
+                    image = mapItemImage,
+                    src = Rect.makeXYWH(
+                        0f,
+                        0f,
+                        mapItem.width.toFloat(),
+                        mapItem.height.toFloat()
+                    ),
+                    dst = Rect.makeXYWH(
+                        localCord.first.toFloat(),
+                        localCord.second.toFloat(),
+                        particle.width.toFloat(),
+                        particle.height.toFloat()
+                    ),
+                    samplingMode = SamplingMode.LINEAR,
+                    paint = paint,
+                    strict = true
                 )
             } else {
+                val paint = Paint().apply {
+                    color = particle.color.toArgb()
+                    mode = PaintMode.FILL
+                }
                 if (particle.shape == ParticleShape.CIRCLE) {
                     val ovalRect = Rect.makeXYWH(
                         localCord.first.toFloat(),
@@ -408,11 +401,7 @@ class DefaultEngine @AppScope @Inject constructor(
                         particle.width.toFloat(),
                         particle.height.toFloat()
                     )
-                    val paint = Paint().apply {
-                        color = Color.RED
-                        mode = PaintMode.FILL
-                    }
-                    particleCanvas.drawOval(ovalRect, paint)
+                    canvas.drawOval(ovalRect, paint)
                 } else {
                     val rect = Rect.makeXYWH(
                         localCord.first.toFloat(),
@@ -420,89 +409,67 @@ class DefaultEngine @AppScope @Inject constructor(
                         particle.width.toFloat(),
                         particle.height.toFloat()
                     )
-                    val paint = Paint().apply {
-                        color = Color.BLACK // Replace with your color logic
-                        mode = PaintMode.FILL // Ensures it fills the shape
-                    }
-                    particleCanvas.drawRect(rect, paint)
+                    canvas.drawRect(rect, paint)
                 }
             }
-
         }
-        val particleImage = surface.makeImageSnapshot()
-        canvas.drawImage(particleImage, 0F, 0F, null)
     }
 
     private fun drawStatusText(map: GameMap, canvas: Canvas) {
-        val gameStatusTextImage = assetService.getTextAsset(map.state)
-        val fullSkiaImage = Image.makeFromBitmap(gameStatusTextImage.customImageWrapper.imageBitmap.asSkiaBitmap())
-        canvas.drawImage(fullSkiaImage, 0F, 0F, null)
+        val image = testAssetImageCache[map.state.name]!!
+        canvas.drawImage(image, 0F, 0F, null)
     }
 
     private fun drawMapElements(
         elements: ArrayList<GameElement>,
         viewPort: ViewPort,
-        surface: Surface,
-        transformDirection: Boolean
+        canvas: Canvas,
+        transformDirection: Boolean,
+        forEnemies: Boolean
     ) {
+        val paint = Paint().apply {
+            isAntiAlias = true
+        }
         elements.forEach { element ->
             val localCord = viewPort.globalToLocal(element.x, element.y)
             if (element.state != GameElementState.INACTIVE) {
-                var itemSubImage = getSubImage(
-                    element.customImageWrapper.imageBitmap,
-                    element.frameMetadata.cell.x,
-                    element.frameMetadata.cell.y,
-                    element.width,
-                    element.height
-                )
-                if (transformDirection) {
-                    itemSubImage = transformDirection(itemSubImage, element.nestedDirection(), element.width)
+                val elementImage: Image
+                if (forEnemies) {
+                    val casted = (element) as Enemy
+                    elementImage = enemyImageCache[casted.type.name]!!
+                } else {
+                    val casted = (element) as Item
+                    elementImage = itemImageCache[casted.type.name]!!
                 }
-                surface.canvas.drawImage(
-                    itemSubImage,
-                    localCord.first.toFloat(),
-                    localCord.second.toFloat(),
-                    null
+                val drawLeftFacing = transformDirection && element.nestedDirection() == Direction.LEFT
+                canvas.save()
+                if (drawLeftFacing) {
+                    val pivotX = localCord.first + (element.width / 2f)
+                    val pivotY = localCord.second + (element.height / 2f)
+                    canvas.translate(pivotX, pivotY)
+                    canvas.scale(-1f, 1f)
+                    canvas.translate(-pivotX, -pivotY)
+                }
+                canvas.drawImageRect(
+                    image = elementImage,
+                    src = Rect.makeXYWH(
+                        element.frameMetadata.cell.x.toFloat(),
+                        element.frameMetadata.cell.y.toFloat(),
+                        element.width.toFloat(),
+                        element.height.toFloat()
+                    ),
+                    dst = Rect.makeXYWH(
+                        localCord.first.toFloat(),
+                        localCord.second.toFloat(),
+                        element.width.toFloat(),
+                        element.height.toFloat()
+                    ),
+                    samplingMode = SamplingMode.LINEAR,
+                    paint = paint,
+                    strict = true
                 )
+                canvas.restore()
             }
         }
-    }
-
-    private fun getSubImage(imageBitmap: ImageBitmap, x: Int, y: Int, width: Int, height: Int): Image {
-        val fullSkiaImage = Image.makeFromBitmap(imageBitmap.asSkiaBitmap())
-        val surface = Surface.makeRaster(ImageInfo.makeN32Premul(width, height))
-        val canvas = surface.canvas
-        val srcRect = Rect.makeXYWH(x.toFloat(), y.toFloat(), width.toFloat(), height.toFloat())
-        val dstRect = Rect.makeWH(width.toFloat(), height.toFloat())
-        canvas.drawImageRect(
-            image = fullSkiaImage,
-            src = srcRect,
-            dst = dstRect,
-            samplingMode = SamplingMode.DEFAULT,
-            paint = null,
-            strict = true
-        )
-        val subImage = surface.makeImageSnapshot()
-        fullSkiaImage.close()
-        surface.close()
-        return subImage
-    }
-
-    private fun transformDirection(image: Image, direction: Direction, width: Int): Image {
-        val imageInfo = ImageInfo.makeN32Premul(width, image.height)
-        val playerSurface = Surface.makeRaster(imageInfo)
-        val canvas = playerSurface.canvas
-        if (direction == Direction.LEFT) {
-            canvas.save()
-            canvas.translate(width.toFloat(), 0f)
-            canvas.scale(-1f, 1f)
-            canvas.drawImage(image, 0f, 0f)
-            canvas.restore()
-        } else {
-            canvas.drawImage(image, 0f, 0f)
-        }
-        val resultImage = playerSurface.makeImageSnapshot()
-        playerSurface.close()
-        return resultImage
     }
 }

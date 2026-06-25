@@ -1,7 +1,7 @@
 engine:
   fps:
-    min: 12
-    max: 24
+    min: 16
+    max: 32
 viewport:
   x: 0
   y: 0
@@ -22,7 +22,7 @@ map:
   fg: "/map1-fg-full-comp.png"
   col: "/map1-collision.png"
   collision:
-    visible: false
+    visible: true
   item:
     asset:
       one:
