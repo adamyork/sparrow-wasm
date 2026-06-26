@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.engine
 
 import com.github.adamyork.sparrow.wasm.CustomImageWrapper
-import com.github.adamyork.sparrow.wasm.common.AudioQueue
+import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.data.ViewPort
 import com.github.adamyork.sparrow.wasm.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.data.player.Player
@@ -21,14 +21,14 @@ interface Collision {
     fun checkForItemCollision(
         player: Player,
         gameMap: GameMap,
-        audioQueue: AudioQueue
+        audioQueue: DefaultAudioQueue
     ): GameMap
 
     fun checkForEnemyCollisionAndProximity(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: AudioQueue,
+        audioQueue: DefaultAudioQueue,
         particles: Particles
     ): Pair<Player, GameMap>
 
@@ -36,7 +36,7 @@ interface Collision {
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: AudioQueue,
+        audioQueue: DefaultAudioQueue,
         particles: Particles
     ): Pair<Player, GameMap>
 

@@ -12,14 +12,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.AudioQueue
 import com.github.adamyork.sparrow.wasm.DrawResult
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
+import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.Direction
 import com.github.adamyork.sparrow.wasm.data.map.GameMap
@@ -30,6 +34,7 @@ import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
+import com.github.adamyork.sparrow.wasm.service.WavService
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.browser.window
@@ -41,6 +46,7 @@ import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 import kotlin.time.Clock
 
+@AppScope
 @Inject
 class GameScreen(
     private val assetService: AssetService,
@@ -48,6 +54,8 @@ class GameScreen(
     private val particles: Particles,
     private val scoreService: ScoreService,
     private val statusProvider: StatusProvider,
+    private val wavService: WavService,
+    private val audioQueue: AudioQueue
 ) : BodyElement {
 
     private val logger = KotlinLogging.logger {}
@@ -80,7 +88,7 @@ class GameScreen(
                 assetService.initialize()
                 logger.info { "loading splash image" }
                 loadingLabel = "Loading splash image..."
-                //TODO this needs to go in app yaml
+                //TODO this needs to go in app YAML
                 assetService.loadBufferedImageAsync("https://sparrow-assets.pages.dev/splash.png").also {
                     loadingProgress = 0.30f
                 }
@@ -102,7 +110,8 @@ class GameScreen(
                     async { "collectible item" to (assetService.loadItem(0) as Any) },
                     async { "finish item" to (assetService.loadItem(1) as Any) },
                     async { "blocker enemy" to (assetService.loadEnemy(0) as Any) },
-                    async { "shooter enemy" to (assetService.loadEnemy(1) as Any) }
+                    async { "shooter enemy" to (assetService.loadEnemy(1) as Any) },
+                    async { "game audio" to (assetService.loadAudio() as Any) }
                 )
                 loadingLabel = "Loading assets in parallel..."
                 val loadedAssets = deferredAssets.awaitAll().toMap(mutableMapOf())
@@ -201,6 +210,7 @@ class GameScreen(
                 var frameId: Int
                 fun loop() {
                     val drawResult = next()
+                    wavService.playNext()
                     drawResult.farGroundBitmap?.let { image ->
                         composeScreenLayer.drawFarGround(
                             image,
@@ -355,11 +365,17 @@ class GameScreen(
                         .semantics { contentDescription = "start-pause-button-row" }
                         .testTag("start-pause-button-row")
                 ) {
+
+                    val focusManager = LocalFocusManager.current
+
                     Button(
                         onClick = {
                             isRunning = true
                             statusProvider.running = true
+                            wavService.playBackgroundAudio()
+                            focusManager.clearFocus()
                         },
+                        enabled = !isRunning,
                         modifier = Modifier
                             .semantics { contentDescription = "start-button" }
                             .testTag("start-button")
@@ -369,10 +385,11 @@ class GameScreen(
 
                     Button(
                         onClick = {
-                            // Update the status provider variable directly
                             isRunning = false
                             statusProvider.running = false
+                            focusManager.clearFocus()
                         },
+                        enabled = isRunning,
                         modifier = Modifier
                             .semantics { contentDescription = "pause-button" }
                             .testTag("pause-button")
@@ -381,12 +398,16 @@ class GameScreen(
                     }
 
                     Button(
-                        onClick = { isRunning = false },
+                        onClick = {
+                            isRunning = false
+                            focusManager.clearFocus()
+                        },
+                        enabled = isRunning,
                         modifier = Modifier
-                            .semantics { contentDescription = "pause-button" }
-                            .testTag("pause-button")
+                            .semantics { contentDescription = "reset-button" }
+                            .testTag("reset-button")
                     ) {
-                        Text("Pause")
+                        Text("reset")
                     }
                 }
 
@@ -461,7 +482,7 @@ class GameScreen(
 
             ControlAction.JUMP -> {
                 if (player.jumping == PlayerJumpingState.GROUNDED) {
-                    //LOGGER.info("starting player jump")
+                    audioQueue.queue.add(Sounds.JUMP)
                     player = player.copy(jumping = PlayerJumpingState.INITIAL)
                 }
             }

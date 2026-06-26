@@ -3,7 +3,7 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.CustomImageWrapper
-import com.github.adamyork.sparrow.wasm.common.AudioQueue
+import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.enemy.*
@@ -69,7 +69,7 @@ class DefaultCollision(
     override fun checkForItemCollision(
         player: Player,
         gameMap: GameMap,
-        audioQueue: AudioQueue
+        audioQueue: DefaultAudioQueue
     ): GameMap {
         var gameState = gameMap.state
         val managedMapItems = gameMap.items.map { item ->
@@ -116,7 +116,7 @@ class DefaultCollision(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: AudioQueue,
+        audioQueue: DefaultAudioQueue,
         particles: Particles
     ): Pair<Player, GameMap> {
         val managedMapParticles = gameMap.particles
@@ -249,7 +249,7 @@ class DefaultCollision(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: AudioQueue,
+        audioQueue: DefaultAudioQueue,
         particles: Particles
     ): Pair<Player, GameMap> {
         var playerIsColliding = false

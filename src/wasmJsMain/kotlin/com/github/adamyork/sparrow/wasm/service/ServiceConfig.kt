@@ -2,6 +2,8 @@ package com.github.adamyork.sparrow.wasm.service
 
 import com.github.adamyork.sparrow.game.engine.v1.DefaultEngine
 import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.AudioQueue
+import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.engine.Collision
@@ -14,6 +16,7 @@ import com.github.adamyork.sparrow.wasm.engine.v1.DefaultPhysics
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultAssetService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultPhysicsSettingsService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultScoreService
+import com.github.adamyork.sparrow.wasm.service.v1.DefaultWavService
 import me.tatarka.inject.annotations.Provides
 
 interface ServiceConfig {
@@ -56,5 +59,13 @@ interface ServiceConfig {
     @AppScope
     @Provides
     fun provideScoreService(impl: DefaultScoreService): ScoreService = impl
+
+    @AppScope
+    @Provides
+    fun provideWavService(impl: DefaultWavService): WavService = impl
+
+    @AppScope
+    @Provides
+    fun provideAudioQueue(impl: DefaultAudioQueue): AudioQueue = impl
 
 }

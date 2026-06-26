@@ -15,13 +15,13 @@ interface AssetService {
     var applicationYamlFile: String
     var gameConfig: GameConfig
 
-     suspend fun initialize()
+    suspend fun initialize()
 
     suspend fun loadBufferedImageAsync(file: String): ImageBitmap
 
     suspend fun loadMap(id: Int): GameMap
 
-    suspend fun  loadItem(id: Int): ImageAsset
+    suspend fun loadItem(id: Int): ImageAsset
 
     suspend fun loadEnemy(id: Int): ImageAsset
 
@@ -35,7 +35,11 @@ interface AssetService {
 
     suspend fun loadPlayer(): ImageAsset
 
-    suspend fun getSoundStream(sound: Sounds): ByteArray
+    suspend fun loadAudio()
+
+    fun getBackgroundAudio(): String
+
+    fun getAudio(sound: Sounds): String
 
     fun getTextAsset(gameMapState: GameMapState): TextAsset
 

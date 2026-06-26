@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.engine
 
 import com.github.adamyork.sparrow.game.engine.v1.DefaultEngine
-import com.github.adamyork.sparrow.wasm.common.AudioQueue
+import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultCollision
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultParticles
@@ -25,7 +25,7 @@ class EngineConfig {
         physics: Physics,
         collision: Collision,
         particles: Particles,
-        audioQueue: AudioQueue,
+        audioQueue: DefaultAudioQueue,
         scoreService: ScoreService,
         assetService: AssetService,
         statusProvider: DefaultStatusProvider

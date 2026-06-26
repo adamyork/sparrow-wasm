@@ -33,13 +33,14 @@ import io.ktor.client.engine.js.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import kotlinx.browser.window
+import kotlinx.coroutines.*
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
+import org.w3c.dom.url.URL
+import org.w3c.fetch.Response
+import org.w3c.files.Blob
 
 @AppScope
 @Inject
@@ -56,8 +57,10 @@ class DefaultAssetService : AssetService {
 
     private lateinit var enemyInfoMap: HashMap<Int, MapElementYamlEntry>
     private lateinit var itemInfoMap: HashMap<Int, MapElementYamlEntry>
-    private lateinit var soundInfoMap: HashMap<Sounds, String>
     private lateinit var textAssetMap: HashMap<GameMapState, TextAsset>
+
+    private lateinit var audioMap: HashMap<Sounds, String>
+    private lateinit var backgroundAudio: String
 
     override suspend fun initialize() {
         logger.info { "initialize called loading yaml" }
@@ -99,12 +102,7 @@ class DefaultAssetService : AssetService {
                 position.type
             )
         }
-        soundInfoMap = HashMap()
-        soundInfoMap[Sounds.PLAYER_COLLISION] = gameConfig.audio.player.collision
-        soundInfoMap[Sounds.ITEM_COLLECT] = gameConfig.audio.item.collect
-        soundInfoMap[Sounds.ENEMY_SHOOT] = gameConfig.audio.enemy.shoot
-        soundInfoMap[Sounds.JUMP] = gameConfig.audio.player.jump
-
+        audioMap = HashMap()
         textAssetMap = HashMap()
         logger.info { "game config created" }
     }
@@ -274,11 +272,38 @@ class DefaultAssetService : AssetService {
         return ImageAsset(gameConfig.player.width, gameConfig.player.height, customImageWrapper)
     }
 
-    override suspend fun getSoundStream(sound: Sounds): ByteArray {
-        val path: String = soundInfoMap[sound]!!
-        val response = httpClient.get(path)
-        logger.info { "sound loaded" }
-        return response.body<ByteArray>()
+    @OptIn(ExperimentalWasmJsInterop::class)
+    override suspend fun loadAudio() = coroutineScope {
+        val audioPathMap = mapOf(
+            Sounds.JUMP to gameConfig.audio.player.jump,
+            Sounds.PLAYER_COLLISION to gameConfig.audio.player.collision,
+            Sounds.ENEMY_SHOOT to gameConfig.audio.enemy.shoot,
+            Sounds.ITEM_COLLECT to gameConfig.audio.item.collect
+        )
+
+        suspend fun fetchBlob(url: String): Blob {
+            val response = window.fetch(url).await().unsafeCast<Response>()
+            return response.blob().await()
+        }
+
+        val deferredAudios = audioPathMap.map { (key, path) ->
+            key to async { fetchBlob(path) }
+        }
+        val deferredBackground = async { fetchBlob(gameConfig.audio.background) }
+        deferredAudios.forEach { (key, deferred) ->
+            val blob = deferred.await()
+            audioMap[key] = URL.createObjectURL(blob)
+        }
+
+        backgroundAudio = URL.createObjectURL(deferredBackground.await())
+    }
+
+    override fun getAudio(sound: Sounds): String {
+        return audioMap[sound]!!
+    }
+
+    override fun getBackgroundAudio(): String {
+        return backgroundAudio
     }
 
     override fun getTextAsset(gameMapState: GameMapState): TextAsset {

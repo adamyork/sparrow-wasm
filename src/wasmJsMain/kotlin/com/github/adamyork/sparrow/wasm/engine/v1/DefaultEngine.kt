@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.DrawResult
-import com.github.adamyork.sparrow.wasm.common.AudioQueue
+import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.enemy.*
@@ -34,7 +34,7 @@ class DefaultEngine @AppScope @Inject constructor(
     private val physics: Physics,
     private val collision: Collision,
     private val particles: Particles,
-    private val audioQueue: AudioQueue,
+    private val audioQueue: DefaultAudioQueue,
     private val scoreService: ScoreService,
     private val assetService: AssetService,
     private val statusProviderFactory: () -> DefaultStatusProvider

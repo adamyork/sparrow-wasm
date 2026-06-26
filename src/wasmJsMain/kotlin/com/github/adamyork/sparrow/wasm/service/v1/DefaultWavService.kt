@@ -1,38 +1,55 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
+import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
+import com.github.adamyork.sparrow.wasm.common.data.Sounds
+import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.WavService
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.browser.document
+import me.tatarka.inject.annotations.Inject
+import org.w3c.dom.HTMLAudioElement
 
-class DefaultWavService : WavService {
+@AppScope
+@Inject
+class DefaultWavService(
+    private val assetService: AssetService,
+    private val audioQueue: DefaultAudioQueue
+) : WavService {
 
-    companion object {
-       // val LOGGER: Logger = LoggerFactory.getLogger(DefaultWavService::class.java)
+    private val logger = KotlinLogging.logger {}
+
+    @OptIn(ExperimentalWasmJsInterop::class)
+    override fun playNext() {
+        val nextSound = audioQueue.queue.firstOrNull() ?: return
+        val elementId = when (nextSound) {
+            Sounds.JUMP -> "jump-audio"
+            Sounds.ITEM_COLLECT -> "collect-audio"
+            Sounds.PLAYER_COLLISION -> "collision-audio"
+            Sounds.ENEMY_SHOOT -> "shoot-audio"
+        }
+        val audioTag = document.getElementById(elementId) as? HTMLAudioElement ?: return
+        if (!audioTag.paused) {
+            return
+        }
+        audioTag.currentTime = 0.0
+        audioTag.src = assetService.getAudio(nextSound)
+        try {
+            audioTag.play()
+            audioQueue.queue.removeFirstOrNull()
+        } catch (e: Throwable) {
+            logger.error { "Execution error: $e" }
+        }
     }
 
-    override fun chunk(file: String, chunkMs: Int): HashMap<Int, ByteArray> {
-        val output = HashMap<Int, ByteArray>()
-        //val audioInputStream = AudioSystem.getAudioInputStream(file)
-        //val audioFormat = audioInputStream?.format ?: throw AudioException("audio format is missing or not supported")
-//        val sampleBits: Int = audioFormat.getSampleSizeInBits()
-//        val sampleRate: Float = audioFormat.getSampleRate()
-//        val bytesPerMilliSecond: Float = ((sampleBits * sampleRate * audioFormat.getChannels()) / 8) / 1000
-//        val chunkBytes = bytesPerMilliSecond.toInt() * chunkMs
-        var bytesRead: Int
-//        val readBuffer = ByteArray(chunkBytes)
-        var chunkIndex = 0
-//        while ((audioInputStream.read(readBuffer).also { bytesRead = it }) != -1) {
-//            ByteArrayOutputStream().use { outputStream ->
-//                outputStream.write(readBuffer, 0, bytesRead)
-//                val bytesIn = ByteArrayInputStream(outputStream.toByteArray())
-//                val chunkAudioInputStream =
-//                    AudioInputStream(bytesIn, audioFormat, (readBuffer.size / audioFormat.getFrameSize()).toLong())
-//                val tempFile = File.createTempFile("bg_music_tmp_$chunkIndex", ".wav")
-//                AudioSystem.write(chunkAudioInputStream, AudioSystem.getAudioFileFormat(file).type, tempFile)
-//                val chunkBytes = AssetService.getBytes(tempFile)
-//                output[chunkIndex] = chunkBytes
-//                chunkIndex++
-//            }
-//        }
-        return output
+    @OptIn(ExperimentalWasmJsInterop::class)
+    override fun playBackgroundAudio() {
+        logger.info { "play background called" }
+        val audioUrl = assetService.getBackgroundAudio()
+        val audioTag = document.getElementById("background-audio") as? HTMLAudioElement
+        if (audioTag != null) {
+            audioTag.src = audioUrl
+            audioTag.play()
+        }
     }
-
 }
