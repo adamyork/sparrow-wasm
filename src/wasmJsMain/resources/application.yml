@@ -9,7 +9,7 @@ viewport:
   height: 768
 player:
   asset:
-    path: "/sparrow-comp.png"
+    path: "https://sparrow-assets.pages.dev/sparrow-comp.png"
   width: 128
   height: 128
   x: 128
@@ -17,10 +17,10 @@ player:
 map:
   width: 2048
   height: 1536
-  bg: "/map1-bg-full-comp.png"
-  mg: "/map1-mg-full-comp.png"
-  fg: "/map1-fg-full-comp.png"
-  col: "/map1-collision.png"
+  bg: "https://sparrow-assets.pages.dev/map1-bg-full-comp.png"
+  mg: "https://sparrow-assets.pages.dev/map1-mg-full-comp.png"
+  fg: "https://sparrow-assets.pages.dev/map1-fg-full-comp.png"
+  col: "https://sparrow-assets.pages.dev/map1-collision.png"
   collision:
     visible: true
   item:
@@ -28,11 +28,11 @@ map:
       one:
         width: 64
         height: 64
-        path: "/greenie-full.png"
+        path: "https://sparrow-assets.pages.dev/greenie-full.png"
       two:
         width: 64
         height: 64
-        path: "/finish-item.png"
+        path: "https://sparrow-assets.pages.dev/finish-item.png"
     position:
       # noinspection SpringBootApplicationYaml
       0:
@@ -49,11 +49,11 @@ map:
       one:
         width: 128
         height: 128
-        path: "/vacuum.png"
+        path: "https://sparrow-assets.pages.dev/vacuum.png"
       two:
         width: 128
         height: 64
-        path: "/deebot-full.png"
+        path: "https://sparrow-assets.pages.dev/deebot-full.png"
     position:
       # noinspection SpringBootApplicationYaml
       0:
@@ -108,10 +108,10 @@ particle:
         a: 255
 audio:
   player:
-    jump: "/jump-sound.wav"
-    collision: "/player-collision.wav"
+    jump: "https://sparrow-assets.pages.dev/jump-sound.wav"
+    collision: "https://sparrow-assets.pages.dev/player-collision.wav"
   item:
-    collect: "/item-collect.wav"
-  background: "/level-1-music.wav"
+    collect: "https://sparrow-assets.pages.dev/item-collect.wav"
+  background: "https://sparrow-assets.pages.dev/level-1-music.wav"
   enemy:
-    shoot: "/shoot.wav"
+    shoot: "https://sparrow-assets.pages.dev/shoot.wav"

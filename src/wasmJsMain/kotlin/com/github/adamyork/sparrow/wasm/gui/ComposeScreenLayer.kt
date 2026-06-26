@@ -89,7 +89,7 @@ class ComposeScreenLayer {
     fun drawForeground(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {
         foregroundBitmap = image
         foregroundOffsetX = offsetX
-        farGroundOffsetY = offsetY
+        foregroundOffsetY = offsetY
     }
 
     fun drawCollision(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {

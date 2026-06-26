@@ -126,10 +126,22 @@ class DefaultCollision(
             var isColliding = false
             var isInteracting = false
             if ((enemy as GameElement).state != GameElementState.INACTIVE) {
-                val enemyRect =
-                    Rect(enemy.x.toFloat(), enemy.y.toFloat(), enemy.width.toFloat(), enemy.height.toFloat())
-                val playerRect =
-                    Rect(player.x.toFloat(), player.y.toFloat(), player.width.toFloat(), player.height.toFloat())
+                val enemyRight = enemy.x + enemy.width
+                val enemyBottom = enemy.y + enemy.height
+                val enemyRect = Rect(
+                    enemy.x.toFloat(),
+                    enemy.y.toFloat(),
+                    enemyRight.toFloat(),
+                    enemyBottom.toFloat()
+                )
+                val playerRight = player.x + player.width
+                val playerBottom = player.y + player.height
+                val playerRect = Rect(
+                    player.x.toFloat(),
+                    player.y.toFloat(),
+                    playerRight.toFloat(),
+                    playerBottom.toFloat()
+                )
                 if (playerRect.overlaps(enemyRect)) {
                     logger.info { "enemy collision !" }
                     targetRect = enemyRect
@@ -244,17 +256,25 @@ class DefaultCollision(
         var targetRect: Rect? = null
         val managedMapParticles = gameMap.particles.map { particle ->
             if (particle.type == ParticleType.PROJECTILE) {
+                val particleRight = particle.x + particle.width
+                val particleBottom = particle.y + particle.height
                 val particleRect = Rect(
                     particle.x.toFloat(),
                     particle.y.toFloat(),
-                    particle.width.toFloat(),
-                    particle.height.toFloat()
+                    particleRight.toFloat(),
+                    particleBottom.toFloat()
                 )
-                val playerRect =
-                    Rect(player.x.toFloat(), player.y.toFloat(), player.width.toFloat(), player.height.toFloat())
+                val playerRight = player.x + player.width
+                val playerBottom = player.y + player.height
+                val playerRect = Rect(
+                    player.x.toFloat(),
+                    player.y.toFloat(),
+                    playerRight.toFloat(),
+                    playerBottom.toFloat()
+                )
                 var nextFrame = particle.frame
                 if (playerRect.overlaps(particleRect)) {
-                    //LOGGER.info("particle collision !")
+                    logger.info { "particle collision !" }
                     targetRect = particleRect
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                     playerIsColliding = true

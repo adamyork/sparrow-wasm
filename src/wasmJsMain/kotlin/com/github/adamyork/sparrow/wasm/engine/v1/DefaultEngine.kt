@@ -1,7 +1,6 @@
 package com.github.adamyork.sparrow.game.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
-import androidx.compose.ui.graphics.toArgb
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.DrawResult
@@ -365,12 +364,12 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas, mapItem: Item?, mapItemImage: Image?) {
-        val paint = Paint().apply {
-            isAntiAlias = true
-        }
         map.particles.forEach { particle ->
             val localCord = viewPort.globalToLocal(particle.x, particle.y)
             if (particle.type == ParticleType.MAP_ITEM_RETURN && mapItem != null && mapItemImage != null) {
+                val paint = Paint().apply {
+                    isAntiAlias = true
+                }
                 canvas.drawImageRect(
                     image = mapItemImage,
                     src = Rect.makeXYWH(
@@ -390,25 +389,29 @@ class DefaultEngine @AppScope @Inject constructor(
                     strict = true
                 )
             } else {
+                val lifetime = particle.lifetime.coerceAtLeast(1)
+                val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
+                val lifeAlphaMultiplier = 1f - ageProgress
+                val particleAlpha = (
+                    particle.color.alpha.coerceIn(0f, 1f) * lifeAlphaMultiplier * 255f
+                ).toInt().coerceIn(0, 255)
+                val particleRed = (particle.color.red.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
+                val particleGreen = (particle.color.green.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
+                val particleBlue = (particle.color.blue.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
                 val paint = Paint().apply {
-                    color = particle.color.toArgb()
+                    color = Color.makeARGB(particleAlpha, particleRed, particleGreen, particleBlue)
                     mode = PaintMode.FILL
+                    isAntiAlias = false
                 }
+                val left = kotlin.math.floor(localCord.first.toDouble()).toFloat()
+                val top = kotlin.math.floor(localCord.second.toDouble()).toFloat()
+                val width = kotlin.math.ceil(particle.width.toDouble()).toFloat()
+                val height = kotlin.math.ceil(particle.height.toDouble()).toFloat()
                 if (particle.shape == ParticleShape.CIRCLE) {
-                    val ovalRect = Rect.makeXYWH(
-                        localCord.first.toFloat(),
-                        localCord.second.toFloat(),
-                        particle.width.toFloat(),
-                        particle.height.toFloat()
-                    )
+                    val ovalRect = Rect.makeXYWH(left, top, width, height)
                     canvas.drawOval(ovalRect, paint)
                 } else {
-                    val rect = Rect.makeXYWH(
-                        localCord.first.toFloat(),
-                        localCord.second.toFloat(),
-                        particle.width.toFloat(),
-                        particle.height.toFloat()
-                    )
+                    val rect = Rect.makeXYWH(left, top, width, height)
                     canvas.drawRect(rect, paint)
                 }
             }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -65,14 +66,24 @@ class GameScreen(
     override fun build() {
         val composeScreenLayer = remember { ComposeScreenLayer() }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
+        var scoreLabel by remember { mutableStateOf("Score: --") }
+        var totalLabel by remember { mutableStateOf("Total: --") }
+        var remainingLabel by remember { mutableStateOf("Remaining: --") }
         var isRunning by remember { mutableStateOf(false) }
+        var loadingProgress by remember { mutableStateOf(0f) }
+        var loadingLabel by remember { mutableStateOf("Initializing...") }
 
         LaunchedEffect(Unit) {
             runCatching {
                 logger.info { "initializing" }
+                loadingLabel = "Initializing game services..."
                 assetService.initialize()
                 logger.info { "loading splash image" }
-                assetService.loadBufferedImageAsync("/splash.png")
+                loadingLabel = "Loading splash image..."
+                //TODO this needs to go in app yaml
+                assetService.loadBufferedImageAsync("https://sparrow-assets.pages.dev/splash.png").also {
+                    loadingProgress = 0.30f
+                }
             }.onSuccess { loadedImage ->
                 logger.info { "splash loaded and game initialized" }
                 viewPort = ViewPort(
@@ -83,21 +94,29 @@ class GameScreen(
                     assetService.gameConfig.viewport.width,
                     assetService.gameConfig.viewport.height
                 )
+                val assetProgressEnd = 0.90f
+
                 val deferredAssets = listOf(
-                    async { assetService.loadMap(0) },
-                    async { assetService.loadPlayer() },
-                    async { assetService.loadItem(0) },
-                    async { assetService.loadItem(1) },
-                    async { assetService.loadEnemy(0) },
-                    async { assetService.loadEnemy(1) }
+                    async { "map" to (assetService.loadMap(0) as Any) },
+                    async { "player" to (assetService.loadPlayer() as Any) },
+                    async { "collectible item" to (assetService.loadItem(0) as Any) },
+                    async { "finish item" to (assetService.loadItem(1) as Any) },
+                    async { "blocker enemy" to (assetService.loadEnemy(0) as Any) },
+                    async { "shooter enemy" to (assetService.loadEnemy(1) as Any) }
                 )
-                val results = deferredAssets.awaitAll()
-                gameMap = results[0] as GameMap
-                playerAsset = results[1] as ImageAsset
-                mapItemCollectibleAsset = results[2] as ImageAsset
-                mapItemFinishAsset = results[3] as ImageAsset
-                mapEnemyBlockerAsset = results[4] as ImageAsset
-                mapEnemyShooterAsset = results[5] as ImageAsset
+                loadingLabel = "Loading assets in parallel..."
+                val loadedAssets = deferredAssets.awaitAll().toMap(mutableMapOf())
+                val completedAssetLoads = 6
+                loadingProgress = assetProgressEnd
+                loadingLabel = "Loaded assets ($completedAssetLoads/6)"
+                gameMap = loadedAssets["map"] as GameMap
+                playerAsset = loadedAssets["player"] as ImageAsset
+                mapItemCollectibleAsset = loadedAssets["collectible item"] as ImageAsset
+                mapItemFinishAsset = loadedAssets["finish item"] as ImageAsset
+                mapEnemyBlockerAsset = loadedAssets["blocker enemy"] as ImageAsset
+                mapEnemyShooterAsset = loadedAssets["shooter enemy"] as ImageAsset
+
+                loadingLabel = "Preparing game world..."
                 player = Player(
                     assetService.gameConfig.player.x,
                     assetService.gameConfig.player.y,
@@ -114,17 +133,24 @@ class GameScreen(
                     GameElementCollisionState.FREE
                 )
                 gameMap.generateMapItems(mapItemCollectibleAsset, mapItemFinishAsset, assetService)
-                //LOGGER.info("map items generated")
                 gameMap.generateMapEnemies(mapEnemyBlockerAsset, mapEnemyShooterAsset, assetService)
-                //LOGGER.info("enemy items generated")
                 engine.setCollisionBufferedImage(gameMap.collisionAsset)
                 particles.populateColorMap(assetService)
                 scoreService.gameMapItem = gameMap.items
+                val total = scoreService.getTotal()
+                val remaining = scoreService.getRemaining()
+                val score = (total - remaining).coerceAtLeast(0)
+                scoreLabel = "Score: $score"
+                totalLabel = "Total: $total"
+                remainingLabel = "Remaining: $remaining"
                 isInitialized = true
                 composeScreenLayer.drawSplash(loadedImage)
+                loadingProgress = 1.0f
+                loadingLabel = "Ready"
                 statusProvider.lastPaintTime = Clock.System.now().toEpochMilliseconds()
             }.onFailure { failure ->
                 logger.error { "init failed $failure" }
+                loadingLabel = "Initialization failed"
             }
         }
 
@@ -201,6 +227,12 @@ class GameScreen(
                     }
                     val currentFps = statusProvider.getFps()
                     fpsLabel = "FPS: ${currentFps.toInt()}"
+                    val total = scoreService.getTotal()
+                    val remaining = scoreService.getRemaining()
+                    val score = (total - remaining).coerceAtLeast(0)
+                    scoreLabel = "Score: $score"
+                    totalLabel = "Total: $total"
+                    remainingLabel = "Remaining: $remaining"
                     frameId = window.requestAnimationFrame { _ ->
                         loop()
                     }
@@ -251,6 +283,37 @@ class GameScreen(
                         }
                     )
 
+                    if (loadingProgress < 1f) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .width(260.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = loadingLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                modifier = Modifier
+                                    .background(
+                                        color = Color.Black.copy(alpha = 0.45f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .semantics { contentDescription = "game-progress-label" }
+                                    .testTag("game-progress-label")
+                            )
+                            LinearProgressIndicator(
+                                progress = { loadingProgress.coerceIn(0f, 1f) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics { contentDescription = "game-progress-bar" }
+                                    .testTag("game-progress-bar")
+                            )
+                        }
+                    }
+
                     Text(
                         text = fpsLabel,
                         style = MaterialTheme.typography.labelLarge,
@@ -266,6 +329,24 @@ class GameScreen(
                             .semantics { contentDescription = "FPS label" }
                             .testTag("fps-label")
                     )
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(12.dp)
+                            .background(
+                                color = Color.Black.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .semantics { contentDescription = "score-overlay" }
+                            .testTag("score-overlay"),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(text = scoreLabel, style = MaterialTheme.typography.labelLarge, color = Color.White)
+                        Text(text = totalLabel, style = MaterialTheme.typography.labelLarge, color = Color.White)
+                        Text(text = remainingLabel, style = MaterialTheme.typography.labelLarge, color = Color.White)
+                    }
                 }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
