@@ -263,14 +263,6 @@ class DefaultEngine @AppScope @Inject constructor(
             blendMode = BlendMode.SRC_OVER
         }
         paint.blendMode = BlendMode.SRC_OVER
-        GameMapState.entries.forEach { state ->
-            if (testAssetImageCache[map.state.name] == null) {
-                val gameStatusTextImage = assetService.getTextAsset(map.state)
-                testAssetImageCache[map.state.name] =
-                    Image.makeFromBitmap(gameStatusTextImage.customImageWrapper.imageBitmap.asSkiaBitmap())
-            }
-        }
-        drawStatusText(map, foregroundCanvas)
         map.items.forEach { item ->
             if (itemImageCache[item.type.name] == null) {
                 itemImageCache[item.type.name] =

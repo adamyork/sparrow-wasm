@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm.service.data
 
-import com.github.adamyork.sparrow.wasm.CustomImageWrapper
+import androidx.compose.ui.graphics.Color
 
 
-data class TextAsset(val customImageWrapper: CustomImageWrapper)
+data class TextAsset(val message: String, val color: Color)

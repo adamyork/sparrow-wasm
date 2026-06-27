@@ -41,7 +41,7 @@ interface AssetService {
 
     fun getAudio(sound: Sounds): String
 
-    fun getTextAsset(gameMapState: GameMapState): TextAsset
+    fun getTextForGameState(gameMapState: GameMapState): TextAsset
 
     fun showCollisionMap(): Boolean
 

@@ -74,6 +74,8 @@ class GameScreen(
     override fun build() {
         val composeScreenLayer = remember { ComposeScreenLayer() }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
+        var gameStatusLabel by remember { mutableStateOf("Starting") }
+        var gameStatusLabelColor by remember { mutableStateOf(Color.Black) }
         var scoreLabel by remember { mutableStateOf("Score: --") }
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
@@ -243,6 +245,8 @@ class GameScreen(
                     scoreLabel = "Score: $score"
                     totalLabel = "Total: $total"
                     remainingLabel = "Remaining: $remaining"
+                    gameStatusLabel = assetService.getTextForGameState(gameMap.state).message
+                    gameStatusLabelColor = assetService.getTextForGameState(gameMap.state).color
                     frameId = window.requestAnimationFrame { _ ->
                         loop()
                     }
@@ -291,6 +295,21 @@ class GameScreen(
                         onFpsLabelChanged = { nextLabel ->
                             fpsLabel = nextLabel
                         }
+                    )
+                    Text(
+                        text = gameStatusLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = gameStatusLabelColor,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 12.dp)
+                            .background(
+                                color = Color.White.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .semantics { contentDescription = "centered-top-label" }
+                            .testTag("centered-top-label")
                     )
 
                     if (loadingProgress < 1f) {

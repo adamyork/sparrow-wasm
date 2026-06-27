@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
-import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -302,22 +301,36 @@ class DefaultAssetService : AssetService {
         return audioMap[sound]!!
     }
 
-    override fun getBackgroundAudio(): String {
-        return backgroundAudio
+    override fun getTextForGameState(gameMapState: GameMapState): TextAsset {
+        when (gameMapState) {
+            GameMapState.COLLECTING -> {
+                var color: Color = Color.Black
+                if (gameConfig.map.directive.initial.color == "green") {
+                    color = Color.Green
+                }
+                return TextAsset(gameConfig.map.directive.initial.text, color)
+            }
+
+            GameMapState.COMPLETING -> {
+                var color: Color = Color.Black
+                if (gameConfig.map.directive.finish.color == "green") {
+                    color = Color.Green
+                }
+                return TextAsset(gameConfig.map.directive.finish.text, color)
+            }
+
+            else -> {
+                var color: Color = Color.Black
+                if (gameConfig.map.directive.complete.color == "green") {
+                    color = Color.Green
+                }
+                return TextAsset(gameConfig.map.directive.complete.text, color)
+            }
+        }
     }
 
-    override fun getTextAsset(gameMapState: GameMapState): TextAsset {
-        return textAssetMap[gameMapState] ?: TextAsset(
-            CustomImageWrapper(
-                ByteArray(0), ImageBitmap(
-                    width = 100,
-                    height = 100,
-                    config = androidx.compose.ui.graphics.ImageBitmapConfig.Argb8888,
-                    hasAlpha = true,
-                    colorSpace = ColorSpaces.Srgb
-                )
-            )
-        )
+    override fun getBackgroundAudio(): String {
+        return backgroundAudio
     }
 
     override fun showCollisionMap(): Boolean {
