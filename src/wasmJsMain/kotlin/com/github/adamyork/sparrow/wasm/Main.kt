@@ -12,8 +12,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeViewport
-import com.github.adamyork.sparrow.wasm.gui.BodyElement
-import com.github.adamyork.sparrow.wasm.gui.WasmBridgeColorScheme
+import com.github.adamyork.sparrow.wasm.gui.GameLayer
+import com.github.adamyork.sparrow.wasm.gui.SparrowColorScheme
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
 
@@ -21,27 +21,27 @@ private val logger = KotlinLogging.logger {}
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 fun main() {
-    LogConfig.initialize(minimumLevel = Level.DEBUG)
-    logger.info { "com.github.adamyork.sparrow.wasm.main called" }
+    LogConfig.initialize(minimumLevel = Level.INFO)
+    logger.info { "app started" }
     val component = AppConfig::class.create()
-    val composeBodyMain = component.composeBodyMain
-    val wasmBridgeColorScheme = component.wasmBridgeColorScheme
+    val gameLayer = component.gameLayer
+    val sparrowColorScheme = component.sparrowColorScheme
     buildGui(
-        composeBodyMain = composeBodyMain,
-        wasmBridgeColorScheme = wasmBridgeColorScheme
+        gameLayer = gameLayer,
+        sparrowColorScheme = sparrowColorScheme
     )
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
 private fun buildGui(
-    composeBodyMain: BodyElement,
-    wasmBridgeColorScheme: WasmBridgeColorScheme
+    gameLayer: GameLayer,
+    sparrowColorScheme: SparrowColorScheme
 ) {
     ComposeViewport(
         viewportContainerId = "ComposeTarget"
     ) {
         MaterialTheme(
-            colorScheme = wasmBridgeColorScheme.getScheme()
+            colorScheme = sparrowColorScheme.getScheme()
         ) {
             Scaffold(
                 modifier = Modifier
@@ -67,7 +67,7 @@ private fun buildGui(
                             }
                             .testTag("app-com.github.adamyork.sparrow.wasm.main-content-wrapper")
                     ) {
-                        composeBodyMain.build()
+                        gameLayer.build()
                     }
                 }
             }

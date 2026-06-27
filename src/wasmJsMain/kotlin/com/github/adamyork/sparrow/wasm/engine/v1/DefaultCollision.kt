@@ -2,7 +2,6 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.data.*
@@ -18,6 +17,7 @@ import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
+import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject

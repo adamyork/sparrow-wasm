@@ -1,13 +1,9 @@
 package com.github.adamyork.sparrow.wasm.data.enemy
 
 import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
+import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.enemy.BlockerEnemy.Companion.ANIMATION_COLLISION_FRAMES
 import com.github.adamyork.sparrow.wasm.data.player.Player
-import com.github.adamyork.sparrow.wasm.data.FrameMetadata
-import com.github.adamyork.sparrow.wasm.data.FrameMetadataState
-import com.github.adamyork.sparrow.wasm.data.GameElement
-import com.github.adamyork.sparrow.wasm.data.GameElementCollisionState
-import com.github.adamyork.sparrow.wasm.data.GameElementState
 
 interface Enemy : GameElement {
 

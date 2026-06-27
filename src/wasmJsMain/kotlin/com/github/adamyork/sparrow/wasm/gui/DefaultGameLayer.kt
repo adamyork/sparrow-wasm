@@ -18,8 +18,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.AudioQueue
-import com.github.adamyork.sparrow.wasm.DrawResult
+import com.github.adamyork.sparrow.wasm.common.AudioQueue
+import com.github.adamyork.sparrow.wasm.engine.DrawResult
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
@@ -48,7 +48,7 @@ import kotlin.time.Clock
 
 @AppScope
 @Inject
-class GameScreen(
+class DefaultGameLayer(
     private val assetService: AssetService,
     private val engine: Engine,
     private val particles: Particles,
@@ -56,7 +56,7 @@ class GameScreen(
     private val statusProvider: StatusProvider,
     private val wavService: WavService,
     private val audioQueue: AudioQueue
-) : BodyElement {
+) : GameLayer {
 
     private val logger = KotlinLogging.logger {}
 

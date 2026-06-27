@@ -1,23 +1,14 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import com.charleskorn.kaml.Yaml
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.CustomImageWrapper
+import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.GameConfig
-import com.github.adamyork.sparrow.wasm.MapElementYamlEntry
+import com.github.adamyork.sparrow.wasm.service.data.MapElementYamlEntry
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.data.map.GameMapState
@@ -74,7 +65,6 @@ class DefaultAssetService : AssetService {
             logger.info { "repeating enemy" }
             val position = gameConfig.map.enemy.positions[index]
             logger.info { index.toWord() }
-            val t = gameConfig.map.enemy.asset
             val dimensions = gameConfig.map.enemy.asset[(index + 1).toWord()]
             logger.info { dimensions?.path }
             logger.info { position.type }
@@ -104,38 +94,6 @@ class DefaultAssetService : AssetService {
         audioMap = HashMap()
         textAssetMap = HashMap()
         logger.info { "game config created" }
-    }
-
-    @Composable
-    @Suppress("SameParameterValue")
-    fun buildTextAsset(
-        viewPortWidth: Int,
-        viewPortHeight: Int,
-        font: FontFamily,
-        color: Color,
-        message: String,
-        centerX: Boolean,
-        centerY: Boolean
-    ) {
-        val alignment = when {
-            centerX && centerY -> Alignment.Center
-            centerX -> Alignment.TopCenter
-            centerY -> Alignment.CenterStart
-            else -> Alignment.TopStart
-        }
-        return Box(
-            modifier = Modifier.size(
-                width = viewPortWidth.dp,
-                height = viewPortHeight.dp
-            )
-        ) {
-            Text(
-                text = message,
-                color = color,
-                style = TextStyle(fontFamily = font),
-                modifier = Modifier.align(alignment)
-            )
-        }
     }
 
     fun Int.toWord(): String = when (this) {

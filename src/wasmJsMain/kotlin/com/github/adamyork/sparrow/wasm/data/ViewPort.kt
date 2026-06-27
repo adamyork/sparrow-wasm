@@ -6,5 +6,4 @@ data class ViewPort(val x: Int, val y: Int, val lastX: Int, val lastY: Int, val 
         return Pair(x - this.x, y - this.y)
     }
 
-
 }

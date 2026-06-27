@@ -1,7 +1,6 @@
-package com.github.adamyork.sparrow.wasm
+package com.github.adamyork.sparrow.wasm.service
 
 import androidx.compose.ui.graphics.ImageBitmap
-
 
 data class CustomImageWrapper(val bytes: ByteArray, val imageBitmap: ImageBitmap) {
     override fun equals(other: Any?): Boolean {

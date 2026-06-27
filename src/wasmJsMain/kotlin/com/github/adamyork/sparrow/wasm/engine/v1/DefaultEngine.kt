@@ -1,11 +1,8 @@
-package com.github.adamyork.sparrow.game.engine.v1
+package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.CustomImageWrapper
-import com.github.adamyork.sparrow.wasm.DrawResult
 import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
-import com.github.adamyork.sparrow.wasm.common.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.enemy.*
 import com.github.adamyork.sparrow.wasm.data.item.CollectibleItem
@@ -17,17 +14,18 @@ import com.github.adamyork.sparrow.wasm.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.data.player.Player
 import com.github.adamyork.sparrow.wasm.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.wasm.data.player.PlayerMovingState
-import com.github.adamyork.sparrow.wasm.engine.Collision
-import com.github.adamyork.sparrow.wasm.engine.Engine
-import com.github.adamyork.sparrow.wasm.engine.Particles
-import com.github.adamyork.sparrow.wasm.engine.Physics
+import com.github.adamyork.sparrow.wasm.engine.*
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleShape
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.service.ScoreService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
+import kotlin.math.ceil
+import kotlin.math.floor
 
 
 class DefaultEngine @AppScope @Inject constructor(
@@ -36,11 +34,11 @@ class DefaultEngine @AppScope @Inject constructor(
     private val particles: Particles,
     private val audioQueue: DefaultAudioQueue,
     private val scoreService: ScoreService,
-    private val assetService: AssetService,
-    private val statusProviderFactory: () -> DefaultStatusProvider
+    private val assetService: AssetService
 ) : Engine {
 
-    private val statusProvider: DefaultStatusProvider get() = statusProviderFactory()
+    private val logger = KotlinLogging.logger {}
+
     private var mapItem: Item? = null
     private var mapItemImage: Image? = null
     private var playerImage: Image? = null
@@ -73,7 +71,7 @@ class DefaultEngine @AppScope @Inject constructor(
             val adjustedX = player.x + player.width
             val viewPortRightBoundary = viewPort.x + viewPort.width
             if (adjustedX > viewPortRightBoundary) {
-                //LOGGER.info("move map horizontal right")
+                logger.debug { "move map horizontal right" }
                 val diff = adjustedX - viewPortRightBoundary
                 nextX =
                     (nextX + diff).coerceAtMost(collision.collisionImage.imageBitmap.width - viewPort.width)
@@ -81,7 +79,7 @@ class DefaultEngine @AppScope @Inject constructor(
         } else {
             val viewPortLeftBoundary = viewPort.x
             if (player.x < viewPortLeftBoundary) {
-                //LOGGER.info("move map horizontal left")
+                logger.debug { "move map horizontal left" }
                 val diff = viewPortLeftBoundary - player.x
                 nextX = (nextX - diff).coerceAtLeast(0)
             }
@@ -89,18 +87,18 @@ class DefaultEngine @AppScope @Inject constructor(
         val playerBottom = player.y + player.height
         val viewPortBottomBoundary = viewPort.y + viewPort.height
         if (player.y < viewPort.y) {
-            // LOGGER.info("move map vertical up")
+            logger.debug { "move map vertical up" }
             val diff = viewPort.y - player.y
             nextY = (nextY - diff).coerceAtLeast(0)
         } else if (playerBottom > viewPortBottomBoundary) {
-            // LOGGER.info("move map vertical down")
+            logger.debug { "move map vertical down" }
             val diff = player.y - viewPort.y
             nextY =
                 (nextY + diff).coerceAtMost(collision.collisionImage.imageBitmap.height - viewPort.height)
         }
         val nextViewPort = ViewPort(nextX, nextY, viewPort.x, viewPort.y, viewPort.width, viewPort.height)
         if (nextX != viewPort.x || nextY != viewPort.y) {
-            //LOGGER.info("viewport has changed $nextViewPort")
+            logger.debug { "viewport has changed $nextViewPort" }
         }
         return nextViewPort
     }
@@ -385,8 +383,8 @@ class DefaultEngine @AppScope @Inject constructor(
                 val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
                 val lifeAlphaMultiplier = 1f - ageProgress
                 val particleAlpha = (
-                    particle.color.alpha.coerceIn(0f, 1f) * lifeAlphaMultiplier * 255f
-                ).toInt().coerceIn(0, 255)
+                        particle.color.alpha.coerceIn(0f, 1f) * lifeAlphaMultiplier * 255f
+                        ).toInt().coerceIn(0, 255)
                 val particleRed = (particle.color.red.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
                 val particleGreen = (particle.color.green.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
                 val particleBlue = (particle.color.blue.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
@@ -395,10 +393,10 @@ class DefaultEngine @AppScope @Inject constructor(
                     mode = PaintMode.FILL
                     isAntiAlias = false
                 }
-                val left = kotlin.math.floor(localCord.first.toDouble()).toFloat()
-                val top = kotlin.math.floor(localCord.second.toDouble()).toFloat()
-                val width = kotlin.math.ceil(particle.width.toDouble()).toFloat()
-                val height = kotlin.math.ceil(particle.height.toDouble()).toFloat()
+                val left = floor(localCord.first.toDouble()).toFloat()
+                val top = floor(localCord.second.toDouble()).toFloat()
+                val width = ceil(particle.width.toDouble()).toFloat()
+                val height = ceil(particle.height.toDouble()).toFloat()
                 if (particle.shape == ParticleShape.CIRCLE) {
                     val ovalRect = Rect.makeXYWH(left, top, width, height)
                     canvas.drawOval(ovalRect, paint)
@@ -408,11 +406,6 @@ class DefaultEngine @AppScope @Inject constructor(
                 }
             }
         }
-    }
-
-    private fun drawStatusText(map: GameMap, canvas: Canvas) {
-        val image = testAssetImageCache[map.state.name]!!
-        canvas.drawImage(image, 0F, 0F, null)
     }
 
     private fun drawMapElements(

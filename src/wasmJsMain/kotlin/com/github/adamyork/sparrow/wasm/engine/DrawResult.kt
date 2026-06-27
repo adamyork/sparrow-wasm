@@ -1,4 +1,4 @@
-package com.github.adamyork.sparrow.wasm
+package com.github.adamyork.sparrow.wasm.engine
 
 import androidx.compose.ui.graphics.ImageBitmap
 import org.jetbrains.skia.Surface

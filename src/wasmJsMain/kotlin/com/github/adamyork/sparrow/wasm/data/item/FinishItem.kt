@@ -1,9 +1,9 @@
 package com.github.adamyork.sparrow.wasm.data.item
 
-import com.github.adamyork.sparrow.wasm.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.enemy.EnemyInteractionState
+import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 
 data class FinishItem(
     override val width: Int,

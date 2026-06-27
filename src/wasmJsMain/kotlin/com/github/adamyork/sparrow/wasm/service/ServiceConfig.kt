@@ -1,8 +1,8 @@
 package com.github.adamyork.sparrow.wasm.service
 
-import com.github.adamyork.sparrow.game.engine.v1.DefaultEngine
+import com.github.adamyork.sparrow.wasm.engine.v1.DefaultEngine
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.AudioQueue
+import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
@@ -21,12 +21,16 @@ import me.tatarka.inject.annotations.Provides
 
 interface ServiceConfig {
 
-    val randomNumberService: RandomNumberService
     val assetService: AssetService
-
-    @AppScope
-    @Provides
-    fun provideRandomNumberService(impl: DefaultRandomNumberService): RandomNumberService = impl
+    val engine: Engine
+    val collision: Collision
+    val physics: Physics
+    val particles: Particles
+    val statusProvider: StatusProvider
+    val physicsSettingsService: PhysicsSettingsService
+    val scoreService: ScoreService
+    val wavService: WavService
+    val audioQueue: AudioQueue
 
     @AppScope
     @Provides

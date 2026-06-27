@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 import me.tatarka.inject.annotations.Inject
 
 @Inject
-class WasmBridgeColorScheme : ComposeColorScheme {
+class DefaultSparrowColorScheme : SparrowColorScheme {
 
     // --- Light Mode Palette Definitions ---
     private val lightBgColor = Color(0xFFF8FAFC)        // --bg-color
@@ -67,7 +67,7 @@ class WasmBridgeColorScheme : ComposeColorScheme {
             darkColorScheme(
                 primary = primaryColor,
                 background = backgroundColor,
-                surface = backgroundColor,               // Matches html, body mapping
+                surface = backgroundColor,               // Matches HTML, body mapping
                 surfaceContainer = cardBackground,       // .content-block, header, footer mapping
                 onBackground = textMain,                 // var(--text-com.github.adamyork.sparrow.wasm.main)
                 onSurface = textMain,                    // var(--text-com.github.adamyork.sparrow.wasm.main)

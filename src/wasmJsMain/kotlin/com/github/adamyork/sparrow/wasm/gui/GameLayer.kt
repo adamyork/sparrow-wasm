@@ -2,9 +2,9 @@ package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.runtime.Composable
 
-interface BodyElement {
+interface GameLayer {
 
     @Composable
-    fun build(): Unit
+    fun build()
 
 }

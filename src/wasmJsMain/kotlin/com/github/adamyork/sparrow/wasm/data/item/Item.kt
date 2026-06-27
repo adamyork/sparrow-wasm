@@ -1,8 +1,8 @@
 package com.github.adamyork.sparrow.wasm.data.item
 
 import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
-import com.github.adamyork.sparrow.wasm.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.data.*
+import com.github.adamyork.sparrow.wasm.data.enemy.EnemyInteractionState
 
 interface Item : GameElement {
 

@@ -1,11 +1,11 @@
 package com.github.adamyork.sparrow.wasm.engine
 
-import com.github.adamyork.sparrow.wasm.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.data.ViewPort
 import com.github.adamyork.sparrow.wasm.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
+import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 
 interface Collision {
 

@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm.data.player
 
-import com.github.adamyork.sparrow.wasm.CustomImageWrapper
+import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
 import com.github.adamyork.sparrow.wasm.data.*
 import com.github.adamyork.sparrow.wasm.data.enemy.EnemyInteractionState
