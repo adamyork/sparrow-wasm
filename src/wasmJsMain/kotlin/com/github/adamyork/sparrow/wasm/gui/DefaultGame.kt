@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.AudioQueue
-import com.github.adamyork.sparrow.wasm.engine.DrawResult
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
@@ -30,6 +29,7 @@ import com.github.adamyork.sparrow.wasm.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.data.player.Player
 import com.github.adamyork.sparrow.wasm.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.wasm.data.player.PlayerMovingState
+import com.github.adamyork.sparrow.wasm.engine.DrawResult
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.service.AssetService
@@ -48,7 +48,7 @@ import kotlin.time.Clock
 
 @AppScope
 @Inject
-class DefaultGameLayer(
+class DefaultGame(
     private val assetService: AssetService,
     private val engine: Engine,
     private val particles: Particles,
@@ -56,7 +56,7 @@ class DefaultGameLayer(
     private val statusProvider: StatusProvider,
     private val wavService: WavService,
     private val audioQueue: AudioQueue
-) : GameLayer {
+) : Game {
 
     private val logger = KotlinLogging.logger {}
 
@@ -72,7 +72,7 @@ class DefaultGameLayer(
 
     @Composable
     override fun build() {
-        val composeScreenLayer = remember { ComposeScreenLayer() }
+        val drawLayer = remember { DrawLayer() }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
         var gameStatusLabel by remember { mutableStateOf("Starting") }
         var gameStatusLabelColor by remember { mutableStateOf(Color.Black) }
@@ -155,7 +155,7 @@ class DefaultGameLayer(
                 totalLabel = "Total: $total"
                 remainingLabel = "Remaining: $remaining"
                 isInitialized = true
-                composeScreenLayer.drawSplash(loadedImage)
+                drawLayer.drawSplash(loadedImage)
                 loadingProgress = 1.0f
                 loadingLabel = "Ready"
                 statusProvider.lastPaintTime = Clock.System.now().toEpochMilliseconds()
@@ -214,28 +214,28 @@ class DefaultGameLayer(
                     val drawResult = next()
                     wavService.playNext()
                     drawResult.farGroundBitmap?.let { image ->
-                        composeScreenLayer.drawFarGround(
+                        drawLayer.drawFarGround(
                             image,
                             drawResult.farGroundOffsetX,
                             drawResult.farGroundOffsetY
                         )
                     }
                     drawResult.midGroundBitmap?.let { image ->
-                        composeScreenLayer.drawMidGround(
+                        drawLayer.drawMidGround(
                             image,
                             drawResult.midGroundOffsetX,
                             drawResult.midGroundOffsetY
                         )
                     }
                     drawResult.collisionBitmap?.let { image ->
-                        composeScreenLayer.drawCollision(
+                        drawLayer.drawCollision(
                             image,
                             drawResult.collisionOffsetX,
                             drawResult.collisionOffsetY
                         )
                     }
                     drawResult.foregroundSurface?.let { surface ->
-                        composeScreenLayer.drawForeground(surface.makeImageSnapshot().toComposeImageBitmap())
+                        drawLayer.drawForeground(surface.makeImageSnapshot().toComposeImageBitmap())
                     }
                     val currentFps = statusProvider.getFps()
                     fpsLabel = "FPS: ${currentFps.toInt()}"
@@ -290,7 +290,7 @@ class DefaultGameLayer(
                         .semantics { contentDescription = "canvas-with-fps-overlay" }
                         .testTag("canvas-with-fps-overlay")
                 ) {
-                    composeScreenLayer.build(
+                    drawLayer.build(
                         isRunning = isRunning,
                         onFpsLabelChanged = { nextLabel ->
                             fpsLabel = nextLabel
@@ -418,7 +418,7 @@ class DefaultGameLayer(
 
                     Button(
                         onClick = {
-                            isRunning = false
+                            reset()
                             focusManager.clearFocus()
                         },
                         enabled = isRunning,
@@ -433,6 +433,42 @@ class DefaultGameLayer(
 
             }
         }
+    }
+
+    fun reset() {
+        logger.info { "reset game" }
+        player = Player(
+            assetService.gameConfig.player.x,
+            assetService.gameConfig.player.y,
+            playerAsset.width,
+            playerAsset.height,
+            GameElementState.ACTIVE,
+            FrameMetadata(1, Cell(1, 1, playerAsset.width, playerAsset.height)),
+            playerAsset.customImageWrapper,
+            0.0,
+            0.0,
+            PlayerJumpingState.GROUNDED,
+            PlayerMovingState.STATIONARY,
+            Direction.RIGHT,
+            GameElementCollisionState.FREE
+        )
+        gameMap.reset(
+            mapItemCollectibleAsset,
+            mapItemFinishAsset,
+            mapEnemyBlockerAsset,
+            mapEnemyShooterAsset,
+            assetService
+        )
+        viewPort = ViewPort(
+            assetService.gameConfig.viewport.x,
+            assetService.gameConfig.viewport.y,
+            0,
+            0,
+            assetService.gameConfig.viewport.width,
+            assetService.gameConfig.viewport.height
+        )
+        scoreService.gameMapItem = gameMap.items
+        statusProvider.reset()
     }
 
     private fun next(): DrawResult {

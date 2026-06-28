@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 
-class ComposeScreenLayer {
+class DrawLayer {
 
     private var splashImageBitmap: ImageBitmap? by mutableStateOf(null)
     private var farGroundBitmap: ImageBitmap? by mutableStateOf(null)

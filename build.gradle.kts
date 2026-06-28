@@ -20,7 +20,14 @@ repositories {
 kotlin {
     wasmJs {
         binaries.executable()
-        browser()
+        browser {
+            commonWebpackConfig {
+                devServer = (devServer
+                    ?: org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig.DevServer()).apply {
+                    static(project.file("build/dist/wasmJs/productionExecutable").absolutePath)
+                }
+            }
+        }
     }
 
     sourceSets {
@@ -46,6 +53,16 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
         }
     }
+}
+
+val prepareDevServer = tasks.register<Copy>("prepareDevServer") {
+    description = ""
+    from("src/wasmJsMain/web")
+    into(layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
+}
+
+tasks.matching { it.name.contains("wasmJsBrowserDevelopmentRun") }.configureEach {
+    dependsOn(prepareDevServer)
 }
 
 dependencies {

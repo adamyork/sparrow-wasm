@@ -40,8 +40,7 @@ class DefaultStatusProvider(
         return elapsedSinceLastPaint >= targetIntervalMs
     }
 
-    fun reset() {
-        //TODO RESET
+    override fun reset() {
         lastPaintTime = 0L
     }
 

@@ -6,28 +6,29 @@ import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.charleskorn.kaml.Yaml
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.GameConfig
-import com.github.adamyork.sparrow.wasm.service.data.MapElementYamlEntry
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
+import com.github.adamyork.sparrow.wasm.service.data.MapElementYamlEntry
 import com.github.adamyork.sparrow.wasm.service.data.TextAsset
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.js.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.browser.window
 import kotlinx.coroutines.*
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
+import org.khronos.webgl.Int8Array
+import org.khronos.webgl.get
 import org.w3c.dom.url.URL
 import org.w3c.fetch.Response
 import org.w3c.files.Blob
@@ -52,12 +53,15 @@ class DefaultAssetService : AssetService {
     private lateinit var audioMap: HashMap<Sounds, String>
     private lateinit var backgroundAudio: String
 
+    @OptIn(ExperimentalWasmJsInterop::class)
     override suspend fun initialize() {
         logger.info { "initialize called loading yaml" }
-        val response = httpClient.get("application.yml")
-        check(response.status.isSuccess()) { "Failed to load YAML: ${response.status}" }
+        val response = window.fetch("application.yml").await()
+        val buffer = response.arrayBuffer().await()
+        val uint8Array = Int8Array(buffer)
+        val bytes = ByteArray(uint8Array.length) { i -> uint8Array[i] }
+        val yamlString = bytes.decodeToString()
         logger.info { "yaml loaded" }
-        val yamlString = response.bodyAsText()
         gameConfig = Yaml.default.decodeFromString(GameConfig.serializer(), yamlString)
         logger.info { "game config created" }
         enemyInfoMap = HashMap()
@@ -262,26 +266,17 @@ class DefaultAssetService : AssetService {
     override fun getTextForGameState(gameMapState: GameMapState): TextAsset {
         when (gameMapState) {
             GameMapState.COLLECTING -> {
-                var color: Color = Color.Black
-                if (gameConfig.map.directive.initial.color == "green") {
-                    color = Color.Green
-                }
+                val color = stringToColor(gameConfig.map.directive.initial.color)
                 return TextAsset(gameConfig.map.directive.initial.text, color)
             }
 
             GameMapState.COMPLETING -> {
-                var color: Color = Color.Black
-                if (gameConfig.map.directive.finish.color == "green") {
-                    color = Color.Green
-                }
+                val color = stringToColor(gameConfig.map.directive.finish.color)
                 return TextAsset(gameConfig.map.directive.finish.text, color)
             }
 
             else -> {
-                var color: Color = Color.Black
-                if (gameConfig.map.directive.complete.color == "green") {
-                    color = Color.Green
-                }
+                val color = stringToColor(gameConfig.map.directive.complete.color)
                 return TextAsset(gameConfig.map.directive.complete.text, color)
             }
         }
@@ -293,6 +288,21 @@ class DefaultAssetService : AssetService {
 
     override fun showCollisionMap(): Boolean {
         return gameConfig.map.collision.visible
+    }
+
+    private fun stringToColor(stringColor: String): Color {
+        return when (stringColor.lowercase()) {
+            "green" -> Color.Green
+            "white" -> Color.White
+            "blue" -> Color.Blue
+            "darkgray" -> Color.DarkGray
+            "red" -> Color.Red
+            "gray" -> Color.Gray
+            "lightgray" -> Color.LightGray
+            "yellow" -> Color.Yellow
+            "magenta" -> Color.Magenta
+            else -> Color.Black
+        }
     }
 
 }

@@ -73,13 +73,13 @@ map:
   directive:
     initial:
       text: "Collect all the greenies!"
-      color: "green"
+      color: "black"
     finish:
       text: "Find the finish flag!"
-      color: "black"
+      color: "red"
     complete:
       text: "You won!"
-      color: "black"
+      color: "blue"
 
 
 particle:

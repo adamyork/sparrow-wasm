@@ -12,7 +12,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeViewport
-import com.github.adamyork.sparrow.wasm.gui.GameLayer
+import com.github.adamyork.sparrow.wasm.gui.Game
 import com.github.adamyork.sparrow.wasm.gui.SparrowColorScheme
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
@@ -24,17 +24,17 @@ fun main() {
     LogConfig.initialize(minimumLevel = Level.INFO)
     logger.info { "app started" }
     val component = AppConfig::class.create()
-    val gameLayer = component.gameLayer
+    val gameLayer = component.game
     val sparrowColorScheme = component.sparrowColorScheme
     buildGui(
-        gameLayer = gameLayer,
+        game = gameLayer,
         sparrowColorScheme = sparrowColorScheme
     )
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalWasmJsInterop::class)
 private fun buildGui(
-    gameLayer: GameLayer,
+    game: Game,
     sparrowColorScheme: SparrowColorScheme
 ) {
     ComposeViewport(
@@ -67,7 +67,7 @@ private fun buildGui(
                             }
                             .testTag("app-com.github.adamyork.sparrow.wasm.main-content-wrapper")
                     ) {
-                        gameLayer.build()
+                        game.build()
                     }
                 }
             }

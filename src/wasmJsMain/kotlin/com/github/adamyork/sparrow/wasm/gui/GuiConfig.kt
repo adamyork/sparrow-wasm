@@ -5,12 +5,12 @@ import me.tatarka.inject.annotations.Provides
 
 interface GuiConfig {
 
-    val gameLayer: GameLayer
+    val game: Game
     val sparrowColorScheme: SparrowColorScheme
 
     @AppScope
     @Provides
-    fun provideGameLayer(impl: DefaultGameLayer): GameLayer = impl
+    fun provideGameLayer(impl: DefaultGame): Game = impl
 
 
     @AppScope

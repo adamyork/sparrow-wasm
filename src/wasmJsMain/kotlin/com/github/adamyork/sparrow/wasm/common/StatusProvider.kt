@@ -10,4 +10,6 @@ interface StatusProvider {
     fun atOrUnderFpsMax(nextPaintTimeMs: Long): Boolean
 
     fun getFps(): Double
+
+    fun reset()
 }
