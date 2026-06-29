@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -59,7 +61,8 @@ class DefaultGame(
     private val scoreService: ScoreService,
     private val statusProvider: StatusProvider,
     private val wavService: WavService,
-    private val audioQueue: AudioQueue
+    private val audioQueue: AudioQueue,
+    private val sparrowColorScheme: DefaultSparrowColorScheme
 ) : Game, LoadingProgressListener {
 
     private val logger = KotlinLogging.logger {}
@@ -86,7 +89,7 @@ class DefaultGame(
     override fun build() {
         val drawLayer = remember { DrawLayer() }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
-        var gameStatusLabel by remember { mutableStateOf("Starting") }
+        var gameStatusLabel by remember { mutableStateOf("Press Start To Begin") }
         var gameStatusLabelColor by remember { mutableStateOf(Color.Black) }
         var scoreLabel by remember { mutableStateOf("Score: --") }
         var totalLabel by remember { mutableStateOf("Total: --") }
@@ -94,11 +97,26 @@ class DefaultGame(
         var isRunning by remember { mutableStateOf(false) }
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
         val allTasksCompleted = viewModel.loadingTasks.all { it.isCompleted }
+        var splashImage by remember { mutableStateOf<ImageBitmap?>(null) }
+
+        val overlayBg = sparrowColorScheme.getScoreOverlayBackground()
+        val disabledButtonColors = sparrowColorScheme.getDisabledButtonColors()
+        val disabledBorder = sparrowColorScheme.getDisabledBorder()
+
+        fun updateScoreLabels() {
+            val total = scoreService.getTotal()
+            val remaining = scoreService.getRemaining()
+            val score = (total - remaining).coerceAtLeast(0)
+            scoreLabel = "Score: $score"
+            totalLabel = "Total: $total"
+            remainingLabel = "Remaining: $remaining"
+        }
 
         LaunchedEffect(allTasksCompleted) {
             if (allTasksCompleted) {
                 kotlinx.coroutines.delay(2000.milliseconds)
                 isLoadingChecklistVisible = false
+                drawLayer.drawSplash(splashImage!!)
             }
         }
 
@@ -107,11 +125,11 @@ class DefaultGame(
                 logger.info { "initializing" }
                 assetService.initialize(this@DefaultGame)
                 logger.info { "loading splash image" }
-                //TODO this needs to go in app YAML
                 assetService.loadBufferedImageAsync("https://sparrow-assets.pages.dev/splash.png").also {
                     viewModel.onTaskCompleted("splash")
                 }
             }.onSuccess { loadedImage ->
+                splashImage = loadedImage
                 logger.info { "splash loaded and game initialized" }
                 viewPort = ViewPort(
                     assetService.gameConfig.viewport.x,
@@ -166,14 +184,9 @@ class DefaultGame(
                 engine.setCollisionBufferedImage(gameMap.collisionAsset)
                 particles.populateColorMap(assetService)
                 scoreService.gameMapItem = gameMap.items
-                val total = scoreService.getTotal()
-                val remaining = scoreService.getRemaining()
-                val score = (total - remaining).coerceAtLeast(0)
-                scoreLabel = "Score: $score"
-                totalLabel = "Total: $total"
-                remainingLabel = "Remaining: $remaining"
+                updateScoreLabels()
                 isInitialized = true
-                drawLayer.drawSplash(loadedImage)
+
                 statusProvider.lastPaintTime = Clock.System.now().toEpochMilliseconds()
             }.onFailure { failure ->
                 logger.error { "init failed $failure" }
@@ -254,12 +267,7 @@ class DefaultGame(
                     }
                     val currentFps = statusProvider.getFps()
                     fpsLabel = "FPS: ${currentFps.toInt()}"
-                    val total = scoreService.getTotal()
-                    val remaining = scoreService.getRemaining()
-                    val score = (total - remaining).coerceAtLeast(0)
-                    scoreLabel = "Score: $score"
-                    totalLabel = "Total: $total"
-                    remainingLabel = "Remaining: $remaining"
+                    updateScoreLabels()
                     gameStatusLabel = assetService.getTextForGameState(gameMap.state).message
                     gameStatusLabelColor = assetService.getTextForGameState(gameMap.state).color
                     frameId = window.requestAnimationFrame { _ ->
@@ -318,10 +326,7 @@ class DefaultGame(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .padding(top = 12.dp)
-                            .background(
-                                color = Color.White.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
+                            .background(overlayBg, RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                             .semantics { contentDescription = "centered-top-label" }
                             .testTag("centered-top-label")
@@ -334,7 +339,7 @@ class DefaultGame(
                                 .width(260.dp)
                                 .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                                 .padding(16.dp),
-                            horizontalAlignment = Alignment.Start, // Adjusted to match checklist style
+                            horizontalAlignment = Alignment.Start,
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             viewModel.loadingTasks.forEach { task ->
@@ -362,14 +367,11 @@ class DefaultGame(
                     Text(
                         text = fpsLabel,
                         style = MaterialTheme.typography.labelLarge,
-                        color = Color.White, // Set text color to white
+                        color = Color.White,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
+                            .background(overlayBg, RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                             .semantics { contentDescription = "FPS label" }
                             .testTag("fps-label")
@@ -379,10 +381,7 @@ class DefaultGame(
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(12.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
+                            .background(overlayBg, RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                             .semantics { contentDescription = "score-overlay" }
                             .testTag("score-overlay"),
@@ -425,9 +424,11 @@ class DefaultGame(
                             focusManager.clearFocus()
                         },
                         enabled = isRunning,
+                        colors = disabledButtonColors,
                         modifier = Modifier
                             .semantics { contentDescription = "pause-button" }
                             .testTag("pause-button")
+                            .border(disabledBorder, RoundedCornerShape(6.dp))
                     ) {
                         Text("Pause")
                     }
@@ -438,15 +439,15 @@ class DefaultGame(
                             focusManager.clearFocus()
                         },
                         enabled = isRunning,
+                        colors = disabledButtonColors,
                         modifier = Modifier
                             .semantics { contentDescription = "reset-button" }
                             .testTag("reset-button")
+                            .border(disabledBorder, RoundedCornerShape(6.dp))
                     ) {
                         Text("reset")
                     }
                 }
-
-
             }
         }
     }
@@ -599,5 +600,4 @@ class DefaultGame(
             }
         }
     }
-
 }

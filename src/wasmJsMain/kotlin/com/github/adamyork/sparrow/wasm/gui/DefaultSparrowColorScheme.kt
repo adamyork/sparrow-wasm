@@ -6,10 +6,18 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import me.tatarka.inject.annotations.Inject
 
 @Inject
 class DefaultSparrowColorScheme : SparrowColorScheme {
+
+    // --- Legacy CSS Constants ---
+    private val cssButtonActive = Color(0xFFEDC189)
+    private val cssButtonDisabledBg = Color(0xFFCCCCCC)
+    private val cssButtonDisabledBorder = Color(0xFF999999)
+    private val cssButtonDisabledText = Color(0xFF666666)
+    private val cssOverlayBackground = Color(0xFFFFFFFF).copy(alpha = 0.65f)
 
     // --- Light Mode Palette Definitions ---
     private val lightBgColor = Color(0xFFF8FAFC)        // --bg-color
@@ -63,17 +71,16 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
 
     @Composable
     override fun getScheme(): ColorScheme {
-        return if (isSystemInDarkTheme()) {
+        val baseScheme = if (isSystemInDarkTheme()) {
             darkColorScheme(
                 primary = primaryColor,
                 background = backgroundColor,
-                surface = backgroundColor,               // Matches HTML, body mapping
-                surfaceContainer = cardBackground,       // .content-block, header, footer mapping
-                onBackground = textMain,                 // var(--text-com.github.adamyork.sparrow.wasm.main)
-                onSurface = textMain,                    // var(--text-com.github.adamyork.sparrow.wasm.main)
-                onSurfaceVariant = textMuted,            // var(--text-muted) for subtext
-                outline = borderColor,                   // Standard borders
-                outlineVariant = borderColor             // Dividers and structural borders
+                surface = backgroundColor,
+                surfaceContainer = cardBackground,
+                onBackground = textMain,
+                onSurface = textMain,
+                onSurfaceVariant = textMuted,
+                outline = borderColor
             )
         } else {
             lightColorScheme(
@@ -84,11 +91,33 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
                 onBackground = textMain,
                 onSurface = textMain,
                 onSurfaceVariant = textMuted,
-                outline = borderColor,
-                outlineVariant = borderColor
+                outline = borderColor
             )
         }
+
+        // Apply custom button styling by overriding the generated scheme
+        return baseScheme.copy(
+            primary = cssButtonActive, // Maps button background to Primary
+            onPrimary = Color.Black     // Matches CSS: color: black
+        )
     }
+
+    @Composable
+    fun getDisabledButtonColors() = androidx.compose.material3.ButtonDefaults.buttonColors(
+        containerColor = cssButtonDisabledBg,
+        contentColor = cssButtonDisabledText,
+        disabledContainerColor = cssButtonDisabledBg,
+        disabledContentColor = cssButtonDisabledText
+    )
+
+    @Composable
+    fun getDisabledBorder() = androidx.compose.foundation.BorderStroke(
+        width = 1.dp,
+        color = cssButtonDisabledBorder
+    )
+
+    @Composable
+    fun getScoreOverlayBackground() = cssOverlayBackground
 
     @Composable
     override fun getHoverColor(): Color = primaryHoverColor
