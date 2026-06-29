@@ -1,11 +1,13 @@
 package com.github.adamyork.sparrow.wasm.engine
 
+import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 
 /**
  * Author: Adam York
@@ -34,5 +36,11 @@ interface Engine {
         viewPort: ViewPort,
         player: Player
     ): DrawResult
+
+    fun createDefaultPlayer(playerAsset: ImageAsset): Player
+
+    fun startInput(controlAction: ControlAction, player: Player): Player
+
+    fun stopInput(controlAction: ControlAction, player: Player): Player
 
 }

@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.engine.data
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -22,4 +23,11 @@ data class Particle(
     val radius: Int,
     val color: Color,
     val shape: ParticleShape
-)
+) {
+    fun toRect() = Rect(
+        x.toFloat(),
+        y.toFloat(),
+        (x + width).toFloat(),
+        (y + height).toFloat()
+    )
+}

@@ -2,17 +2,8 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.data.Direction
-import com.github.adamyork.sparrow.wasm.common.data.GameElement
-import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
-import com.github.adamyork.sparrow.wasm.common.data.GameElementState
-import com.github.adamyork.sparrow.wasm.common.data.ViewPort
-import com.github.adamyork.sparrow.wasm.common.data.enemy.BlockerEnemy
-import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
-import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
-import com.github.adamyork.sparrow.wasm.common.data.enemy.RunnerEnemy
-import com.github.adamyork.sparrow.wasm.common.data.enemy.ShooterEnemy
-import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
+import com.github.adamyork.sparrow.wasm.common.data.*
+import com.github.adamyork.sparrow.wasm.common.data.enemy.*
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
 import com.github.adamyork.sparrow.wasm.common.data.item.Item
@@ -22,14 +13,19 @@ import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
-import com.github.adamyork.sparrow.wasm.engine.*
+import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
+import com.github.adamyork.sparrow.wasm.engine.Collision
+import com.github.adamyork.sparrow.wasm.engine.Engine
+import com.github.adamyork.sparrow.wasm.engine.Particles
+import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleShape
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.AssetService
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.wasm.service.ScoreService
+import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
@@ -58,7 +54,6 @@ class DefaultEngine @AppScope @Inject constructor(
 
     private val itemImageCache: HashMap<String, Image> = hashMapOf()
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
-    private val testAssetImageCache: HashMap<String, Image> = hashMapOf()
 
     override fun setCollisionBufferedImage(imageAndBytes: ImageAndBytes) {
         this.collision.collisionImage = imageAndBytes
@@ -325,6 +320,80 @@ class DefaultEngine @AppScope @Inject constructor(
             collisionOffsetX = viewPort.x.toFloat(),
             collisionOffsetY = viewPort.y.toFloat(),
         )
+    }
+
+    override fun createDefaultPlayer(playerAsset: ImageAsset): Player {
+        return Player(
+            assetService.gameConfig.player.x,
+            assetService.gameConfig.player.y,
+            playerAsset.width,
+            playerAsset.height,
+            GameElementState.ACTIVE,
+            FrameMetadata(1, Cell(1, 1, playerAsset.width, playerAsset.height)),
+            playerAsset.imageAndBytes,
+            0.0,
+            0.0,
+            PlayerJumpingState.GROUNDED,
+            PlayerMovingState.STATIONARY,
+            Direction.RIGHT,
+            GameElementCollisionState.FREE
+        )
+    }
+
+    override fun startInput(controlAction: ControlAction, player: Player): Player {
+        when (controlAction) {
+            ControlAction.LEFT, ControlAction.RIGHT -> {
+                val direction = if (controlAction == ControlAction.LEFT) Direction.LEFT else Direction.RIGHT
+                return player.copy(
+                    moving = PlayerMovingState.MOVING,
+                    direction = direction,
+                    vx = adjustXVelocity(controlAction, player)
+                )
+            }
+
+            ControlAction.JUMP -> {
+                if (player.jumping == PlayerJumpingState.GROUNDED) {
+                    audioQueue.queue.add(Sounds.JUMP)
+                    return player.copy(jumping = PlayerJumpingState.INITIAL)
+                }
+            }
+        }
+        return player
+    }
+
+    private fun adjustXVelocity(controlAction: ControlAction, player: Player): Double {
+        val movingLeft = controlAction == ControlAction.LEFT
+        val movingRight = controlAction == ControlAction.RIGHT
+        val isChangingToLeft = movingLeft && player.direction == Direction.RIGHT
+        val isChangingToRight = movingRight && player.direction == Direction.LEFT
+        val isChangingDirection = isChangingToLeft || isChangingToRight
+        return if (isChangingDirection) {
+            logger.info { getDirectionChangedLogMessage(player) }
+            0.0
+        } else {
+            player.vx
+        }
+    }
+
+    private fun getDirectionChangedLogMessage(player: Player): String {
+        return "direction changed player vx was: ${player.vx} and is now 0"
+    }
+
+    override fun stopInput(controlAction: ControlAction, player: Player): Player {
+        val movingLeft = controlAction == ControlAction.LEFT
+        val movingRight = controlAction == ControlAction.RIGHT
+        if (movingLeft && player.direction == Direction.RIGHT) {
+            logger.warn { "stop player left called before right started" }
+        } else if (movingRight && player.direction == Direction.LEFT) {
+            logger.warn { "stop player right called before left started" }
+        }
+        val isStoppingLeft = movingLeft && player.direction == Direction.LEFT
+        val isStoppingRight = movingRight && player.direction == Direction.RIGHT
+        val matchesDirection = isStoppingLeft || isStoppingRight
+        if (matchesDirection) {
+            return player.copy(moving = PlayerMovingState.STATIONARY)
+        }
+        return player
     }
 
     private fun drawPlayer(

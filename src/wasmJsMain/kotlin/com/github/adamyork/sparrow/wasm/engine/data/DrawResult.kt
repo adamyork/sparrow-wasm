@@ -20,4 +20,21 @@ data class DrawResult(
     val collisionOffsetY: Float,
     val foregroundOffsetX: Float,
     val foregroundOffsetY: Float,
-)
+) {
+    companion object {
+        val EMPTY_DRAW_RESULT = DrawResult(
+            null,
+            null,
+            0f,
+            0f,
+            null,
+            0f,
+            0f,
+            null,
+            0f,
+            0f,
+            0f,
+            0f
+        )
+    }
+}

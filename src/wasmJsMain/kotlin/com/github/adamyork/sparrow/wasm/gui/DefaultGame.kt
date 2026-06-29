@@ -2,7 +2,6 @@ package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.runtime.Composable
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
@@ -24,7 +23,6 @@ class DefaultGame(
     private val scoreService: ScoreService,
     private val statusProvider: StatusProvider,
     private val wavService: WavService,
-    private val audioQueue: AudioQueue,
     private val sparrowColorScheme: DefaultSparrowColorScheme
 ) : Game {
 
@@ -34,8 +32,7 @@ class DefaultGame(
         particles = particles,
         scoreService = scoreService,
         statusProvider = statusProvider,
-        wavService = wavService,
-        audioQueue = audioQueue
+        wavService = wavService
     )
 
     private val screen = GameUiMain(
