@@ -23,15 +23,12 @@ import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
-import com.github.adamyork.sparrow.wasm.common.data.ControlAction
-import com.github.adamyork.sparrow.wasm.common.data.ControlType
-import com.github.adamyork.sparrow.wasm.common.data.Sounds
-import com.github.adamyork.sparrow.wasm.data.*
-import com.github.adamyork.sparrow.wasm.data.Direction
-import com.github.adamyork.sparrow.wasm.data.map.GameMap
-import com.github.adamyork.sparrow.wasm.data.player.Player
-import com.github.adamyork.sparrow.wasm.data.player.PlayerJumpingState
-import com.github.adamyork.sparrow.wasm.data.player.PlayerMovingState
+import com.github.adamyork.sparrow.wasm.common.data.*
+import com.github.adamyork.sparrow.wasm.common.data.Direction
+import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
+import com.github.adamyork.sparrow.wasm.common.data.player.Player
+import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
+import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
 import com.github.adamyork.sparrow.wasm.engine.DrawResult
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
@@ -51,6 +48,7 @@ import me.tatarka.inject.annotations.Inject
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 
 @AppScope
 @Inject
@@ -94,6 +92,15 @@ class DefaultGame(
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
         var isRunning by remember { mutableStateOf(false) }
+        var isLoadingChecklistVisible by remember { mutableStateOf(true) }
+        val allTasksCompleted = viewModel.loadingTasks.all { it.isCompleted }
+
+        LaunchedEffect(allTasksCompleted) {
+            if (allTasksCompleted) {
+                kotlinx.coroutines.delay(2000.milliseconds)
+                isLoadingChecklistVisible = false
+            }
+        }
 
         LaunchedEffect(Unit) {
             runCatching {
@@ -146,7 +153,7 @@ class DefaultGame(
                     playerAsset.height,
                     GameElementState.ACTIVE,
                     FrameMetadata(1, Cell(1, 1, playerAsset.width, playerAsset.height)),
-                    playerAsset.customImageWrapper,
+                    playerAsset.imageAndBytes,
                     0.0,
                     0.0,
                     PlayerJumpingState.GROUNDED,
@@ -320,9 +327,7 @@ class DefaultGame(
                             .testTag("centered-top-label")
                     )
 
-                    val allTasksCompleted = viewModel.loadingTasks.all { it.isCompleted }
-
-                    if (!allTasksCompleted) {
+                    if (isLoadingChecklistVisible) {
                         Column(
                             modifier = Modifier
                                 .align(Alignment.Center)
@@ -455,7 +460,7 @@ class DefaultGame(
             playerAsset.height,
             GameElementState.ACTIVE,
             FrameMetadata(1, Cell(1, 1, playerAsset.width, playerAsset.height)),
-            playerAsset.customImageWrapper,
+            playerAsset.imageAndBytes,
             0.0,
             0.0,
             PlayerJumpingState.GROUNDED,

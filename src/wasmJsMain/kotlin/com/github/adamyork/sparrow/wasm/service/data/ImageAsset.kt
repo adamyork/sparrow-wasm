@@ -1,6 +1,4 @@
 package com.github.adamyork.sparrow.wasm.service.data
 
-import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
 
-
-data class ImageAsset(val width: Int, val height: Int, val customImageWrapper: CustomImageWrapper)
+data class ImageAsset(val width: Int, val height: Int, val imageAndBytes: ImageAndBytes)

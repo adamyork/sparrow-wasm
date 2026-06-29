@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.engine
 
-import com.github.adamyork.sparrow.wasm.data.enemy.Enemy
-import com.github.adamyork.sparrow.wasm.data.player.Player
+import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
+import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.service.AssetService
 

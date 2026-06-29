@@ -2,24 +2,32 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
-import com.github.adamyork.sparrow.wasm.data.*
-import com.github.adamyork.sparrow.wasm.data.enemy.*
-import com.github.adamyork.sparrow.wasm.data.item.CollectibleItem
-import com.github.adamyork.sparrow.wasm.data.item.FinishItem
-import com.github.adamyork.sparrow.wasm.data.item.Item
-import com.github.adamyork.sparrow.wasm.data.item.ItemType
-import com.github.adamyork.sparrow.wasm.data.map.GameMap
-import com.github.adamyork.sparrow.wasm.data.map.GameMapState
-import com.github.adamyork.sparrow.wasm.data.player.Player
-import com.github.adamyork.sparrow.wasm.data.player.PlayerJumpingState
-import com.github.adamyork.sparrow.wasm.data.player.PlayerMovingState
+import com.github.adamyork.sparrow.wasm.common.data.Direction
+import com.github.adamyork.sparrow.wasm.common.data.GameElement
+import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
+import com.github.adamyork.sparrow.wasm.common.data.GameElementState
+import com.github.adamyork.sparrow.wasm.common.data.ViewPort
+import com.github.adamyork.sparrow.wasm.common.data.enemy.BlockerEnemy
+import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
+import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
+import com.github.adamyork.sparrow.wasm.common.data.enemy.RunnerEnemy
+import com.github.adamyork.sparrow.wasm.common.data.enemy.ShooterEnemy
+import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
+import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
+import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
+import com.github.adamyork.sparrow.wasm.common.data.item.Item
+import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
+import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
+import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
+import com.github.adamyork.sparrow.wasm.common.data.player.Player
+import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
+import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
 import com.github.adamyork.sparrow.wasm.engine.*
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleShape
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.AssetService
-import com.github.adamyork.sparrow.wasm.service.CustomImageWrapper
+import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
@@ -47,8 +55,8 @@ class DefaultEngine @AppScope @Inject constructor(
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
     private val testAssetImageCache: HashMap<String, Image> = hashMapOf()
 
-    override fun setCollisionBufferedImage(customImageWrapper: CustomImageWrapper) {
-        this.collision.collisionImage = customImageWrapper
+    override fun setCollisionBufferedImage(imageAndBytes: ImageAndBytes) {
+        this.collision.collisionImage = imageAndBytes
         this.collision.cacheCollisionPixels()
     }
 
@@ -264,13 +272,13 @@ class DefaultEngine @AppScope @Inject constructor(
         map.items.forEach { item ->
             if (itemImageCache[item.type.name] == null) {
                 itemImageCache[item.type.name] =
-                    Image.makeFromBitmap(item.customImageWrapper.imageBitmap.asSkiaBitmap())
+                    Image.makeFromBitmap(item.imageAndBytes.imageBitmap.asSkiaBitmap())
             }
         }
         map.enemies.forEach { enemy ->
             if (enemyImageCache[enemy.type.name] == null) {
                 enemyImageCache[enemy.type.name] =
-                    Image.makeFromBitmap(enemy.customImageWrapper.imageBitmap.asSkiaBitmap())
+                    Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())
             }
         }
         drawMapElements(
@@ -291,21 +299,21 @@ class DefaultEngine @AppScope @Inject constructor(
             mapItem = map.items.firstOrNull()
         }
         if (mapItemImage == null && mapItem != null) {
-            mapItemImage = Image.makeFromBitmap(mapItem!!.customImageWrapper.imageBitmap.asSkiaBitmap())
+            mapItemImage = Image.makeFromBitmap(mapItem!!.imageAndBytes.imageBitmap.asSkiaBitmap())
         }
         drawParticles(map, viewPort, foregroundCanvas, mapItem, mapItemImage)
         if (playerImage == null) {
-            playerImage = Image.makeFromBitmap(player.customImageWrapper.imageBitmap.asSkiaBitmap())
+            playerImage = Image.makeFromBitmap(player.imageAndBytes.imageBitmap.asSkiaBitmap())
         }
         drawPlayer(player, viewPort, foregroundCanvas, playerImage!!)
         return DrawResult(
             foregroundSurface = foregroundSurface,
             foregroundOffsetX = viewPort.x.toFloat(),
             foregroundOffsetY = viewPort.y.toFloat(),
-            farGroundBitmap = map.farGroundAsset.customImageWrapper.imageBitmap,
+            farGroundBitmap = map.farGroundAsset.imageAndBytes.imageBitmap,
             farGroundOffsetX = map.getFarGroundX(viewPort).toFloat(),
             farGroundOffsetY = viewPort.y.toFloat(),
-            midGroundBitmap = map.midGroundAsset.customImageWrapper.imageBitmap,
+            midGroundBitmap = map.midGroundAsset.imageAndBytes.imageBitmap,
             midGroundOffsetX = map.getMidGroundX(viewPort).toFloat(),
             midGroundOffsetY = viewPort.y.toFloat(),
             collisionBitmap = if (assetService.showCollisionMap()) map.collisionAsset.imageBitmap else null,

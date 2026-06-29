@@ -1,8 +1,8 @@
 package com.github.adamyork.sparrow.wasm.engine
 
 import androidx.compose.ui.geometry.Rect
-import com.github.adamyork.sparrow.wasm.data.ViewPort
-import com.github.adamyork.sparrow.wasm.data.player.Player
+import com.github.adamyork.sparrow.wasm.common.data.ViewPort
+import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 

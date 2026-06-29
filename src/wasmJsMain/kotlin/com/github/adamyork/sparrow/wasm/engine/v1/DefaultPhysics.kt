@@ -2,13 +2,13 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.DefaultStatusProvider
-import com.github.adamyork.sparrow.wasm.data.Direction
-import com.github.adamyork.sparrow.wasm.data.GameElementCollisionState
-import com.github.adamyork.sparrow.wasm.data.ViewPort
-import com.github.adamyork.sparrow.wasm.data.player.Player
-import com.github.adamyork.sparrow.wasm.data.player.PlayerJumpingState
-import com.github.adamyork.sparrow.wasm.data.player.PlayerMovingState
+import com.github.adamyork.sparrow.wasm.common.v1.DefaultStatusProvider
+import com.github.adamyork.sparrow.wasm.common.data.Direction
+import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
+import com.github.adamyork.sparrow.wasm.common.data.ViewPort
+import com.github.adamyork.sparrow.wasm.common.data.player.Player
+import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
+import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
 import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.*

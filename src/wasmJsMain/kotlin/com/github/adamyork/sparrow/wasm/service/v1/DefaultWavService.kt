@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
+import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.WavService

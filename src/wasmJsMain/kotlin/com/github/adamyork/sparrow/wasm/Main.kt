@@ -1,7 +1,6 @@
 package com.github.adamyork.sparrow.wasm
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Alignment
@@ -19,7 +18,6 @@ import io.github.oshai.kotlinlogging.Level
 
 private val logger = KotlinLogging.logger {}
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 fun main() {
     LogConfig.initialize(minimumLevel = Level.INFO)
     logger.info { "app started" }
@@ -32,7 +30,7 @@ fun main() {
     )
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalWasmJsInterop::class)
+@OptIn(ExperimentalComposeUiApi::class)
 private fun buildGui(
     game: Game,
     sparrowColorScheme: SparrowColorScheme

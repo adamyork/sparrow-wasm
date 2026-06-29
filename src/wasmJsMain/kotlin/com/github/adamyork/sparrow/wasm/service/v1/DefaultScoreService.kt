@@ -1,9 +1,9 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.data.item.Item
-import com.github.adamyork.sparrow.wasm.data.GameElementState
-import com.github.adamyork.sparrow.wasm.data.item.ItemType
+import com.github.adamyork.sparrow.wasm.common.data.item.Item
+import com.github.adamyork.sparrow.wasm.common.data.GameElementState
+import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import me.tatarka.inject.annotations.Inject
 

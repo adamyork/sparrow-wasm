@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm.engine.data
 
-import com.github.adamyork.sparrow.wasm.data.player.PlayerJumpingState
+import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
 
 data class PhysicsYResult(
     val y: Int,
