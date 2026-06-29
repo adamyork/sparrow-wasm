@@ -3,8 +3,11 @@ package com.github.adamyork.sparrow.wasm.gui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -36,11 +39,14 @@ import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import com.github.adamyork.sparrow.wasm.service.WavService
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
+import com.github.adamyork.sparrow.wasm.service.v1.LoadingProgressListener
+import com.github.adamyork.sparrow.wasm.service.v1.LoadingViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.browser.window
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
@@ -56,7 +62,7 @@ class DefaultGame(
     private val statusProvider: StatusProvider,
     private val wavService: WavService,
     private val audioQueue: AudioQueue
-) : Game {
+) : Game, LoadingProgressListener {
 
     private val logger = KotlinLogging.logger {}
 
@@ -70,6 +76,14 @@ class DefaultGame(
     lateinit var mapEnemyShooterAsset: ImageAsset
     var isInitialized: Boolean = false
 
+    private val viewModel = LoadingViewModel()
+
+    override fun onTaskCompleted(taskId: String) {
+        logger.info { "task id is $taskId" }
+        logger.info { "mapped key task is ${LoadingViewModel.mapKeyToTaskId(taskId)}" }
+        viewModel.onTaskCompleted(LoadingViewModel.mapKeyToTaskId(taskId))
+    }
+
     @Composable
     override fun build() {
         val drawLayer = remember { DrawLayer() }
@@ -80,19 +94,15 @@ class DefaultGame(
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
         var isRunning by remember { mutableStateOf(false) }
-        var loadingProgress by remember { mutableStateOf(0f) }
-        var loadingLabel by remember { mutableStateOf("Initializing...") }
 
         LaunchedEffect(Unit) {
             runCatching {
                 logger.info { "initializing" }
-                loadingLabel = "Initializing game services..."
-                assetService.initialize()
+                assetService.initialize(this@DefaultGame)
                 logger.info { "loading splash image" }
-                loadingLabel = "Loading splash image..."
                 //TODO this needs to go in app YAML
                 assetService.loadBufferedImageAsync("https://sparrow-assets.pages.dev/splash.png").also {
-                    loadingProgress = 0.30f
+                    viewModel.onTaskCompleted("splash")
                 }
             }.onSuccess { loadedImage ->
                 logger.info { "splash loaded and game initialized" }
@@ -104,30 +114,31 @@ class DefaultGame(
                     assetService.gameConfig.viewport.width,
                     assetService.gameConfig.viewport.height
                 )
-                val assetProgressEnd = 0.90f
 
                 val deferredAssets = listOf(
-                    async { "map" to (assetService.loadMap(0) as Any) },
+                    async { "map" to (assetService.loadMap(0, this@DefaultGame) as Any) },
                     async { "player" to (assetService.loadPlayer() as Any) },
                     async { "collectible item" to (assetService.loadItem(0) as Any) },
                     async { "finish item" to (assetService.loadItem(1) as Any) },
                     async { "blocker enemy" to (assetService.loadEnemy(0) as Any) },
                     async { "shooter enemy" to (assetService.loadEnemy(1) as Any) },
-                    async { "game audio" to (assetService.loadAudio() as Any) }
+                    async { "game audio" to (assetService.loadAudio(this@DefaultGame) as Any) }
                 )
-                loadingLabel = "Loading assets in parallel..."
-                val loadedAssets = deferredAssets.awaitAll().toMap(mutableMapOf())
-                val completedAssetLoads = 6
-                loadingProgress = assetProgressEnd
-                loadingLabel = "Loaded assets ($completedAssetLoads/6)"
+                val loadedAssets = mutableMapOf<String, Any>()
+                deferredAssets.forEach { deferred ->
+                    launch {
+                        val (key, value) = deferred.await()
+                        loadedAssets[key] = value
+                        viewModel.onTaskCompleted(LoadingViewModel.mapKeyToTaskId(key))
+                    }
+                }
+                deferredAssets.awaitAll()
                 gameMap = loadedAssets["map"] as GameMap
                 playerAsset = loadedAssets["player"] as ImageAsset
                 mapItemCollectibleAsset = loadedAssets["collectible item"] as ImageAsset
                 mapItemFinishAsset = loadedAssets["finish item"] as ImageAsset
                 mapEnemyBlockerAsset = loadedAssets["blocker enemy"] as ImageAsset
                 mapEnemyShooterAsset = loadedAssets["shooter enemy"] as ImageAsset
-
-                loadingLabel = "Preparing game world..."
                 player = Player(
                     assetService.gameConfig.player.x,
                     assetService.gameConfig.player.y,
@@ -156,12 +167,9 @@ class DefaultGame(
                 remainingLabel = "Remaining: $remaining"
                 isInitialized = true
                 drawLayer.drawSplash(loadedImage)
-                loadingProgress = 1.0f
-                loadingLabel = "Ready"
                 statusProvider.lastPaintTime = Clock.System.now().toEpochMilliseconds()
             }.onFailure { failure ->
                 logger.error { "init failed $failure" }
-                loadingLabel = "Initialization failed"
             }
         }
 
@@ -312,34 +320,37 @@ class DefaultGame(
                             .testTag("centered-top-label")
                     )
 
-                    if (loadingProgress < 1f) {
+                    val allTasksCompleted = viewModel.loadingTasks.all { it.isCompleted }
+
+                    if (!allTasksCompleted) {
                         Column(
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .width(260.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .width(260.dp)
+                                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.Start, // Adjusted to match checklist style
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = loadingLabel,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.White,
-                                modifier = Modifier
-                                    .background(
-                                        color = Color.Black.copy(alpha = 0.45f),
-                                        shape = RoundedCornerShape(6.dp)
+                            viewModel.loadingTasks.forEach { task ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.Circle,
+                                        contentDescription = null,
+                                        tint = if (task.isCompleted) Color.Green else Color.Gray,
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    .semantics { contentDescription = "game-progress-label" }
-                                    .testTag("game-progress-label")
-                            )
-                            LinearProgressIndicator(
-                                progress = { loadingProgress.coerceIn(0f, 1f) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .semantics { contentDescription = "game-progress-bar" }
-                                    .testTag("game-progress-bar")
-                            )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = task.label,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (task.isCompleted) Color.White else Color.LightGray
+                                    )
+                                }
+                            }
                         }
                     }
 

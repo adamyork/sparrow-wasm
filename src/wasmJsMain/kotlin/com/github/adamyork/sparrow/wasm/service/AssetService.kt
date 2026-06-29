@@ -8,6 +8,7 @@ import com.github.adamyork.sparrow.wasm.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
 import com.github.adamyork.sparrow.wasm.service.data.TextAsset
+import com.github.adamyork.sparrow.wasm.service.v1.LoadingProgressListener
 
 interface AssetService {
 
@@ -15,11 +16,11 @@ interface AssetService {
     var applicationYamlFile: String
     var gameConfig: GameConfig
 
-    suspend fun initialize()
+    suspend fun initialize(listener: LoadingProgressListener)
 
     suspend fun loadBufferedImageAsync(file: String): ImageBitmap
 
-    suspend fun loadMap(id: Int): GameMap
+    suspend fun loadMap(id: Int, listener: LoadingProgressListener): GameMap
 
     suspend fun loadItem(id: Int): ImageAsset
 
@@ -35,7 +36,7 @@ interface AssetService {
 
     suspend fun loadPlayer(): ImageAsset
 
-    suspend fun loadAudio()
+    suspend fun loadAudio(listener: LoadingProgressListener)
 
     fun getBackgroundAudio(): String
 

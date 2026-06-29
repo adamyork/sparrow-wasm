@@ -54,13 +54,14 @@ class DefaultAssetService : AssetService {
     private lateinit var backgroundAudio: String
 
     @OptIn(ExperimentalWasmJsInterop::class)
-    override suspend fun initialize() {
+    override suspend fun initialize(listener: LoadingProgressListener) {
         logger.info { "initialize called loading yaml" }
         val response = window.fetch("application.yml").await()
         val buffer = response.arrayBuffer().await()
         val uint8Array = Int8Array(buffer)
         val bytes = ByteArray(uint8Array.length) { i -> uint8Array[i] }
         val yamlString = bytes.decodeToString()
+        listener.onTaskCompleted("app_yaml")
         logger.info { "yaml loaded" }
         gameConfig = Yaml.default.decodeFromString(GameConfig.serializer(), yamlString)
         logger.info { "game config created" }
@@ -128,13 +129,19 @@ class DefaultAssetService : AssetService {
         }
     }
 
-    suspend fun loadAllMapImages(paths: List<String>): List<ImageBitmap> = coroutineScope {
+    suspend fun loadAllMapImages(
+        paths: List<String>,
+        listener: LoadingProgressListener
+    ): List<ImageBitmap> = coroutineScope {
         paths.map { path ->
             async {
-                loadBufferedImageAsync(path)
+                val bitmap = loadBufferedImageAsync(path)
+                listener.onTaskCompleted(path)
+                bitmap
             }
         }.awaitAll()
     }
+
 
     suspend fun createCustomImageWrappers(loadAllMapImages: List<ImageBitmap>): List<CustomImageWrapper> =
         coroutineScope {
@@ -152,14 +159,14 @@ class DefaultAssetService : AssetService {
             }.awaitAll()
         }
 
-    override suspend fun loadMap(id: Int): GameMap {
+    override suspend fun loadMap(id: Int, listener: LoadingProgressListener): GameMap {
         logger.info { "loading map $id" }
         val bgAssetPaths: ArrayList<String> = ArrayList()
         bgAssetPaths.add(gameConfig.map.bg)
         bgAssetPaths.add(gameConfig.map.mg)
         bgAssetPaths.add(gameConfig.map.fg)
         bgAssetPaths.add(gameConfig.map.col)
-        val allMapImages = loadAllMapImages(bgAssetPaths)
+        val allMapImages = loadAllMapImages(bgAssetPaths, listener)
         val customImages = createCustomImageWrappers(allMapImages)
         logger.info { "map $id loaded building custom images wrappers" }
         mapAssetMap[id] = ImageAsset(gameConfig.map.width, gameConfig.map.height, customImages[0])
@@ -234,7 +241,7 @@ class DefaultAssetService : AssetService {
     }
 
     @OptIn(ExperimentalWasmJsInterop::class)
-    override suspend fun loadAudio() = coroutineScope {
+    override suspend fun loadAudio(listener: LoadingProgressListener) = coroutineScope {
         val audioPathMap = mapOf(
             Sounds.JUMP to gameConfig.audio.player.jump,
             Sounds.PLAYER_COLLISION to gameConfig.audio.player.collision,
@@ -254,8 +261,9 @@ class DefaultAssetService : AssetService {
         deferredAudios.forEach { (key, deferred) ->
             val blob = deferred.await()
             audioMap[key] = URL.createObjectURL(blob)
+            listener.onTaskCompleted(key.name)
         }
-
+        listener.onTaskCompleted(gameConfig.audio.background)
         backgroundAudio = URL.createObjectURL(deferredBackground.await())
     }
 

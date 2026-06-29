@@ -1,6 +1,5 @@
 package com.github.adamyork.sparrow.wasm.service
 
-import com.github.adamyork.sparrow.wasm.engine.v1.DefaultEngine
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.DefaultAudioQueue
@@ -11,6 +10,7 @@ import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultCollision
+import com.github.adamyork.sparrow.wasm.engine.v1.DefaultEngine
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultParticles
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultPhysics
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultAssetService
