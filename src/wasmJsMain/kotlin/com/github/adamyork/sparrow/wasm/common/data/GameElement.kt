@@ -2,6 +2,10 @@ package com.github.adamyork.sparrow.wasm.common.data
 
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface GameElement {
 
     val x: Int

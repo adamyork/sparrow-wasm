@@ -9,6 +9,10 @@ import kotlin.time.Clock
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultStatusProvider(
     val assetService: AssetService
 ) : StatusProvider {

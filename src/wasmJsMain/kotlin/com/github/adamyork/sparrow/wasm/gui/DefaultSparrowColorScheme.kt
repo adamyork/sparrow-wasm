@@ -10,6 +10,10 @@ import androidx.compose.ui.unit.dp
 import me.tatarka.inject.annotations.Inject
 
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultSparrowColorScheme : SparrowColorScheme {
 
     // --- Legacy CSS Constants ---

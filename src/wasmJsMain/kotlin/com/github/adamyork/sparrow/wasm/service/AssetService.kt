@@ -10,6 +10,10 @@ import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
 import com.github.adamyork.sparrow.wasm.service.data.TextAsset
 import com.github.adamyork.sparrow.wasm.service.v1.LoadingProgressListener
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface AssetService {
 
     var backgroundMusicBytesMap: HashMap<Int, ByteArray>

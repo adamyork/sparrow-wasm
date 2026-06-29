@@ -8,6 +8,10 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 object LogConfig {
 
     fun initialize(minimumLevel: Level = Level.INFO) {

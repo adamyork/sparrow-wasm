@@ -1,5 +1,9 @@
 package com.github.adamyork.sparrow.wasm.common.data
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class Cell {
 
     val x: Int

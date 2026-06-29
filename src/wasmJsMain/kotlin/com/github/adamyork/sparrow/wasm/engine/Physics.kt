@@ -6,6 +6,10 @@ import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface Physics {
 
     fun applyPlayerPhysics(

@@ -11,6 +11,10 @@ import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class Player(
     override val x: Int,
     override val y: Int,

@@ -7,6 +7,10 @@ import me.tatarka.inject.annotations.Inject
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultAudioQueue : AudioQueue {
 
     override val queue: ArrayDeque<Sounds> = ArrayDeque()

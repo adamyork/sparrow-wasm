@@ -6,6 +6,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.github.adamyork.sparrow.wasm.service.data.LoadingTask
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class LoadingViewModel : ViewModel(), LoadingProgressListener {
 
     companion object {

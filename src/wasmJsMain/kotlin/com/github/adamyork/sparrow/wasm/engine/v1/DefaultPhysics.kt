@@ -19,6 +19,10 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultPhysics @AppScope @Inject constructor(
     private val statusProviderFactory: () -> DefaultStatusProvider,
     val physicsSettingsService: PhysicsSettingsService

@@ -17,6 +17,10 @@ import kotlin.random.Random
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultParticles : Particles {
 
     companion object {

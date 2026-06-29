@@ -8,6 +8,10 @@ import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface Enemy : GameElement {
 
     val type: EnemyType

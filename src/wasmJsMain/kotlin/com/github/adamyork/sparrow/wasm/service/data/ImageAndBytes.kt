@@ -2,6 +2,10 @@ package com.github.adamyork.sparrow.wasm.service.data
 
 import androidx.compose.ui.graphics.ImageBitmap
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class ImageAndBytes(val bytes: ByteArray, val imageBitmap: ImageBitmap) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

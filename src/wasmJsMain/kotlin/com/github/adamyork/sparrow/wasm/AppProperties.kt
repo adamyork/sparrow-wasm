@@ -3,6 +3,10 @@ package com.github.adamyork.sparrow.wasm
 import kotlinx.serialization.Serializable
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class GameConfig(
     val engine: EngineConfig,
     val viewport: ViewportConfig,
@@ -13,6 +17,10 @@ data class GameConfig(
 )
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class EngineConfig(val fps: MinMax)
 
 @Serializable
@@ -22,6 +30,10 @@ data class MinMax(val min: Int, val max: Int)
 data class ViewportConfig(val x: Int, val y: Int, val width: Int, val height: Int)
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class PlayerConfig(val asset: PathConfig, val width: Int, val height: Int, val x: Int, val y: Int)
 
 @Serializable
@@ -35,6 +47,10 @@ data class MapConfig(
 )
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class VisibleConfig(val visible: Boolean)
 
 @Serializable
@@ -51,6 +67,10 @@ data class ItemConfig(
 }
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class EnemyConfig(
     val asset: Map<String, AssetDimensions>, // Removed wrapper class to fix mapping
     private val position: Map<String, EnemyPosition> // Changed to String keys
@@ -61,6 +81,10 @@ data class EnemyConfig(
 }
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class AssetDimensions(val width: Int, val height: Int, val path: String)
 
 @Serializable
@@ -70,6 +94,10 @@ data class ItemPosition(val x: Int, val y: Int, val type: String)
 data class EnemyPosition(val x: Int, val y: Int, val type: String)
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class DirectiveConfig(val initial: TextColor, val finish: TextColor, val complete: TextColor)
 
 @Serializable
@@ -79,6 +107,10 @@ data class TextColor(val text: String, val color: String)
 data class ParticleConfig(val player: MovementCollision, val enemy: Projectile)
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class MovementCollision(val movement: ColorWrapper, val collision: ColorWrapper)
 
 @Serializable
@@ -88,6 +120,10 @@ data class ColorWrapper(val color: RGBA)
 data class RGBA(val r: Int, val g: Int, val b: Int, val a: Int)
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class Projectile(val projectile: ColorWrapper)
 
 @Serializable
@@ -97,6 +133,10 @@ data class AudioConfig(val player: PlayerAudio, val item: CollectAudio, val back
 data class PlayerAudio(val jump: String, val collision: String)
 
 @Serializable
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class CollectAudio(val collect: String)
 
 @Serializable

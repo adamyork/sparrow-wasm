@@ -8,4 +8,8 @@ import me.tatarka.inject.annotations.Component
 
 @AppScope
 @Component
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 abstract class AppConfig : GuiConfig, ServiceConfig, EngineConfig, CommonConfig

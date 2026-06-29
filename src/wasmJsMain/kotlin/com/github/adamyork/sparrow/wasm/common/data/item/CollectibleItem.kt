@@ -10,6 +10,10 @@ import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class CollectibleItem(
     override val width: Int,
     override val height: Int,

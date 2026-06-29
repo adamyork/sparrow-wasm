@@ -9,6 +9,10 @@ import me.tatarka.inject.annotations.Inject
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultScoreService : ScoreService {
 
     override var gameMapItem: ArrayList<Item> = ArrayList()

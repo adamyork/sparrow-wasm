@@ -38,6 +38,10 @@ import kotlin.math.sqrt
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultCollision(
     private val physics: Physics,
     private val scoreService: ScoreService

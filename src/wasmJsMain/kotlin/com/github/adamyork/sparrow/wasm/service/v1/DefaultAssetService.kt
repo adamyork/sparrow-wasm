@@ -35,6 +35,10 @@ import org.w3c.files.Blob
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultAssetService : AssetService {
 
     private val httpClient = HttpClient(Js)

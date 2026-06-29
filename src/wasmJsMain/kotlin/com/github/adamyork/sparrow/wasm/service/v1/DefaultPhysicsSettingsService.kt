@@ -6,6 +6,10 @@ import me.tatarka.inject.annotations.Inject
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultPhysicsSettingsService : PhysicsSettingsService {
 
     override var maxXVelocity: Double = 16.0

@@ -1,8 +1,12 @@
-package com.github.adamyork.sparrow.wasm.engine
+package com.github.adamyork.sparrow.wasm.engine.data
 
 import androidx.compose.ui.graphics.ImageBitmap
 import org.jetbrains.skia.Surface
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class DrawResult(
     val foregroundSurface: Surface?,
     val farGroundBitmap: ImageBitmap?,

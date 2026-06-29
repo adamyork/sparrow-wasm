@@ -22,6 +22,10 @@ import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class GameMap(
     var state: GameMapState,
     val farGroundAsset: ImageAsset,

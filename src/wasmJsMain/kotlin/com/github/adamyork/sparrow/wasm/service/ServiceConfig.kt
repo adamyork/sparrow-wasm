@@ -7,6 +7,10 @@ import com.github.adamyork.sparrow.wasm.service.v1.DefaultScoreService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultWavService
 import me.tatarka.inject.annotations.Provides
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface ServiceConfig {
 
     val assetService: AssetService

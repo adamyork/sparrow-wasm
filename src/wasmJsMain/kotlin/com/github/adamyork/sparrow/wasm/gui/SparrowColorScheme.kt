@@ -4,6 +4,10 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface SparrowColorScheme {
 
     @Composable

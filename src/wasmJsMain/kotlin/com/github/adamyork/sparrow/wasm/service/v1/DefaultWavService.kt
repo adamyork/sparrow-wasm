@@ -12,6 +12,10 @@ import org.w3c.dom.HTMLAudioElement
 
 @AppScope
 @Inject
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultWavService(
     private val assetService: AssetService,
     private val audioQueue: DefaultAudioQueue

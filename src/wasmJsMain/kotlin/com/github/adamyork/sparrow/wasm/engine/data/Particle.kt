@@ -2,6 +2,10 @@ package com.github.adamyork.sparrow.wasm.engine.data
 
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class Particle(
     val id: Int,
     val x: Int,

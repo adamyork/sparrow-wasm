@@ -5,6 +5,10 @@ import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.common.v1.DefaultStatusProvider
 import me.tatarka.inject.annotations.Provides
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface CommonConfig {
 
     val audioQueue: AudioQueue

@@ -7,6 +7,10 @@ import com.github.adamyork.sparrow.wasm.engine.v1.DefaultParticles
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultPhysics
 import me.tatarka.inject.annotations.Provides
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface EngineConfig {
 
     val engine: Engine

@@ -10,6 +10,10 @@ import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 data class ShooterEnemy(
     override val x: Int,
     override val y: Int,

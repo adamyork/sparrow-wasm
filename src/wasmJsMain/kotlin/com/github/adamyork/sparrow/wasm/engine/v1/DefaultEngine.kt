@@ -24,6 +24,7 @@ import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
 import com.github.adamyork.sparrow.wasm.engine.*
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
+import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleShape
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.AssetService
@@ -36,6 +37,10 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class DefaultEngine @AppScope @Inject constructor(
     private val physics: Physics,
     private val collision: Collision,
