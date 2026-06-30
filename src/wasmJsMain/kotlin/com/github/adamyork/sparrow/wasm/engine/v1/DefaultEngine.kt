@@ -111,10 +111,10 @@ class DefaultEngine @AppScope @Inject constructor(
         return nextViewPort
     }
 
-    override fun manageMap(player: Player, gameMap: GameMap): GameMap {
+    override fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort): GameMap {
         val managedMapItems = manageMapItems(gameMap)
         val managedMapEnemies = manageMapEnemies(gameMap, player)
-        val managedCollisionParticles = physics.applyCollisionParticlePhysics(gameMap.particles)
+        val managedCollisionParticles = physics.applyCollisionParticlePhysics(gameMap.particles, viewPort)
         val managedMapItemReturnParticles = physics.applyMapItemReturnParticlePhysics(managedCollisionParticles)
         if (player.moving == PlayerMovingState.MOVING && player.jumping == PlayerJumpingState.GROUNDED) {
             val nextDustParticles = particles.createDustParticles(player)

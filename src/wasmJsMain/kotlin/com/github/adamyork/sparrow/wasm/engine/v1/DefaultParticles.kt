@@ -35,7 +35,7 @@ class DefaultParticles : Particles {
 
     val colorMap: HashMap<ParticleType, Color> = HashMap()
 
-    override fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle> {
+    override fun createCollisionParticles(originX: Int, originY: Int, collisionId: String): ArrayList<Particle> {
         return (0..360).map {
             Particle(
                 it,
@@ -52,7 +52,8 @@ class DefaultParticles : Particles {
                 Random.nextInt(50),
                 1,
                 colorMap[ParticleType.COLLISION] ?: Color.White,
-                ParticleShape.RECT
+                ParticleShape.RECT,
+                collisionId
             )
         }.toCollection(ArrayList(360))
     }
@@ -87,7 +88,8 @@ class DefaultParticles : Particles {
                 0,
                 0,
                 adjustedAlphaColor,
-                ParticleShape.CIRCLE
+                ParticleShape.CIRCLE,
+                "none"
             )
         }.toCollection(ArrayList(12))
     }
@@ -122,7 +124,8 @@ class DefaultParticles : Particles {
                     yIncrement,
                     1,
                     colorMap[ParticleType.PROJECTILE] ?: Color.White,
-                    ParticleShape.CIRCLE
+                    ParticleShape.CIRCLE,
+                    "none"
                 )
             )
         }
@@ -145,7 +148,8 @@ class DefaultParticles : Particles {
             0,
             1,
             Color.White,
-            ParticleShape.RECT
+            ParticleShape.RECT,
+            "none"
         )
     }
 

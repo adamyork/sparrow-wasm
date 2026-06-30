@@ -20,7 +20,7 @@ interface Physics {
 
     fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort): Player
 
-    fun applyCollisionParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle>
+    fun applyCollisionParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort): ArrayList<Particle>
 
     fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle>
 

@@ -2,13 +2,13 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.v1.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.Direction
 import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
+import com.github.adamyork.sparrow.wasm.common.v1.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.*
@@ -70,31 +70,24 @@ class DefaultPhysics @AppScope @Inject constructor(
     override fun applyPlayerCollisionPhysics(
         player: Player,
         rect: Rect?,
-        viewPort: ViewPort,
+        viewPort: ViewPort
     ): Player {
-        val collisionRect = rect ?: Rect(0F, 0F, 0F, 0F)
-        var nextX = player.x
-        if (player.direction == Direction.LEFT) {
-            nextX += player.width
-            if (nextX >= viewPort.width - player.width) {
-                nextX = viewPort.width - player.width - 1
-            }
+        val enemyRect = rect ?: return player
+        val playerCenterX = player.x + (player.width / 2)
+        val enemyCenterX = enemyRect.left + (enemyRect.width / 2)
+        val rawNextX = if (playerCenterX < enemyCenterX) {
+            enemyRect.left.toInt() - player.width
         } else {
-            nextX -= player.width
-            if (nextX < 0) {
-                nextX = 0
-            }
+            enemyRect.right.toInt()
         }
-        val playerRect = Rect(nextX.toFloat(), player.y.toFloat(), player.width.toFloat(), player.height.toFloat())
-        if (playerRect.overlaps(collisionRect)) {
-            //LOGGER.info("adjusted player for collision but still colliding ! ${player.direction}")
-            if (player.direction == Direction.LEFT) {
-                nextX -= collisionRect.width.toInt() * 2
-            } else {
-                nextX += collisionRect.width.toInt() * 2
-            }
-        }
-        return player.copy(x = nextX, vx = 0.0, colliding = GameElementCollisionState.COLLIDING)
+        val minX = 0
+        val maxX = viewPort.width - player.width
+        val clampedNextX = rawNextX.coerceIn(minX, maxX)
+        return player.copy(
+            x = clampedNextX,
+            vx = 0.0,
+            colliding = GameElementCollisionState.COLLIDING
+        )
     }
 
     private fun getXVelocity(playerVx: Double, playerMoving: PlayerMovingState): Double {
@@ -215,27 +208,31 @@ class DefaultPhysics @AppScope @Inject constructor(
         )
     }
 
-    override fun applyCollisionParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
+    override fun applyCollisionParticlePhysics(
+        mapParticles: ArrayList<Particle>,
+        viewPort: ViewPort
+    ): ArrayList<Particle> {
         return mapParticles
             .map { particle ->
                 if (particle.type == ParticleType.COLLISION) {
                     val nextFrame = particle.frame + 1
                     var nextRadius = particle.radius
-                    var position = Pair(particle.x.toFloat(), particle.y.toFloat())
+                    var position = Pair(particle.x.toDouble(), particle.y.toDouble())
                     if (particle.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
                         nextRadius = particle.radius + 10
-                        position =
-                            getCollisionParticlePosition(
-                                nextRadius.toFloat(),
-                                particle.id.toFloat(),
-                                particle.originX,
-                                particle.originY
-                            )
-                    } else {
+                        val pos = getCollisionParticlePosition(
+                            nextRadius.toFloat(),
+                            particle.id.toFloat(),
+                            particle.originX,
+                            particle.originY
+                        )
+                        position = Pair(pos.first.toDouble(), pos.second.toDouble())
+                    }
+                    else {
                         if (particle.frame <= particle.lifetime) {
                             position = Pair(
-                                particle.x.toFloat(),
-                                particle.y.toFloat() + physicsSettingsService.gravity.toFloat()
+                                particle.x.toDouble(),
+                                particle.y.toDouble() + physicsSettingsService.gravity
                             )
                         }
                     }
@@ -248,7 +245,19 @@ class DefaultPhysics @AppScope @Inject constructor(
                 } else {
                     particle
                 }
-            }.filter { particle -> particle.frame <= particle.lifetime }
+            }
+            .filter { particle ->
+                val isAlive = particle.frame <= particle.lifetime
+                val isVisible = particle.y < viewPort.height &&
+                        particle.y > -50 && // Small buffer for top
+                        particle.x > -50 &&
+                        particle.x < viewPort.width + 50
+                if (particle.type == ParticleType.COLLISION) {
+                    isAlive && isVisible
+                } else {
+                    true
+                }
+            }
             .toCollection(ArrayList())
     }
 

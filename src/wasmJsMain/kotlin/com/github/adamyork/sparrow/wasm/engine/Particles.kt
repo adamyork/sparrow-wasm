@@ -13,7 +13,7 @@ interface Particles {
 
     fun populateColorMap(assetService: AssetService)
 
-    fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle>
+    fun createCollisionParticles(originX: Int, originY: Int, collisionId: String): ArrayList<Particle>
 
     fun createDustParticles(player: Player): ArrayList<Particle>
 

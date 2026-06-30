@@ -22,7 +22,8 @@ data class Particle(
     val yJitter: Int,
     val radius: Int,
     val color: Color,
-    val shape: ParticleShape
+    val shape: ParticleShape,
+    val collisionId: String
 ) {
     fun toRect() = Rect(
         x.toFloat(),

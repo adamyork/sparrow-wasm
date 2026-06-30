@@ -25,6 +25,8 @@ import org.jetbrains.skia.Image
 import org.jetbrains.skia.Point
 import kotlin.math.pow
 import kotlin.math.sqrt
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @AppScope
 @Inject
@@ -142,6 +144,7 @@ class DefaultCollision(
         return gameMap.copy(state = gameState, items = managedMapItems)
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     override fun checkForEnemyCollisionAndProximity(
         player: Player,
         gameMap: GameMap,
@@ -149,47 +152,71 @@ class DefaultCollision(
         audioQueue: DefaultAudioQueue,
         particles: Particles
     ): Pair<Player, GameMap> {
-        val managedMapParticles = gameMap.particles
+        val managedMapParticles = gameMap.particles.toCollection(ArrayList())
         var playerIsColliding = false
-        var targetRect: Rect? = null
+        var closestEnemyRect: Rect? = null
+        var minDistance = Float.MAX_VALUE
         val playerRect = player.toRect()
-
+        val isCollisionAnimating = managedMapParticles.any { it.type == ParticleType.COLLISION }
         val managedMapEnemies = gameMap.enemies.map { enemy ->
             val element = enemy as GameElement
             if (element.state == GameElementState.INACTIVE) return@map enemy
-
             val enemyRect = enemy.toRect()
-            var isColliding = false
+            val isColliding = playerRect.overlaps(enemyRect)
             var isInteracting = false
-
-            if (playerRect.overlaps(enemyRect)) {
-                targetRect = enemyRect
-                audioQueue.queue.add(Sounds.PLAYER_COLLISION)
-                managedMapParticles.addAll(particles.createCollisionParticles(enemy.x, enemy.y))
-                if (scoreService.getTotal() != scoreService.getRemaining()) {
-                    managedMapParticles.add(particles.createMapItemReturnParticle(player))
+            if (isColliding) {
+                val dist = distanceTo(
+                    Point(player.x.toFloat(), player.y.toFloat()),
+                    Point(enemy.x.toFloat(), enemy.y.toFloat())
+                )
+                if (dist < minDistance) {
+                    minDistance = dist.toFloat()
+                    closestEnemyRect = enemyRect
                 }
-                isColliding = true
+                if (isCollisionAnimating) {
+                    val firstCollisionParticle = managedMapParticles.firstOrNull { it.type == ParticleType.COLLISION }
+                    val collisionId = firstCollisionParticle?.collisionId
+                    val totalCollsionPixels = managedMapParticles.filter { it.type == ParticleType.COLLISION }.size
+                    logger.info { "collision is animating still $collisionId" }
+                    logger.info { "totalCollsionPixels $totalCollsionPixels" }
+                    logger.info { "player x ${player.x} and player.y ${player.y}" }
+                    logger.info { "viewport x ${viewPort.x} and viewport.y ${viewPort.y}" }
+                    logger.info { "firstCollisionParticle x ${firstCollisionParticle?.x} and firstCollisionParticle.y ${firstCollisionParticle?.y}" }
+                }
+                if (!isCollisionAnimating && enemy.colliding != GameElementCollisionState.COLLIDING) {
+                    logger.info { "collision adding particles" }
+                    val collisionId = Uuid.random().toString()
+                    audioQueue.queue.add(Sounds.PLAYER_COLLISION)
+                    managedMapParticles.addAll(particles.createCollisionParticles(enemy.x, enemy.y, collisionId))
+                    if (scoreService.getTotal() != scoreService.getRemaining()) {
+                        managedMapParticles.add(particles.createMapItemReturnParticle(player))
+                    }
+                }
                 playerIsColliding = true
             }
-
-            if (enemy.type == EnemyType.SHOOTER && distanceTo(
+            if (!isColliding && enemy.type == EnemyType.SHOOTER &&
+                enemy.interacting != EnemyInteractionState.INTERACTING &&
+                distanceTo(
                     Point(player.x.toFloat(), player.y.toFloat()),
                     Point(enemy.x.toFloat(), enemy.y.toFloat())
                 ) <= ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD
             ) {
-                val (newParticles, added) = particles.createProjectileParticle(player, enemy, gameMap.particles)
+                val (newParticles, added) = particles.createProjectileParticle(player, enemy, managedMapParticles)
                 if (added) {
                     isInteracting = true
                     audioQueue.queue.add(Sounds.ENEMY_SHOOT)
                 }
                 managedMapParticles.addAll(newParticles)
             }
-
             val (metadata, _) = element.getNextFrameMetadataWithState()
-            val nextColliding = if (isColliding) GameElementCollisionState.COLLIDING else enemy.colliding
-            val nextInteracting = if (isInteracting) EnemyInteractionState.INTERACTING else enemy.interacting
-
+            val isAnimationFinished = metadata.frame >= 7
+            val nextInteracting = when {
+                isColliding -> EnemyInteractionState.ISOLATED
+                isInteracting -> EnemyInteractionState.INTERACTING
+                enemy.interacting == EnemyInteractionState.INTERACTING && isAnimationFinished -> EnemyInteractionState.ISOLATED
+                else -> enemy.interacting
+            }
+            val nextColliding = if (isColliding) GameElementCollisionState.COLLIDING else GameElementCollisionState.FREE
             when (enemy) {
                 is ShooterEnemy -> enemy.copy(
                     frameMetadata = metadata,
@@ -211,11 +238,16 @@ class DefaultCollision(
             }
         }.toCollection(ArrayList())
 
-        val nextPlayer =
-            if (playerIsColliding) physics.applyPlayerCollisionPhysics(player, targetRect, viewPort) else player
+        val nextPlayer = if (playerIsColliding && closestEnemyRect != null) {
+            physics.applyPlayerCollisionPhysics(player, closestEnemyRect, viewPort)
+        } else {
+            player
+        }
+
         return Pair(nextPlayer, gameMap.copy(enemies = managedMapEnemies, particles = managedMapParticles))
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     override fun checkForProjectileCollision(
         player: Player,
         gameMap: GameMap,
@@ -226,25 +258,32 @@ class DefaultCollision(
         var playerIsColliding = false
         var targetRect: Rect? = null
         val playerRect = player.toRect()
-
-        val managedMapParticles = gameMap.particles.map { particle ->
+        val updatedParticles = gameMap.particles.filter { particle ->
             if (particle.type == ParticleType.PROJECTILE && playerRect.overlaps(particle.toRect())) {
                 targetRect = particle.toRect()
                 audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                 playerIsColliding = true
-                particle.copy(frame = particle.lifetime)
-            } else particle
+                false
+            } else {
+                true
+            }
         }.toCollection(ArrayList())
+        val isCollisionAnimating = updatedParticles.any { it.type == ParticleType.COLLISION }
+        if (playerIsColliding && !isCollisionAnimating) {
+            val collisionId = Uuid.random().toString()
+            updatedParticles.addAll(particles.createCollisionParticles(player.x, player.y, collisionId))
 
-        if (playerIsColliding) {
-            managedMapParticles.addAll(particles.createCollisionParticles(player.x, player.y))
             if (scoreService.getTotal() != scoreService.getRemaining()) {
-                managedMapParticles.add(particles.createMapItemReturnParticle(player))
+                updatedParticles.add(particles.createMapItemReturnParticle(player))
             }
         }
-        val nextPlayer =
-            if (playerIsColliding) physics.applyPlayerCollisionPhysics(player, targetRect, viewPort) else player
-        return Pair(nextPlayer, gameMap.copy(particles = managedMapParticles))
+        val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())
+        val nextPlayer = if (playerIsColliding && adjustedTargetRect != null) {
+            physics.applyPlayerCollisionPhysics(player, adjustedTargetRect, viewPort)
+        } else {
+            player
+        }
+        return Pair(nextPlayer, gameMap.copy(particles = updatedParticles))
     }
 
     fun GameElement.toRect() = Rect(
