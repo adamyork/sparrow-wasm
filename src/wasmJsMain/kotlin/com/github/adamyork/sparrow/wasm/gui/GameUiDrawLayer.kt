@@ -91,17 +91,13 @@ class GameUiDrawLayer {
                 .clip(RectangleShape)
         ) {
             image?.let { foreground ->
-                val scaledWidth = (foreground.width * density).toInt().coerceAtLeast(1)
-                val scaledHeight = (foreground.height * density).toInt().coerceAtLeast(1)
-                val dstLeft = (-offsetX * density)
-                val dstTop = (-offsetY * density)
-                val srcRect = Rect.makeXYWH(0f, 0f, foreground.width.toFloat(), foreground.height.toFloat())
-                val dstRect = Rect.makeXYWH(dstLeft, dstTop, scaledWidth.toFloat(), scaledHeight.toFloat())
+                val dstLeft = 0f
+                val dstTop = 0f
                 drawIntoCanvas { canvas ->
                     canvas.skiaCanvas.drawImageRect(
                         image = foreground,
-                        src = srcRect,
-                        dst = dstRect,
+                        src = Rect.makeXYWH(0f, 0f, foreground.width.toFloat(), foreground.height.toFloat()),
+                        dst = Rect.makeXYWH(dstLeft, dstTop, foreground.width.toFloat(), foreground.height.toFloat()),
                         samplingMode = SamplingMode.LINEAR,
                         paint = foregroundPaint,
                         strict = true

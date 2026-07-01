@@ -54,7 +54,6 @@ class DefaultEngine @AppScope @Inject constructor(
 
     private val itemImageCache: HashMap<String, Image> = hashMapOf()
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
-
     private var foregroundSurface: Surface? = null
 
     private fun getOrCreateForegroundSurface(viewPort: ViewPort): Surface {

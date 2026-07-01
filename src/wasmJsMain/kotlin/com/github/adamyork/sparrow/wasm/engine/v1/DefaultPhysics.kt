@@ -12,12 +12,10 @@ import com.github.adamyork.sparrow.wasm.common.v1.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.*
+import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.PhysicsSettingsService
 import me.tatarka.inject.annotations.Inject
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.roundToInt
-import kotlin.math.sin
+import kotlin.math.*
 
 /**
  * Author: Adam York
@@ -25,46 +23,33 @@ import kotlin.math.sin
  */
 class DefaultPhysics @AppScope @Inject constructor(
     private val statusProviderFactory: () -> DefaultStatusProvider,
-    val physicsSettingsService: PhysicsSettingsService
+    val physicsSettingsService: PhysicsSettingsService,
+    private val assetService: AssetService
 ) : Physics {
 
     private val statusProvider: DefaultStatusProvider
         get() = statusProviderFactory()
+
+    private val maxFps: Double
+        get() = assetService.gameConfig.engine.fps.max.toDouble()
 
     override fun applyPlayerPhysics(
         player: Player,
         collisionBoundaries: CollisionBoundaries,
         collision: Collision
     ): Player {
-        val vx = getXVelocity(player.vx, player.moving)
-        val vy = getYVelocity(player.vy, player.jumping)
-        val yResult = movePlayerY(
-            player.y,
-            vy,
-            player.jumping,
-            collisionBoundaries
-        )
-        var adjustedCollisionBoundaries = collisionBoundaries
+        val dt = statusProvider.getDeltaTimeCoefficient()
+        val vx = getXVelocity(player.vx, player.moving, dt)
+        val vy = getYVelocity(player.vy, player.jumping, dt)
+
+        val yResult = movePlayerY(player.y, vy, player.jumping, collisionBoundaries, dt)
+        var adjustedBoundaries = collisionBoundaries
         if (player.y != yResult.y) {
-            val nextPlayer = player.copy(y = yResult.y, vy = yResult.vy, jumping = yResult.jumping)
-            adjustedCollisionBoundaries =
-                collision.recomputeXBoundaries(nextPlayer, collisionBoundaries)
+            adjustedBoundaries = collision.recomputeXBoundaries(player.copy(y = yResult.y), collisionBoundaries)
         }
-        val xResult = movePlayerX(
-            player.x,
-            vx,
-            player.moving,
-            player.direction,
-            adjustedCollisionBoundaries
-        )
-        return player.copy(
-            x = xResult.x,
-            vx = xResult.vx,
-            moving = xResult.moving,
-            y = yResult.y,
-            vy = yResult.vy,
-            jumping = yResult.jumping
-        )
+
+        val xResult = movePlayerX(player.x, vx, player.moving, player.direction, adjustedBoundaries, dt)
+        return player.copy(x = xResult.x, vx = xResult.vx, y = yResult.y, vy = yResult.vy, jumping = yResult.jumping)
     }
 
     override fun applyPlayerCollisionPhysics(
@@ -91,122 +76,70 @@ class DefaultPhysics @AppScope @Inject constructor(
         )
     }
 
-    private fun getXVelocity(playerVx: Double, playerMoving: PlayerMovingState): Double {
-        var nextVx: Double = playerVx
-        if (playerMoving == PlayerMovingState.MOVING) {
-            if (nextVx == 0.0) {
-                nextVx = physicsSettingsService.xMovementDistance
-            }
-            nextVx =
-                physicsSettingsService.xMovementDistance * (nextVx * physicsSettingsService.xAccelerationRate)
-            nextVx *= physicsSettingsService.friction
+    private fun getXVelocity(vx: Double, moving: PlayerMovingState, dt: Double): Double {
+        var nextVx = vx
+        if (moving == PlayerMovingState.MOVING) {
+            // Accelerate
+            val accel = physicsSettingsService.xAccelerationRate * dt * maxFps
+            nextVx += accel
+            // Cap speed
             if (nextVx > physicsSettingsService.maxXVelocity) {
                 nextVx = physicsSettingsService.maxXVelocity
             }
         } else {
-            if (nextVx > 0.0) {
-                nextVx -= physicsSettingsService.xDeaccelerationRate
-                if (nextVx < 0) {
-                    nextVx = 0.0
-                }
-            }
+            // Friction decay
+            val frictionDecay = physicsSettingsService.friction.pow(dt * maxFps)
+            nextVx *= frictionDecay
+        }
+        // Stop threshold
+        if (moving != PlayerMovingState.MOVING && abs(nextVx) < 0.5) {
+            nextVx = 0.0
         }
         return nextVx
     }
 
-    private fun getYVelocity(playerVy: Double, playerJumping: PlayerJumpingState): Double {
-        var nextVy: Double = playerVy
-        if (playerJumping == PlayerJumpingState.GROUNDED || playerJumping == PlayerJumpingState.HEIGHT_REACHED || playerJumping == PlayerJumpingState.FALLING) {
-            nextVy = 0.0
-        } else {
-            if (playerJumping == PlayerJumpingState.INITIAL) {
-                //LOGGER.info("starting a jump INITIAL")
-                nextVy += physicsSettingsService.jumpDistance / 2
-            } else if (playerJumping == PlayerJumpingState.RISING) {
-                //LOGGER.info("in a jump RISING")
-                nextVy += (physicsSettingsService.yVelocityCoefficient * nextVy)
-                if (nextVy > physicsSettingsService.maxYVelocity) {
-                    nextVy = physicsSettingsService.maxYVelocity
-                }
-            }
+    private fun getYVelocity(vy: Double, jumping: PlayerJumpingState, dt: Double): Double {
+        return when (jumping) {
+            PlayerJumpingState.INITIAL -> physicsSettingsService.jumpDistance / 2.0
+            PlayerJumpingState.RISING -> (vy + (physicsSettingsService.yVelocityCoefficient * vy * dt * maxFps)).coerceAtMost(
+                physicsSettingsService.maxYVelocity
+            )
+
+            else -> 0.0
         }
-        return nextVy
     }
 
-    private fun movePlayerX(
-        playerX: Int,
-        playerVx: Double,
-        playerMoving: PlayerMovingState,
-        playerDirection: Direction,
-        collisionBoundaries: CollisionBoundaries
-    ): PhysicsXResult {
-        var targetX = playerX
-        val deltaTime = statusProvider.getDeltaTimeCoefficient()
-        if (playerMoving == PlayerMovingState.MOVING || playerVx != 0.0) {
-            if (playerDirection == Direction.LEFT) {
-                targetX -= (playerVx * deltaTime).roundToInt()
-                if (targetX <= collisionBoundaries.left) {
-                    //LOGGER.info("targetX $targetX less or equal to the left boundary ${collisionBoundaries.left}")
-                    //LOGGER.info("(left) playerVx $playerVx and $deltaTime")
-                    targetX = collisionBoundaries.left + 1
-                }
-            } else {
-                targetX += (playerVx * deltaTime).roundToInt()
-                if (targetX >= collisionBoundaries.right) {
-                    //LOGGER.info("targetX $targetX greater or equal to the right boundary ${collisionBoundaries.right}")
-                    //LOGGER.info("(right) playerVx $playerVx and $deltaTime")
-                    targetX = (collisionBoundaries.right - 1).coerceAtLeast(0)
-                }
-            }
-        }
-        return PhysicsXResult(targetX, playerVx, playerMoving)
+    private fun movePlayerX(x: Int, vx: Double, moving: PlayerMovingState, dir: Direction, b: CollisionBoundaries, dt: Double): PhysicsXResult {
+        // VX is now pixels-per-frame-equivalent
+        val delta = vx // Keep it as vx, the acceleration is already handled in getXVelocity
+
+        var nextX = x.toDouble() + (if (dir == Direction.LEFT) -delta else delta)
+
+        val clampedX = nextX.roundToInt().coerceIn(minOf(b.left + 1, b.right - 1), maxOf(b.left + 1, b.right - 1))
+        return PhysicsXResult(clampedX, vx, moving)
     }
 
     private fun movePlayerY(
-        playerY: Int,
+        y: Int,
         vy: Double,
-        playerJumping: PlayerJumpingState,
-        collisionBoundaries: CollisionBoundaries
+        jumping: PlayerJumpingState,
+        b: CollisionBoundaries,
+        dt: Double
     ): PhysicsYResult {
-        var destinationY = playerY + physicsSettingsService.gravity.roundToInt()
-        var nextPlayerJumping = playerJumping
-        var nextPlayerVy = vy
-        val deltaTime = statusProvider.getDeltaTimeCoefficient()
-        destinationY -= (vy * deltaTime).roundToInt()
-        if (nextPlayerJumping == PlayerJumpingState.HEIGHT_REACHED) {
-            //LOGGER.info("player jump is FALLING")
-            nextPlayerJumping = PlayerJumpingState.FALLING
+        val gravityEffect = physicsSettingsService.gravity * dt * maxFps
+        var nextY = y + gravityEffect - (vy * dt * maxFps)
+        var nextJumping = jumping
+
+        if (nextJumping == PlayerJumpingState.INITIAL) nextJumping = PlayerJumpingState.RISING
+        if (nextJumping == PlayerJumpingState.RISING && nextY <= (b.bottom - physicsSettingsService.jumpDistance)) {
+            nextJumping = PlayerJumpingState.HEIGHT_REACHED
         }
-        if (nextPlayerJumping == PlayerJumpingState.INITIAL || nextPlayerJumping == PlayerJumpingState.RISING) {
-            if (nextPlayerJumping == PlayerJumpingState.INITIAL) {
-                nextPlayerJumping = PlayerJumpingState.RISING
-            }
-            val jumpBoundary = collisionBoundaries.bottom - physicsSettingsService.jumpDistance
-            if (destinationY <= jumpBoundary) {
-                //LOGGER.info("jump height reached HEIGHT_REACHED")
-                nextPlayerJumping = PlayerJumpingState.HEIGHT_REACHED
-                nextPlayerVy = 0.0
-            }
+
+        if (nextY >= b.bottom) {
+            nextY = b.bottom.toDouble()
+            nextJumping = PlayerJumpingState.GROUNDED
         }
-        if (destinationY > collisionBoundaries.bottom) {
-            destinationY = collisionBoundaries.bottom
-            if (nextPlayerJumping == PlayerJumpingState.FALLING) {
-                nextPlayerJumping = PlayerJumpingState.GROUNDED
-                //LOGGER.info("jump complete GROUNDED")
-            }
-        } else if (destinationY < collisionBoundaries.top) {
-            destinationY = collisionBoundaries.top + 1
-            if (nextPlayerJumping == PlayerJumpingState.RISING) {
-                //LOGGER.info("jump height reached because of top of viewport HEIGHT_REACHED")
-                nextPlayerJumping = PlayerJumpingState.HEIGHT_REACHED
-                nextPlayerVy = 0.0
-            }
-        }
-        return PhysicsYResult(
-            destinationY,
-            nextPlayerVy,
-            nextPlayerJumping
-        )
+        return PhysicsYResult(nextY.roundToInt(), vy, nextJumping)
     }
 
     override fun applyCollisionParticlePhysics(
@@ -257,46 +190,25 @@ class DefaultPhysics @AppScope @Inject constructor(
     }
 
     override fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
-        return mapParticles
-            .map { particle ->
-                if (particle.type == ParticleType.DUST) {
-                    val nextFrame = particle.frame + 1
-                    val nextWidth = (particle.width + 1).coerceAtMost(40)
-                    val nextHeight = (particle.height + 1).coerceAtMost(40)
-                    val nextRadius = (particle.radius - 15).coerceAtLeast(0)
-                    particle.copy(width = nextWidth, height = nextHeight, frame = nextFrame, radius = nextRadius)
-                } else {
-                    particle
-                }
-            }.filter { particle -> particle.frame <= particle.lifetime }
-            .toCollection(ArrayList())
+        val dt = statusProvider.getDeltaTimeCoefficient()
+        return mapParticles.map { p ->
+            val growth = 1.0 * dt * maxFps
+            p.copy(
+                width = (p.width + growth).toInt().coerceAtMost(40),
+                height = (p.height + growth).toInt().coerceAtMost(40),
+                frame = p.frame + 1
+            )
+        }.filter { it.frame <= it.lifetime }.toCollection(ArrayList())
     }
 
     override fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
-        return mapParticles
-            .map { particle ->
-                if (particle.type == ParticleType.PROJECTILE) {
-                    val nextFrame = particle.frame + 1
-                    val nextX: Int = if (particle.originX == particle.x) {
-                        particle.x
-                    } else if (particle.originX < particle.x) {
-                        particle.x - particle.xJitter
-                    } else {
-                        particle.x + particle.xJitter
-                    }
-                    val nextY: Int = if (particle.originY == particle.y) {
-                        particle.y
-                    } else if (particle.originY < particle.y) {
-                        particle.y - particle.yJitter
-                    } else {
-                        particle.y + particle.yJitter
-                    }
-                    particle.copy(x = nextX, y = nextY, frame = nextFrame)
-                } else {
-                    particle
-                }
-            }.filter { particle -> particle.frame <= particle.lifetime }
-            .toCollection(ArrayList())
+        val dt = statusProvider.getDeltaTimeCoefficient()
+        return mapParticles.map { p ->
+            val speed = 5.0 * dt * maxFps// Adjust based on desired projectile speed
+            val dx = if (p.originX < p.x) -speed else speed
+            val dy = if (p.originY < p.y) -speed else speed
+            p.copy(x = (p.x + dx).toInt(), y = (p.y + dy).toInt(), frame = p.frame + 1)
+        }.filter { it.frame <= it.lifetime }.toCollection(ArrayList())
     }
 
     override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {

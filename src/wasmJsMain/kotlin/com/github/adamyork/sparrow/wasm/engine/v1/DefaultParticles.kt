@@ -29,6 +29,10 @@ class DefaultParticles : Particles {
         private const val PROJECTILE_SIZE: Int = 24
         private const val PROJECTILE_INCREMENT_DIVISOR: Int = 10
         private const val MAP_ITEM_RETURN_SIZE: Int = 32
+        private const val BASE_DIAMETER_MULTIPLIER = 3
+        private const val BASE_DIAMETER_MULTIPLIER_BUFFER = 6
+        private const val DUST_Y_OFFSET = 10
+        private const val DIAMETER_MAX = 30
     }
 
     private val dustParticleOffsets = listOf(
@@ -37,12 +41,13 @@ class DefaultParticles : Particles {
     )
 
     private val colorMap = mutableMapOf<ParticleType, Color>()
+    private val collisionPool = ArrayList<Particle>(COLLISION_PARTICLE_COUNT)
 
     override fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle> {
         val collisionColor = colorMap[ParticleType.COLLISION] ?: Color.White
-        return ArrayList<Particle>(COLLISION_PARTICLE_COUNT).apply {
+        if (collisionPool.isEmpty()) {
             repeat(COLLISION_PARTICLE_COUNT) { index ->
-                add(
+                collisionPool.add(
                     Particle(
                         index,
                         originX,
@@ -63,16 +68,28 @@ class DefaultParticles : Particles {
                 )
             }
         }
+        collisionPool.forEachIndexed { i, p ->
+            collisionPool[i] = p.copy(
+                x = originX,
+                y = originY,
+                originX = originX,
+                originY = originY,
+                frame = 0
+            )
+        }
+        return collisionPool
     }
 
     override fun createDustParticles(player: Player): ArrayList<Particle> {
-        val footY = player.y + player.height - (player.height / 10)
+        val footY = player.y + player.height - (player.height / DUST_Y_OFFSET)
         val color = colorMap[ParticleType.DUST] ?: Color.White
         val maxDustIndex = (dustParticleOffsets.size - 1).coerceAtLeast(1)
         val invMaxDustIndex = 1f / maxDustIndex
         return ArrayList<Particle>(dustParticleOffsets.size).apply {
             dustParticleOffsets.forEachIndexed { index, (offsetX, offsetY) ->
-                val diameter = ((index * 3) + 6).coerceAtMost(30)
+                val diameter = ((index * BASE_DIAMETER_MULTIPLIER) + BASE_DIAMETER_MULTIPLIER_BUFFER).coerceAtMost(
+                    DIAMETER_MAX
+                )
                 val anchorX = if (player.direction == Direction.LEFT) {
                     player.x + player.width - (player.width / 4) + offsetX
                 } else {
@@ -111,9 +128,8 @@ class DefaultParticles : Particles {
         enemy: Enemy,
         particles: ArrayList<Particle>
     ): Pair<ArrayList<Particle>, Boolean> {
-        val count = particles.count { it.type == ParticleType.PROJECTILE }
+        val count = getActiveProjectileCount(particles)
         if (count >= MAX_ACTIVE_PROJECTILES) return particles to false
-
         val xDiff = abs(enemy.x - player.x)
         val yDiff = abs(enemy.y - player.y)
         val xIncrement = (xDiff / PROJECTILE_INCREMENT_DIVISOR).coerceAtLeast(1)
@@ -179,6 +195,16 @@ class DefaultParticles : Particles {
             assetService.gameConfig.particle.enemy.projectile.color.b.toFloat(),
             assetService.gameConfig.particle.enemy.projectile.color.a.toFloat()
         )
+    }
+
+    private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int {
+        var count = 0
+        for (particle in particles) {
+            if (particle.type == ParticleType.PROJECTILE) {
+                count++
+            }
+        }
+        return count
     }
 
 }

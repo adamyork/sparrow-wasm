@@ -22,7 +22,7 @@ map:
   fg: "https://sparrow-assets.pages.dev/map1-fg-full-comp.png"
   col: "https://sparrow-assets.pages.dev/map1-collision.png"
   collision:
-    visible: false
+    visible: true
   item:
     asset:
       one:
