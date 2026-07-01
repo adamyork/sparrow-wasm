@@ -9,15 +9,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import org.jetbrains.skia.Paint
+import org.jetbrains.skia.Rect
+import org.jetbrains.skia.SamplingMode
+import org.jetbrains.skia.Image as SkiaImage
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
 class GameUiDrawLayer {
+
+    private val foregroundPaint = Paint().apply {
+        isAntiAlias = true
+    }
 
     private var splashImageBitmap: ImageBitmap? by mutableStateOf(null)
     private var farGroundBitmap: ImageBitmap? by mutableStateOf(null)
@@ -29,7 +39,7 @@ class GameUiDrawLayer {
     private var collisionBitmap: ImageBitmap? by mutableStateOf(null)
     private var collisionOffsetX: Float by mutableStateOf(0f)
     private var collisionOffsetY: Float by mutableStateOf(0f)
-    private var foregroundBitmap: ImageBitmap? by mutableStateOf(null)
+    private var foregroundBitmap: SkiaImage? by mutableStateOf(null)
     private var foregroundOffsetX: Float by mutableStateOf(0f)
     private var foregroundOffsetY: Float by mutableStateOf(0f)
 
@@ -42,7 +52,7 @@ class GameUiDrawLayer {
             LayerCanvas(bitmap = splashImageBitmap)
             LayerCanvas(bitmap = farGroundBitmap, offsetX = farGroundOffsetX, offsetY = farGroundOffsetY)
             LayerCanvas(midGroundBitmap, offsetX = midGroundOffsetX, offsetY = midGroundOffsetY)
-            LayerCanvas(foregroundBitmap, offsetX = foregroundOffsetX, offsetY = foregroundOffsetY)
+            ForegroundLayerCanvas(image = foregroundBitmap, offsetX = foregroundOffsetX, offsetY = foregroundOffsetY)
             LayerCanvas(collisionBitmap, offsetX = collisionOffsetX, offsetY = collisionOffsetY)
         }
 
@@ -74,6 +84,33 @@ class GameUiDrawLayer {
         }
     }
 
+    @Composable
+    private fun ForegroundLayerCanvas(image: SkiaImage?, offsetX: Float = 0f, offsetY: Float = 0f) {
+        Canvas(
+            modifier = Modifier.fillMaxSize()
+                .clip(RectangleShape)
+        ) {
+            image?.let { foreground ->
+                val scaledWidth = (foreground.width * density).toInt().coerceAtLeast(1)
+                val scaledHeight = (foreground.height * density).toInt().coerceAtLeast(1)
+                val dstLeft = (-offsetX * density)
+                val dstTop = (-offsetY * density)
+                val srcRect = Rect.makeXYWH(0f, 0f, foreground.width.toFloat(), foreground.height.toFloat())
+                val dstRect = Rect.makeXYWH(dstLeft, dstTop, scaledWidth.toFloat(), scaledHeight.toFloat())
+                drawIntoCanvas { canvas ->
+                    canvas.skiaCanvas.drawImageRect(
+                        image = foreground,
+                        src = srcRect,
+                        dst = dstRect,
+                        samplingMode = SamplingMode.LINEAR,
+                        paint = foregroundPaint,
+                        strict = true
+                    )
+                }
+            }
+        }
+    }
+
     fun drawSplash(image: ImageBitmap) {
         splashImageBitmap = image
     }
@@ -90,7 +127,8 @@ class GameUiDrawLayer {
         midGroundOffsetY = offsetY
     }
 
-    fun drawForeground(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {
+    fun drawForeground(image: SkiaImage, offsetX: Float = 0F, offsetY: Float = 0F) {
+        foregroundBitmap?.close()
         foregroundBitmap = image
         foregroundOffsetX = offsetX
         foregroundOffsetY = offsetY

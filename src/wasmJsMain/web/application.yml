@@ -1,7 +1,7 @@
 engine:
   fps:
-    min: 16
-    max: 32
+    min: 12
+    max: 60
 viewport:
   x: 0
   y: 0
@@ -22,7 +22,7 @@ map:
   fg: "https://sparrow-assets.pages.dev/map1-fg-full-comp.png"
   col: "https://sparrow-assets.pages.dev/map1-collision.png"
   collision:
-    visible: true
+    visible: false
   item:
     asset:
       one:

@@ -81,7 +81,8 @@ class DefaultPhysics @AppScope @Inject constructor(
             enemyRect.right.toInt()
         }
         val minX = 0
-        val maxX = viewPort.width - player.width
+        // Clamp in world coordinates; viewport width alone is local-space and causes large snaps.
+        val maxX = (viewPort.x + viewPort.width - player.width).coerceAtLeast(minX)
         val clampedNextX = rawNextX.coerceIn(minX, maxX)
         return player.copy(
             x = clampedNextX,
@@ -227,8 +228,7 @@ class DefaultPhysics @AppScope @Inject constructor(
                             particle.originY
                         )
                         position = Pair(pos.first.toDouble(), pos.second.toDouble())
-                    }
-                    else {
+                    } else {
                         if (particle.frame <= particle.lifetime) {
                             position = Pair(
                                 particle.x.toDouble(),
@@ -247,13 +247,8 @@ class DefaultPhysics @AppScope @Inject constructor(
                 }
             }
             .filter { particle ->
-                val isAlive = particle.frame <= particle.lifetime
-                val isVisible = particle.y < viewPort.height &&
-                        particle.y > -50 && // Small buffer for top
-                        particle.x > -50 &&
-                        particle.x < viewPort.width + 50
                 if (particle.type == ParticleType.COLLISION) {
-                    isAlive && isVisible
+                    particle.isActiveVisibleCollisionParticle(viewPort)
                 } else {
                     true
                 }

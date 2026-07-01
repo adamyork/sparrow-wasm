@@ -55,6 +55,16 @@ class DefaultEngine @AppScope @Inject constructor(
     private val itemImageCache: HashMap<String, Image> = hashMapOf()
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
 
+    private var foregroundSurface: Surface? = null
+
+    private fun getOrCreateForegroundSurface(viewPort: ViewPort): Surface {
+        if (foregroundSurface == null) {
+            val imageInfo = ImageInfo.makeN32Premul(viewPort.width, viewPort.height)
+            foregroundSurface = Surface.makeRaster(imageInfo)
+        }
+        return foregroundSurface!!
+    }
+
     override fun setCollisionBufferedImage(imageAndBytes: ImageAndBytes) {
         this.collision.collisionImage = imageAndBytes
         this.collision.cacheCollisionPixels()
@@ -261,14 +271,9 @@ class DefaultEngine @AppScope @Inject constructor(
         viewPort: ViewPort,
         player: Player
     ): DrawResult {
-        val imageInfo = ImageInfo.makeN32Premul(viewPort.width, viewPort.height)
-        val foregroundSurface = Surface.makeRaster(imageInfo)
+        val foregroundSurface = getOrCreateForegroundSurface(viewPort)
         val foregroundCanvas = foregroundSurface.canvas
-        val paint = Paint().apply {
-            isAntiAlias = false
-            blendMode = BlendMode.SRC_OVER
-        }
-        paint.blendMode = BlendMode.SRC_OVER
+        foregroundCanvas.clear(0x00000000)
         map.items.forEach { item ->
             if (itemImageCache[item.type.name] == null) {
                 itemImageCache[item.type.name] =
@@ -306,8 +311,9 @@ class DefaultEngine @AppScope @Inject constructor(
             playerImage = Image.makeFromBitmap(player.imageAndBytes.imageBitmap.asSkiaBitmap())
         }
         drawPlayer(player, viewPort, foregroundCanvas, playerImage!!)
+        val foregroundImage = foregroundSurface.makeImageSnapshot()
         return DrawResult(
-            foregroundSurface = foregroundSurface,
+            foregroundImage = foregroundImage,
             foregroundOffsetX = viewPort.x.toFloat(),
             foregroundOffsetY = viewPort.y.toFloat(),
             farGroundBitmap = map.farGroundAsset.imageAndBytes.imageBitmap,

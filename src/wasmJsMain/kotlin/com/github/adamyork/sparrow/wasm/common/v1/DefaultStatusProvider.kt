@@ -17,10 +17,19 @@ class DefaultStatusProvider(
     val assetService: AssetService
 ) : StatusProvider {
 
+    private companion object {
+        const val FPS_SAMPLE_WINDOW_MS: Long = 1000L
+    }
+
     private val logger = KotlinLogging.logger {}
 
     override var running: Boolean = false
     override var lastPaintTime: Long = 0L
+
+    private var fpsWindowStartTime: Long = 0L
+    private var fpsFrameCountInWindow: Int = 0
+    private var lastObservedPaintTime: Long = 0L
+    private var cachedFps: Double = 0.0
 
     override fun getDeltaTimeCoefficient(): Double {
         val targetDeltaTimeMs = 1000 / assetService.gameConfig.engine.fps.max
@@ -47,16 +56,33 @@ class DefaultStatusProvider(
 
     override fun reset() {
         lastPaintTime = 0L
+        fpsWindowStartTime = 0L
+        fpsFrameCountInWindow = 0
+        lastObservedPaintTime = 0L
+        cachedFps = 0.0
     }
 
     override fun getFps(): Double {
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        val deltaTimeMs = currentTime - lastPaintTime
-        return if (deltaTimeMs > 0) {
-            1000.0 / deltaTimeMs
-        } else {
-            0.0
+        val currentPaintTime = lastPaintTime
+        if (currentPaintTime <= 0L) {
+            return 0.0
         }
+        if (currentPaintTime != lastObservedPaintTime) {
+            lastObservedPaintTime = currentPaintTime
+            if (fpsWindowStartTime == 0L) {
+                fpsWindowStartTime = currentPaintTime
+                fpsFrameCountInWindow = 1
+            } else {
+                fpsFrameCountInWindow += 1
+            }
+            val elapsedWindowMs = currentPaintTime - fpsWindowStartTime
+            if (elapsedWindowMs >= FPS_SAMPLE_WINDOW_MS) {
+                cachedFps = (fpsFrameCountInWindow * 1000.0) / elapsedWindowMs.toDouble()
+                fpsWindowStartTime = currentPaintTime
+                fpsFrameCountInWindow = 0
+            }
+        }
+        return cachedFps
     }
 
 }

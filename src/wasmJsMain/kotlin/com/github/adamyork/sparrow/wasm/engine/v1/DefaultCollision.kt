@@ -15,6 +15,7 @@ import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
+import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
@@ -26,7 +27,6 @@ import org.jetbrains.skia.Point
 import kotlin.math.pow
 import kotlin.math.sqrt
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 @AppScope
 @Inject
@@ -157,7 +157,7 @@ class DefaultCollision(
         var closestEnemyRect: Rect? = null
         var minDistance = Float.MAX_VALUE
         val playerRect = player.toRect()
-        val isCollisionAnimating = managedMapParticles.any { it.type == ParticleType.COLLISION }
+        val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(managedMapParticles, viewPort)
         val managedMapEnemies = gameMap.enemies.map { enemy ->
             val element = enemy as GameElement
             if (element.state == GameElementState.INACTIVE) return@map enemy
@@ -173,21 +173,10 @@ class DefaultCollision(
                     minDistance = dist.toFloat()
                     closestEnemyRect = enemyRect
                 }
-                if (isCollisionAnimating) {
-                    val firstCollisionParticle = managedMapParticles.firstOrNull { it.type == ParticleType.COLLISION }
-                    val collisionId = firstCollisionParticle?.collisionId
-                    val totalCollsionPixels = managedMapParticles.filter { it.type == ParticleType.COLLISION }.size
-                    logger.info { "collision is animating still $collisionId" }
-                    logger.info { "totalCollsionPixels $totalCollsionPixels" }
-                    logger.info { "player x ${player.x} and player.y ${player.y}" }
-                    logger.info { "viewport x ${viewPort.x} and viewport.y ${viewPort.y}" }
-                    logger.info { "firstCollisionParticle x ${firstCollisionParticle?.x} and firstCollisionParticle.y ${firstCollisionParticle?.y}" }
-                }
-                if (!isCollisionAnimating && enemy.colliding != GameElementCollisionState.COLLIDING) {
+                if (!isCollisionAnimating) {
                     logger.info { "collision adding particles" }
-                    val collisionId = Uuid.random().toString()
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
-                    managedMapParticles.addAll(particles.createCollisionParticles(enemy.x, enemy.y, collisionId))
+                    managedMapParticles.addAll(particles.createCollisionParticles(enemy.x, enemy.y))
                     if (scoreService.getTotal() != scoreService.getRemaining()) {
                         managedMapParticles.add(particles.createMapItemReturnParticle(player))
                     }
@@ -268,11 +257,9 @@ class DefaultCollision(
                 true
             }
         }.toCollection(ArrayList())
-        val isCollisionAnimating = updatedParticles.any { it.type == ParticleType.COLLISION }
+        val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(updatedParticles, viewPort)
         if (playerIsColliding && !isCollisionAnimating) {
-            val collisionId = Uuid.random().toString()
-            updatedParticles.addAll(particles.createCollisionParticles(player.x, player.y, collisionId))
-
+            updatedParticles.addAll(particles.createCollisionParticles(player.x, player.y))
             if (scoreService.getTotal() != scoreService.getRemaining()) {
                 updatedParticles.add(particles.createMapItemReturnParticle(player))
             }
@@ -296,4 +283,5 @@ class DefaultCollision(
     private fun distanceTo(first: Point, second: Point): Int {
         return sqrt((second.x - first.x).pow(2) + (second.y - first.y).pow(2)).toInt()
     }
+
 }
