@@ -190,12 +190,11 @@ class DefaultCollision(
                     Point(enemy.x.toFloat(), enemy.y.toFloat())
                 ) <= ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD
             ) {
-                val (newParticles, added) = particles.createProjectileParticle(player, enemy, managedMapParticles)
+                val (_, added) = particles.createProjectileParticle(player, enemy, managedMapParticles)
                 if (added) {
                     isInteracting = true
                     audioQueue.queue.add(Sounds.ENEMY_SHOOT)
                 }
-                managedMapParticles.addAll(newParticles)
             }
             val (metadata, _) = element.getNextFrameMetadataWithState()
             val isAnimationFinished = metadata.frame >= 7

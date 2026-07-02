@@ -40,8 +40,6 @@ class GameUiDrawLayer {
     private var collisionOffsetX: Float by mutableStateOf(0f)
     private var collisionOffsetY: Float by mutableStateOf(0f)
     private var foregroundBitmap: SkiaImage? by mutableStateOf(null)
-    private var foregroundOffsetX: Float by mutableStateOf(0f)
-    private var foregroundOffsetY: Float by mutableStateOf(0f)
 
     @Composable
     fun build(
@@ -52,7 +50,7 @@ class GameUiDrawLayer {
             LayerCanvas(bitmap = splashImageBitmap)
             LayerCanvas(bitmap = farGroundBitmap, offsetX = farGroundOffsetX, offsetY = farGroundOffsetY)
             LayerCanvas(midGroundBitmap, offsetX = midGroundOffsetX, offsetY = midGroundOffsetY)
-            ForegroundLayerCanvas(image = foregroundBitmap, offsetX = foregroundOffsetX, offsetY = foregroundOffsetY)
+            ForegroundLayerCanvas(image = foregroundBitmap)
             LayerCanvas(collisionBitmap, offsetX = collisionOffsetX, offsetY = collisionOffsetY)
         }
 
@@ -85,19 +83,18 @@ class GameUiDrawLayer {
     }
 
     @Composable
-    private fun ForegroundLayerCanvas(image: SkiaImage?, offsetX: Float = 0f, offsetY: Float = 0f) {
+    private fun ForegroundLayerCanvas(image: SkiaImage?) {
         Canvas(
             modifier = Modifier.fillMaxSize()
                 .clip(RectangleShape)
         ) {
             image?.let { foreground ->
-                val dstLeft = 0f
-                val dstTop = 0f
+                // Foreground is already composited in viewport-local space by engine.
                 drawIntoCanvas { canvas ->
                     canvas.skiaCanvas.drawImageRect(
                         image = foreground,
                         src = Rect.makeXYWH(0f, 0f, foreground.width.toFloat(), foreground.height.toFloat()),
-                        dst = Rect.makeXYWH(dstLeft, dstTop, foreground.width.toFloat(), foreground.height.toFloat()),
+                        dst = Rect.makeXYWH(0f, 0f, size.width, size.height),
                         samplingMode = SamplingMode.LINEAR,
                         paint = foregroundPaint,
                         strict = true
@@ -123,11 +120,9 @@ class GameUiDrawLayer {
         midGroundOffsetY = offsetY
     }
 
-    fun drawForeground(image: SkiaImage, offsetX: Float = 0F, offsetY: Float = 0F) {
+    fun drawForeground(image: SkiaImage) {
         foregroundBitmap?.close()
         foregroundBitmap = image
-        foregroundOffsetX = offsetX
-        foregroundOffsetY = offsetY
     }
 
     fun drawCollision(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {

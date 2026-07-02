@@ -22,8 +22,7 @@ class DefaultGame(
     private val particles: Particles,
     private val scoreService: ScoreService,
     private val statusProvider: StatusProvider,
-    private val wavService: WavService,
-    private val sparrowColorScheme: DefaultSparrowColorScheme
+    private val wavService: WavService
 ) : Game {
 
     private val controller = GameUiController(
@@ -36,8 +35,7 @@ class DefaultGame(
     )
 
     private val screen = GameUiMain(
-        controller = controller,
-        sparrowColorScheme = sparrowColorScheme
+        controller = controller
     )
 
     @Composable

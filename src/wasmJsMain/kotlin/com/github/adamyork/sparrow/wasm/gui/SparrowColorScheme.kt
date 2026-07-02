@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -12,6 +13,9 @@ interface SparrowColorScheme {
 
     @Composable
     fun getScheme(): ColorScheme
+
+    @Composable
+    fun getTypography(): Typography
 
     @Composable
     fun getHoverColor(): Color

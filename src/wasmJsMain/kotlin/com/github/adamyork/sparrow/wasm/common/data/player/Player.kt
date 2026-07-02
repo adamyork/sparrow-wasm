@@ -64,7 +64,8 @@ data class Player(
                 return Pair(metadata, metadataState)
             }
         }
-        if (jumping == PlayerJumpingState.INITIAL || jumping == PlayerJumpingState.RISING || jumping == PlayerJumpingState.HEIGHT_REACHED) {
+        // Only play jump frames on ascent; descent should return to base movement/idle frames.
+        if (jumping == PlayerJumpingState.INITIAL || jumping == PlayerJumpingState.RISING) {
             if (frameMetadata.frame >= ANIMATION_JUMPING_FRAMES) {
                 metadata = jumpingFrames[1] ?: throw AnimationFrameException(jumpingFrames.toString(), 1)
                 return Pair(metadata, metadataState)

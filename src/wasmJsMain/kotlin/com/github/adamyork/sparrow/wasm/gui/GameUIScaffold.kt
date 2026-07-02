@@ -24,13 +24,12 @@ class GameUiScaffold {
         game: Game,
         sparrowColorScheme: SparrowColorScheme
     ) {
-        val theme = sparrowColorScheme as? DefaultSparrowColorScheme
-            ?: throw IllegalStateException("Expected DefaultSparrowColorScheme")
         ComposeViewport(
             viewportContainerId = "ComposeTarget"
         ) {
             MaterialTheme(
-                colorScheme = theme.getScheme() // Uses your CSS-overridden scheme
+                colorScheme = sparrowColorScheme.getScheme(),
+                typography = sparrowColorScheme.getTypography()
             ) {
                 Scaffold(
                     modifier = Modifier

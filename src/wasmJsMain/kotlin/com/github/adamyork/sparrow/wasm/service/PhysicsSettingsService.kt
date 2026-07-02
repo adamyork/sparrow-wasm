@@ -14,4 +14,5 @@ interface PhysicsSettingsService {
     var xMovementDistance: Double
     var xAccelerationRate: Double
     var xDeaccelerationRate: Double
+    var projectileSpeed: Double
 }

@@ -1,7 +1,6 @@
 package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,28 +33,46 @@ import kotlin.time.Duration.Companion.milliseconds
  * Copyright (c) Adam York
  */
 class GameUiMain(
-    private val controller: GameUiController,
-    private val sparrowColorScheme: DefaultSparrowColorScheme
+    private val controller: GameUiController
 ) {
+
+    private fun shouldEnableStart(
+        isRunning: Boolean,
+        allTasksCompleted: Boolean,
+        splashImage: ImageBitmap?,
+        isLoadingChecklistVisible: Boolean
+    ): Boolean {
+        return !isRunning && allTasksCompleted && splashImage != null && !isLoadingChecklistVisible
+    }
 
     @Composable
     fun build() {
         val gameUiDrawLayer = remember { GameUiDrawLayer() }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
         var gameStatusLabel by remember { mutableStateOf("Press Start To Begin") }
-        var gameStatusLabelColor by remember { mutableStateOf(Color.Black) }
         var scoreLabel by remember { mutableStateOf("Score: --") }
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
         var isRunning by remember { mutableStateOf(false) }
+        var hasStarted by remember { mutableStateOf(false) }
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
         var splashImage by remember { mutableStateOf<ImageBitmap?>(null) }
 
         val allTasksCompleted = controller.allTasksCompleted()
 
-        val overlayBg = sparrowColorScheme.getScoreOverlayBackground()
-        val disabledButtonColors = sparrowColorScheme.getDisabledButtonColors()
-        val disabledBorder = sparrowColorScheme.getDisabledBorder()
+        val colorScheme = MaterialTheme.colorScheme
+        val overlayBg = colorScheme.inverseSurface
+        val disabledButtonColors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            disabledContainerColor = colorScheme.secondaryContainer,
+            disabledContentColor = colorScheme.onSecondaryContainer
+        )
+        val textMainColor = colorScheme.onSurface
+        val isStartEnabled = shouldEnableStart(
+            isRunning = isRunning,
+            allTasksCompleted = allTasksCompleted,
+            splashImage = splashImage,
+            isLoadingChecklistVisible = isLoadingChecklistVisible
+        )
 
         LaunchedEffect(allTasksCompleted, splashImage, isLoadingChecklistVisible) {
             if (allTasksCompleted && splashImage != null && isLoadingChecklistVisible) {
@@ -84,7 +101,7 @@ class GameUiMain(
             }
 
             val keyDownListener: (Event) -> Unit = { event ->
-                if (event is KeyboardEvent) {
+                if (isRunning && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -94,7 +111,7 @@ class GameUiMain(
             }
 
             val keyUpListener: (Event) -> Unit = { event ->
-                if (event is KeyboardEvent) {
+                if (isRunning && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -140,18 +157,13 @@ class GameUiMain(
                         )
                     }
                     frame.drawResult.foregroundImage?.let { image ->
-                        gameUiDrawLayer.drawForeground(
-                            image,
-                            frame.drawResult.foregroundOffsetX,
-                            frame.drawResult.foregroundOffsetY
-                        )
+                        gameUiDrawLayer.drawForeground(image)
                     }
                     fpsLabel = frame.fpsLabel
                     scoreLabel = frame.scoreLabel
                     totalLabel = frame.totalLabel
                     remainingLabel = frame.remainingLabel
                     gameStatusLabel = frame.gameStatusLabel
-                    gameStatusLabelColor = frame.gameStatusLabelColor
                     frameId = window.requestAnimationFrame { _ ->
                         loop()
                     }
@@ -201,25 +213,27 @@ class GameUiMain(
                             fpsLabel = nextLabel
                         }
                     )
-                    Text(
-                        text = gameStatusLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = gameStatusLabelColor,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 12.dp)
-                            .background(overlayBg, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                            .semantics { contentDescription = "centered-top-label" }
-                            .testTag("centered-top-label")
-                    )
+                    if (hasStarted) {
+                        Text(
+                            text = gameStatusLabel,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = textMainColor,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 12.dp)
+                                .background(overlayBg, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .semantics { contentDescription = "centered-top-label" }
+                                .testTag("centered-top-label")
+                        )
+                    }
 
                     if (isLoadingChecklistVisible) {
                         Column(
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .width(260.dp)
-                                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                .background(overlayBg, RoundedCornerShape(8.dp))
                                 .padding(16.dp),
                             horizontalAlignment = Alignment.Start,
                             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -239,39 +253,41 @@ class GameUiMain(
                                     Text(
                                         text = task.label,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (task.isCompleted) Color.White else Color.LightGray
+                                        color = textMainColor
                                     )
                                 }
                             }
                         }
                     }
 
-                    Text(
-                        text = fpsLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.Black,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .background(overlayBg, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                            .semantics { contentDescription = "FPS label" }
-                            .testTag("fps-label")
-                    )
+                    if (hasStarted) {
+                        Text(
+                            text = fpsLabel,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = textMainColor,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                                .background(overlayBg, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .semantics { contentDescription = "FPS label" }
+                                .testTag("fps-label")
+                        )
 
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(12.dp)
-                            .background(overlayBg, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                            .semantics { contentDescription = "score-overlay" }
-                            .testTag("score-overlay"),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(text = scoreLabel, style = MaterialTheme.typography.labelLarge, color = Color.White)
-                        Text(text = totalLabel, style = MaterialTheme.typography.labelLarge, color = Color.White)
-                        Text(text = remainingLabel, style = MaterialTheme.typography.labelLarge, color = Color.White)
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(12.dp)
+                                .background(overlayBg, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .semantics { contentDescription = "score-overlay" }
+                                .testTag("score-overlay"),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(text = scoreLabel, style = MaterialTheme.typography.labelLarge, color = textMainColor)
+                            Text(text = totalLabel, style = MaterialTheme.typography.labelLarge, color = textMainColor)
+                            Text(text = remainingLabel, style = MaterialTheme.typography.labelLarge, color = textMainColor)
+                        }
                     }
                 }
                 Row(
@@ -286,16 +302,18 @@ class GameUiMain(
 
                     Button(
                         onClick = {
+                            hasStarted = true
                             isRunning = true
                             controller.start()
                             focusManager.clearFocus()
                         },
-                        enabled = !isRunning,
+                        enabled = isStartEnabled,
+                        colors = disabledButtonColors,
                         modifier = Modifier
                             .semantics { contentDescription = "start-button" }
                             .testTag("start-button")
                     ) {
-                        Text("Start")
+                        Text("Start", color = textMainColor)
                     }
 
                     Button(
@@ -309,9 +327,8 @@ class GameUiMain(
                         modifier = Modifier
                             .semantics { contentDescription = "pause-button" }
                             .testTag("pause-button")
-                            .border(disabledBorder, RoundedCornerShape(6.dp))
                     ) {
-                        Text("Pause")
+                        Text("Pause", color = textMainColor)
                     }
 
                     Button(
@@ -324,9 +341,8 @@ class GameUiMain(
                         modifier = Modifier
                             .semantics { contentDescription = "reset-button" }
                             .testTag("reset-button")
-                            .border(disabledBorder, RoundedCornerShape(6.dp))
                     ) {
-                        Text("reset")
+                        Text("Reset", color = textMainColor)
                     }
                 }
             }

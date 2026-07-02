@@ -130,7 +130,7 @@ class DefaultEngine @AppScope @Inject constructor(
             managedMapItemReturnParticles.addAll(nextDustParticles)
         }
         val managedDustParticles = physics.applyDustParticlePhysics(managedMapItemReturnParticles)
-        val managedAllParticles = physics.applyProjectileParticlePhysics(managedDustParticles)
+        val managedAllParticles = physics.applyProjectileParticlePhysics(managedDustParticles, viewPort)
         var mapState = gameMap.state
         if (mapState == GameMapState.COLLECTING && scoreService.allFound()) {
             //LOGGER.info("all items found map is in completing mode")
@@ -468,7 +468,7 @@ class DefaultEngine @AppScope @Inject constructor(
             } else {
                 val lifetime = particle.lifetime.coerceAtLeast(1)
                 val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
-                val lifeAlphaMultiplier = 1f - ageProgress
+                val lifeAlphaMultiplier = if (particle.type == ParticleType.PROJECTILE) 1f else 1f - ageProgress
                 val particleAlpha = (
                         particle.color.alpha.coerceIn(0f, 1f) * lifeAlphaMultiplier * 255f
                         ).toInt().coerceIn(0, 255)

@@ -11,7 +11,6 @@ import com.github.adamyork.sparrow.wasm.engine.data.ParticleShape
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import me.tatarka.inject.annotations.Inject
-import kotlin.math.abs
 import kotlin.random.Random
 
 @AppScope
@@ -27,7 +26,6 @@ class DefaultParticles : Particles {
         private const val MAX_ACTIVE_PROJECTILES: Int = 1
         private const val COLLISION_PARTICLE_COUNT: Int = 360
         private const val PROJECTILE_SIZE: Int = 24
-        private const val PROJECTILE_INCREMENT_DIVISOR: Int = 10
         private const val MAP_ITEM_RETURN_SIZE: Int = 32
         private const val BASE_DIAMETER_MULTIPLIER = 3
         private const val BASE_DIAMETER_MULTIPLIER_BUFFER = 6
@@ -130,10 +128,6 @@ class DefaultParticles : Particles {
     ): Pair<ArrayList<Particle>, Boolean> {
         val count = getActiveProjectileCount(particles)
         if (count >= MAX_ACTIVE_PROJECTILES) return particles to false
-        val xDiff = abs(enemy.x - player.x)
-        val yDiff = abs(enemy.y - player.y)
-        val xIncrement = (xDiff / PROJECTILE_INCREMENT_DIVISOR).coerceAtLeast(1)
-        val yIncrement = (yDiff / PROJECTILE_INCREMENT_DIVISOR).coerceAtLeast(1)
         particles.add(
             Particle(
                 count + 1,
@@ -145,9 +139,9 @@ class DefaultParticles : Particles {
                 PROJECTILE_SIZE,
                 ParticleType.PROJECTILE,
                 0,
-                10,
-                xIncrement,
-                yIncrement,
+                50,
+                enemy.x,
+                enemy.y,
                 1,
                 colorMap[ParticleType.PROJECTILE] ?: Color.White,
                 ParticleShape.CIRCLE

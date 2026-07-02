@@ -2,11 +2,15 @@ package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import me.tatarka.inject.annotations.Inject
 
 @Inject
@@ -17,16 +21,21 @@ import me.tatarka.inject.annotations.Inject
 class DefaultSparrowColorScheme : SparrowColorScheme {
 
     // --- Legacy CSS Constants ---
-    private val cssButtonActive = Color(0xFFEDC189)
-    private val cssButtonDisabledBg = Color(0xFFCCCCCC)
-    private val cssButtonDisabledBorder = Color(0xFF999999)
-    private val cssButtonDisabledText = Color(0xFF666666)
-    private val cssOverlayBackground = Color(0xFFFFFFFF).copy(alpha = 0.65f)
+    private val buttonActive = Color(0xFFEDC189)
+    private val buttonDisabledBg = Color(0xFFCCCCCC)
+    private val buttonDisabledBorder = Color(0xFF999999)
+    private val buttonDisabledText = Color(0xFF666666)
+    private val overlayBackground = Color(0xFFCCCCCC)
+
+    // --- Typography Tokens ---
+    private val appFontFamily = FontFamily.SansSerif
+    private val labelLargeSize = 14.sp
+    private val bodySmallSize = 12.sp
 
     // --- Light Mode Palette Definitions ---
     private val lightBgColor = Color(0xFFF8FAFC)        // --bg-color
     private val lightCardBg = Color(0xFFFFFFFF)         // --card-bg
-    private val lightTextMain = Color(0xFF0F172A)       // --text-com.github.adamyork.sparrow.wasm.main
+    private val lightTextMain = Color.Black              // --text-com.github.adamyork.sparrow.wasm.main
     private val lightTextMuted = Color(0xFF64748B)      // --text-muted
     private val lightPrimary = Color(0xFF4F46E5)        // --primary
     private val lightPrimaryHover = Color(0xFF6366F1)   // --primary-hover
@@ -35,7 +44,7 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
     // --- Dark Mode Palette Definitions ---
     private val darkBgColor = Color(0xFF0F172A)         // --bg-color
     private val darkCardBg = Color(0xFF1E293B)          // --card-bg
-    private val darkTextMain = Color(0xFFF8FAFC)        // --text-com.github.adamyork.sparrow.wasm.main
+    private val darkTextMain = Color.Black               // --text-com.github.adamyork.sparrow.wasm.main
     private val darkTextMuted = Color(0xFF94A3B8)       // --text-muted
     private val darkPrimary = Color(0xFF818CF8)         // --primary
     private val darkPrimaryHover = Color(0xFFA5B4FC)    // --primary-hover
@@ -101,27 +110,29 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
 
         // Apply custom button styling by overriding the generated scheme
         return baseScheme.copy(
-            primary = cssButtonActive, // Maps button background to Primary
-            onPrimary = Color.Black     // Matches CSS: color: black
+            primary = buttonActive, // Maps button background to Primary
+            onPrimary = Color.Black,     // Matches CSS: color: black
+            secondaryContainer = buttonDisabledBg,
+            onSecondaryContainer = buttonDisabledText,
+            outlineVariant = buttonDisabledBorder,
+            inverseSurface = overlayBackground
         )
     }
 
     @Composable
-    fun getDisabledButtonColors() = androidx.compose.material3.ButtonDefaults.buttonColors(
-        containerColor = cssButtonDisabledBg,
-        contentColor = cssButtonDisabledText,
-        disabledContainerColor = cssButtonDisabledBg,
-        disabledContentColor = cssButtonDisabledText
+    override fun getTypography(): Typography = Typography(
+        labelLarge = TextStyle(
+            fontFamily = appFontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = labelLargeSize
+        ),
+        bodySmall = TextStyle(
+            fontFamily = appFontFamily,
+            fontWeight = FontWeight.Normal,
+            fontSize = bodySmallSize
+        )
     )
 
-    @Composable
-    fun getDisabledBorder() = androidx.compose.foundation.BorderStroke(
-        width = 1.dp,
-        color = cssButtonDisabledBorder
-    )
-
-    @Composable
-    fun getScoreOverlayBackground() = cssOverlayBackground
 
     @Composable
     override fun getHoverColor(): Color = primaryHoverColor

@@ -24,7 +24,7 @@ interface Physics {
 
     fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle>
 
-    fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle>
+    fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort): ArrayList<Particle>
 
     fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle>
 

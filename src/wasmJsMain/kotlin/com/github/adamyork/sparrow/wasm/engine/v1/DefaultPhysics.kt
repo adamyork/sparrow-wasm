@@ -12,7 +12,6 @@ import com.github.adamyork.sparrow.wasm.common.v1.DefaultStatusProvider
 import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.*
-import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.PhysicsSettingsService
 import me.tatarka.inject.annotations.Inject
 import kotlin.math.*
@@ -23,15 +22,11 @@ import kotlin.math.*
  */
 class DefaultPhysics @AppScope @Inject constructor(
     private val statusProviderFactory: () -> DefaultStatusProvider,
-    val physicsSettingsService: PhysicsSettingsService,
-    private val assetService: AssetService
+    val physicsSettingsService: PhysicsSettingsService
 ) : Physics {
 
     private val statusProvider: DefaultStatusProvider
         get() = statusProviderFactory()
-
-    private val maxFps: Double
-        get() = assetService.gameConfig.engine.fps.max.toDouble()
 
     override fun applyPlayerPhysics(
         player: Player,
@@ -79,17 +74,18 @@ class DefaultPhysics @AppScope @Inject constructor(
     private fun getXVelocity(vx: Double, moving: PlayerMovingState, dt: Double): Double {
         var nextVx = vx
         if (moving == PlayerMovingState.MOVING) {
-            // Accelerate
-            val accel = physicsSettingsService.xAccelerationRate * dt * maxFps
+            // Acceleration is tuned as per-frame units; only scale for dropped-frame compensation.
+            val accel = physicsSettingsService.xAccelerationRate * dt
             nextVx += accel
             // Cap speed
             if (nextVx > physicsSettingsService.maxXVelocity) {
                 nextVx = physicsSettingsService.maxXVelocity
             }
         } else {
-            // Friction decay
-            val frictionDecay = physicsSettingsService.friction.pow(dt * maxFps)
+            // Apply damping and linear deceleration while idle for smoother stop behavior.
+            val frictionDecay = physicsSettingsService.friction.coerceIn(0.0, 1.0).pow(dt)
             nextVx *= frictionDecay
+            nextVx = (nextVx - (physicsSettingsService.xDeaccelerationRate * dt)).coerceAtLeast(0.0)
         }
         // Stop threshold
         if (moving != PlayerMovingState.MOVING && abs(nextVx) < 0.5) {
@@ -100,8 +96,8 @@ class DefaultPhysics @AppScope @Inject constructor(
 
     private fun getYVelocity(vy: Double, jumping: PlayerJumpingState, dt: Double): Double {
         return when (jumping) {
-            PlayerJumpingState.INITIAL -> physicsSettingsService.jumpDistance / 2.0
-            PlayerJumpingState.RISING -> (vy + (physicsSettingsService.yVelocityCoefficient * vy * dt * maxFps)).coerceAtMost(
+            PlayerJumpingState.INITIAL -> min(physicsSettingsService.jumpDistance / 2.0, physicsSettingsService.maxYVelocity)
+            PlayerJumpingState.RISING -> (vy + (physicsSettingsService.yVelocityCoefficient * vy * dt)).coerceAtMost(
                 physicsSettingsService.maxYVelocity
             )
 
@@ -110,10 +106,9 @@ class DefaultPhysics @AppScope @Inject constructor(
     }
 
     private fun movePlayerX(x: Int, vx: Double, moving: PlayerMovingState, dir: Direction, b: CollisionBoundaries, dt: Double): PhysicsXResult {
-        // VX is now pixels-per-frame-equivalent
-        val delta = vx // Keep it as vx, the acceleration is already handled in getXVelocity
+        val delta = vx * physicsSettingsService.xMovementDistance * dt
 
-        var nextX = x.toDouble() + (if (dir == Direction.LEFT) -delta else delta)
+        val nextX = x.toDouble() + (if (dir == Direction.LEFT) -delta else delta)
 
         val clampedX = nextX.roundToInt().coerceIn(minOf(b.left + 1, b.right - 1), maxOf(b.left + 1, b.right - 1))
         return PhysicsXResult(clampedX, vx, moving)
@@ -126,12 +121,17 @@ class DefaultPhysics @AppScope @Inject constructor(
         b: CollisionBoundaries,
         dt: Double
     ): PhysicsYResult {
-        val gravityEffect = physicsSettingsService.gravity * dt * maxFps
-        var nextY = y + gravityEffect - (vy * dt * maxFps)
+        val gravityEffect = physicsSettingsService.gravity * dt
+        var nextY = y + gravityEffect - (vy * dt)
         var nextJumping = jumping
 
         if (nextJumping == PlayerJumpingState.INITIAL) nextJumping = PlayerJumpingState.RISING
         if (nextJumping == PlayerJumpingState.RISING && nextY <= (b.bottom - physicsSettingsService.jumpDistance)) {
+            nextJumping = PlayerJumpingState.HEIGHT_REACHED
+        }
+
+        if (nextY <= b.top) {
+            nextY = b.top.toDouble()
             nextJumping = PlayerJumpingState.HEIGHT_REACHED
         }
 
@@ -192,23 +192,55 @@ class DefaultPhysics @AppScope @Inject constructor(
     override fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
         val dt = statusProvider.getDeltaTimeCoefficient()
         return mapParticles.map { p ->
-            val growth = 1.0 * dt * maxFps
-            p.copy(
-                width = (p.width + growth).toInt().coerceAtMost(40),
-                height = (p.height + growth).toInt().coerceAtMost(40),
-                frame = p.frame + 1
-            )
+            if (p.type == ParticleType.DUST) {
+                val growth = 1.0 * dt
+                p.copy(
+                    width = (p.width + growth).toInt().coerceAtMost(40),
+                    height = (p.height + growth).toInt().coerceAtMost(40),
+                    frame = p.frame + 1
+                )
+            } else {
+                p
+            }
         }.filter { it.frame <= it.lifetime }.toCollection(ArrayList())
     }
 
-    override fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
+    override fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort): ArrayList<Particle> {
         val dt = statusProvider.getDeltaTimeCoefficient()
+        val speed = physicsSettingsService.projectileSpeed * dt
         return mapParticles.map { p ->
-            val speed = 5.0 * dt * maxFps// Adjust based on desired projectile speed
-            val dx = if (p.originX < p.x) -speed else speed
-            val dy = if (p.originY < p.y) -speed else speed
-            p.copy(x = (p.x + dx).toInt(), y = (p.y + dy).toInt(), frame = p.frame + 1)
-        }.filter { it.frame <= it.lifetime }.toCollection(ArrayList())
+            if (p.type == ParticleType.PROJECTILE) {
+                val directionX = p.originX - p.xJitter
+                val directionY = p.originY - p.yJitter
+                val length = sqrt((directionX * directionX + directionY * directionY).toDouble())
+                val unitVector = if (length > 0.0) {
+                    Pair(directionX / length, directionY / length)
+                } else {
+                    Pair(1.0, 0.0)
+                }
+                val nextX = p.x + (unitVector.first * speed)
+                val nextY = p.y + (unitVector.second * speed)
+                p.copy(x = nextX.roundToInt(), y = nextY.roundToInt(), frame = p.frame + 1)
+            } else {
+                p
+            }
+        }.filter { particle ->
+            if (particle.type == ParticleType.PROJECTILE) {
+                isParticleInViewPort(particle, viewPort)
+            } else {
+                particle.frame <= particle.lifetime
+            }
+        }.toCollection(ArrayList())
+    }
+
+    private fun isParticleInViewPort(particle: Particle, viewPort: ViewPort): Boolean {
+        val left = viewPort.x
+        val right = viewPort.x + viewPort.width
+        val top = viewPort.y
+        val bottom = viewPort.y + viewPort.height
+        val particleRight = particle.x + particle.width
+        val particleBottom = particle.y + particle.height
+        return particleRight >= left && particle.x <= right && particleBottom >= top && particle.y <= bottom
     }
 
     override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
