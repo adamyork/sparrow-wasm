@@ -42,8 +42,6 @@ kotlin {
             implementation("org.jetbrains.compose.components:components-resources:1.11.1")
             implementation("org.jetbrains.compose.material:material-icons-core:1.7.3")
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
-            implementation("io.coil-kt.coil3:coil-compose:3.0.4")
-            implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
             implementation("io.ktor:ktor-client-js:3.0.1")
             implementation("com.charleskorn.kaml:kaml:0.104.0")
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")

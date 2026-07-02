@@ -1,6 +1,7 @@
 engine:
   fps:
     target: 60
+    animation: 12
 viewport:
   x: 0
   y: 0

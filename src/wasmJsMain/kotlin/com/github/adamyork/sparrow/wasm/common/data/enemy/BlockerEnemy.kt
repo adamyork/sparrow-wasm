@@ -8,6 +8,8 @@ import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
+import kotlinx.browser.window
+import kotlin.math.floor
 
 /**
  * Author: Adam York
@@ -26,15 +28,23 @@ data class BlockerEnemy(
     override val originY: Int,
     override val enemyPosition: EnemyPosition,
     override val colliding: GameElementCollisionState,
-    override val interacting: EnemyInteractionState
+    override val interacting: EnemyInteractionState,
+    val animationTargetFps: Double = 12.0,
+    var animationTickCounter: Int = 0,
+    var lastAnimationTickTimeMs: Double = 0.0,
+    var animationTickBufferMs: Double = 0.0,
+    var movementCarryX: Double = 0.0,
 ) : Enemy {
 
     companion object {
         //val LOGGER: Logger = LoggerFactory.getLogger(BlockerEnemy::class.java)
         const val ANIMATION_COLLISION_FRAMES = 8
-        const val MAX_X_MOVEMENT = 50
-        const val MOVEMENT_X_DISTANCE = 10
+        const val MAX_X_MOVEMENT = 100
+        const val MOVEMENT_X_DISTANCE = 4
     }
+
+    private val animationFrameIntervalMs: Double
+        get() = 1000.0 / animationTargetFps.coerceAtLeast(1.0)
 
     var animatingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var collisionFrames: HashMap<Int, FrameMetadata> = HashMap()
@@ -48,31 +58,66 @@ data class BlockerEnemy(
     }
 
     override fun getNextFrameMetadataWithState(): Pair<FrameMetadata, FrameMetadataState> {
+        if (!shouldAdvanceAnimationFrame()) {
+            return Pair(frameMetadata, FrameMetadataState(this.colliding, this.interacting, state))
+        }
         return this.getNextCollisionMetadataWithState(animatingFrames, collisionFrames)
     }
 
+    private fun shouldAdvanceAnimationFrame(): Boolean {
+        val nowMs = window.performance.now()
+        if (lastAnimationTickTimeMs <= 0.0) {
+            lastAnimationTickTimeMs = nowMs
+            return false
+        }
+        val elapsedMs = (nowMs - lastAnimationTickTimeMs).coerceAtLeast(0.0)
+        lastAnimationTickTimeMs = nowMs
+        animationTickBufferMs += elapsedMs
+        animationTickCounter += 1
+        if (animationTickBufferMs < animationFrameIntervalMs) {
+            return false
+        }
+        animationTickBufferMs -= animationFrameIntervalMs
+        animationTickCounter = 0
+        return true
+    }
+
     override fun getNextPosition(): EnemyPosition {
-        if (enemyPosition.direction == Direction.LEFT) {
-            return if (enemyPosition.x >= originX - MAX_X_MOVEMENT) {
-                EnemyPosition(
-                    enemyPosition.x - MOVEMENT_X_DISTANCE,
-                    enemyPosition.y,
-                    Direction.LEFT
-                )
-            } else {
+        return getNextPosition(1.0)
+    }
+
+    fun getNextPosition(deltaTimeCoefficient: Double): EnemyPosition {
+        val leftBound = originX - MAX_X_MOVEMENT
+        val rightBound = originX + MAX_X_MOVEMENT
+        val scaledMovement = (MOVEMENT_X_DISTANCE * deltaTimeCoefficient.coerceAtLeast(0.0)) + movementCarryX
+        val movementStep = floor(scaledMovement).toInt()
+        movementCarryX = scaledMovement - movementStep
+
+        if (movementStep <= 0) {
+            return if (enemyPosition.direction == Direction.LEFT && enemyPosition.x <= leftBound) {
                 EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.RIGHT)
-            }
-        } else {
-            return if (enemyPosition.x <= originX + MAX_X_MOVEMENT) {
-                EnemyPosition(
-                    enemyPosition.x + MOVEMENT_X_DISTANCE,
-                    enemyPosition.y,
-                    Direction.RIGHT
-                )
-            } else {
+            } else if (enemyPosition.direction == Direction.RIGHT && enemyPosition.x >= rightBound) {
                 EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.LEFT)
+            } else {
+                EnemyPosition(enemyPosition.x, enemyPosition.y, enemyPosition.direction)
             }
         }
+
+        if (enemyPosition.direction == Direction.LEFT) {
+            if (enemyPosition.x > leftBound) {
+                val nextX = (enemyPosition.x - movementStep).coerceAtLeast(leftBound)
+                val nextDirection = if (nextX <= leftBound) Direction.RIGHT else Direction.LEFT
+                return EnemyPosition(nextX, enemyPosition.y, nextDirection)
+            }
+            return EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.RIGHT)
+        }
+
+        if (enemyPosition.x < rightBound) {
+            val nextX = (enemyPosition.x + movementStep).coerceAtMost(rightBound)
+            val nextDirection = if (nextX >= rightBound) Direction.LEFT else Direction.RIGHT
+            return EnemyPosition(nextX, enemyPosition.y, nextDirection)
+        }
+        return EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.LEFT)
     }
 
     override fun getNextEnemyState(player: Player): GameElementState {

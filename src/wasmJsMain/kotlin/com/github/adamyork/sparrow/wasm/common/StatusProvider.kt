@@ -11,7 +11,6 @@ interface StatusProvider {
 
     fun getDeltaTimeCoefficient(): Double
 
-    fun atOrUnderTargetFps(nextPaintTimeMs: Double): Boolean
 
     fun getFps(): Double
 

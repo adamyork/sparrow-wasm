@@ -24,7 +24,7 @@ data class GameConfig(
 data class EngineConfig(val fps: FpsTarget)
 
 @Serializable
-data class FpsTarget(val target: Int)
+data class FpsTarget(val target: Int, val animation: Int = 12)
 
 @Serializable
 data class ViewportConfig(val x: Int, val y: Int, val width: Int, val height: Int)

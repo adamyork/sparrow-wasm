@@ -213,10 +213,17 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     private fun manageMapEnemies(gameMap: GameMap, player: Player): ArrayList<Enemy> {
+        val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
         return gameMap.enemies.map { enemy ->
             val nextState = enemy.getNextEnemyState(player)
             if (nextState != GameElementState.INACTIVE) {
-                val nextPosition = enemy.getNextPosition()
+                val nextPosition = if (enemy is BlockerEnemy) {
+                    enemy.getNextPosition(deltaTimeCoefficient)
+                } else if (enemy is RunnerEnemy) {
+                    enemy.getNextPosition(deltaTimeCoefficient)
+                } else {
+                    enemy.getNextPosition()
+                }
                 val itemX = nextPosition.x
                 val itemY = nextPosition.y
                 val frameMetadataWithState = (enemy as GameElement).getNextFrameMetadataWithState()
@@ -345,7 +352,8 @@ class DefaultEngine @AppScope @Inject constructor(
             PlayerJumpingState.GROUNDED,
             PlayerMovingState.STATIONARY,
             Direction.RIGHT,
-            GameElementCollisionState.FREE
+            GameElementCollisionState.FREE,
+            assetService.gameConfig.engine.fps.animation.toDouble()
         )
     }
 

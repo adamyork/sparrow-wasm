@@ -3,7 +3,6 @@ package com.github.adamyork.sparrow.wasm.common.v1
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.service.AssetService
-import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 
 @AppScope
@@ -16,7 +15,6 @@ class DefaultStatusProvider(
         const val FPS_SAMPLE_WINDOW_MS: Double = 1000.0
     }
 
-    private val logger = KotlinLogging.logger {}
 
     override var running: Boolean = false
     override var lastPaintTime: Double = 0.0
@@ -47,16 +45,6 @@ class DefaultStatusProvider(
         return coefficient.coerceIn(0.5, 2.0)
     }
 
-    override fun atOrUnderTargetFps(nextPaintTimeMs: Double): Boolean {
-        val target = assetService.gameConfig.engine.fps.target.toDouble()
-        val targetIntervalMs = 1000.0 / target
-        val delta = nextPaintTimeMs - lastPaintTime
-        if (delta >= targetIntervalMs) {
-            lastPaintTime = nextPaintTimeMs
-            return true
-        }
-        return false
-    }
 
     override fun reset() {
         lastPaintTime = 0.0

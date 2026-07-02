@@ -96,7 +96,11 @@ class DefaultPhysics @AppScope @Inject constructor(
 
     private fun getYVelocity(vy: Double, jumping: PlayerJumpingState, dt: Double): Double {
         return when (jumping) {
-            PlayerJumpingState.INITIAL -> min(physicsSettingsService.jumpDistance / 2.0, physicsSettingsService.maxYVelocity)
+            PlayerJumpingState.INITIAL -> min(
+                physicsSettingsService.jumpDistance / 2.0,
+                physicsSettingsService.maxYVelocity
+            )
+
             PlayerJumpingState.RISING -> (vy + (physicsSettingsService.yVelocityCoefficient * vy * dt)).coerceAtMost(
                 physicsSettingsService.maxYVelocity
             )
@@ -105,7 +109,14 @@ class DefaultPhysics @AppScope @Inject constructor(
         }
     }
 
-    private fun movePlayerX(x: Int, vx: Double, moving: PlayerMovingState, dir: Direction, b: CollisionBoundaries, dt: Double): PhysicsXResult {
+    private fun movePlayerX(
+        x: Int,
+        vx: Double,
+        moving: PlayerMovingState,
+        dir: Direction,
+        b: CollisionBoundaries,
+        dt: Double
+    ): PhysicsXResult {
         val delta = vx * physicsSettingsService.xMovementDistance * dt
 
         val nextX = x.toDouble() + (if (dir == Direction.LEFT) -delta else delta)
@@ -146,14 +157,23 @@ class DefaultPhysics @AppScope @Inject constructor(
         mapParticles: ArrayList<Particle>,
         viewPort: ViewPort
     ): ArrayList<Particle> {
+        val dt = statusProvider.getDeltaTimeCoefficient()
+        // Lower this value to slow down the animation (e.g., 0.5 is half-speed)
+        val speedFactor = 0.25
+
         return mapParticles
             .map { particle ->
                 if (particle.type == ParticleType.COLLISION) {
-                    val nextFrame = particle.frame + 1
+                    // Slower frame progression
+                    val nextFrame = particle.frame + (1.0 * dt * speedFactor).toInt().coerceAtLeast(1)
+
                     var nextRadius = particle.radius
                     var position = Pair(particle.x.toDouble(), particle.y.toDouble())
+
                     if (particle.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
-                        nextRadius = particle.radius + 10
+                        // Slower radius expansion (change 10 to a smaller value if needed)
+                        nextRadius = (particle.radius + (10 * dt * speedFactor)).toInt()
+
                         val pos = getCollisionParticlePosition(
                             nextRadius.toFloat(),
                             particle.id.toFloat(),
@@ -163,9 +183,10 @@ class DefaultPhysics @AppScope @Inject constructor(
                         position = Pair(pos.first.toDouble(), pos.second.toDouble())
                     } else {
                         if (particle.frame <= particle.lifetime) {
+                            // Slower gravity effect
                             position = Pair(
                                 particle.x.toDouble(),
-                                particle.y.toDouble() + physicsSettingsService.gravity
+                                particle.y.toDouble() + (physicsSettingsService.gravity * dt * speedFactor)
                             )
                         }
                     }
@@ -205,7 +226,10 @@ class DefaultPhysics @AppScope @Inject constructor(
         }.filter { it.frame <= it.lifetime }.toCollection(ArrayList())
     }
 
-    override fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort): ArrayList<Particle> {
+    override fun applyProjectileParticlePhysics(
+        mapParticles: ArrayList<Particle>,
+        viewPort: ViewPort
+    ): ArrayList<Particle> {
         val dt = statusProvider.getDeltaTimeCoefficient()
         val speed = physicsSettingsService.projectileSpeed * dt
         return mapParticles.map { p ->

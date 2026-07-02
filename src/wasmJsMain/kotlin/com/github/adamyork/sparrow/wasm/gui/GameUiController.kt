@@ -208,8 +208,7 @@ class GameUiController(
     }
 
     private fun next(timestamp: Double): DrawResult {
-        val now = statusProvider.getCurrentFrameTime()
-        if (!statusProvider.running || !isInitialized || !statusProvider.atOrUnderTargetFps(now)) {
+        if (!statusProvider.running || !isInitialized) {
             return DrawResult.EMPTY_DRAW_RESULT
         }
         val collisionBoundaries = engine.getCollisionBoundaries(stateElements.player)

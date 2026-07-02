@@ -9,6 +9,7 @@ import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
+import kotlinx.browser.window
 
 /**
  * Author: Adam York
@@ -27,7 +28,11 @@ data class ShooterEnemy(
     override val originY: Int,
     override val enemyPosition: EnemyPosition,
     override val colliding: GameElementCollisionState,
-    override val interacting: EnemyInteractionState
+    override val interacting: EnemyInteractionState,
+    val animationTargetFps: Double = 12.0,
+    var animationTickCounter: Int = 0,
+    var lastAnimationTickTimeMs: Double = 0.0,
+    var animationTickBufferMs: Double = 0.0,
 ) : Enemy {
 
     companion object {
@@ -35,6 +40,9 @@ data class ShooterEnemy(
         const val PLAYER_PROXIMITY_THRESHOLD = 200
         const val ANIMATION_INTERACTING_FRAMES = 8
     }
+
+    private val animationFrameIntervalMs: Double
+        get() = 1000.0 / animationTargetFps.coerceAtLeast(1.0)
 
     var animatingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var collisionFrames: HashMap<Int, FrameMetadata> = HashMap()
@@ -72,6 +80,9 @@ data class ShooterEnemy(
     }
 
     override fun getNextFrameMetadataWithState(): Pair<FrameMetadata, FrameMetadataState> {
+        if (!shouldAdvanceAnimationFrame()) {
+            return Pair(frameMetadata, FrameMetadataState(this.colliding, this.interacting, state))
+        }
         var metadata = animatingFrames[1] ?: throw AnimationFrameException(animatingFrames.toString(), 1)
         var metadataState = FrameMetadataState(this.colliding, this.interacting, state)
         if (this.interacting == EnemyInteractionState.INTERACTING) {
@@ -88,6 +99,24 @@ data class ShooterEnemy(
             }
         }
         return this.getNextCollisionMetadataWithState(animatingFrames, collisionFrames)
+    }
+
+    private fun shouldAdvanceAnimationFrame(): Boolean {
+        val nowMs = window.performance.now()
+        if (lastAnimationTickTimeMs <= 0.0) {
+            lastAnimationTickTimeMs = nowMs
+            return false
+        }
+        val elapsedMs = (nowMs - lastAnimationTickTimeMs).coerceAtLeast(0.0)
+        lastAnimationTickTimeMs = nowMs
+        animationTickBufferMs += elapsedMs
+        animationTickCounter += 1
+        if (animationTickBufferMs < animationFrameIntervalMs) {
+            return false
+        }
+        animationTickBufferMs -= animationFrameIntervalMs
+        animationTickCounter = 0
+        return true
     }
 
     override fun nestedDirection(): Direction {

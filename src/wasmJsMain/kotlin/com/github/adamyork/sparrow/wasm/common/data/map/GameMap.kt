@@ -61,6 +61,7 @@ data class GameMap(
     }
 
     fun generateMapItems(collectibleItemAsset: ImageAsset, finishItemAsset: ImageAsset, assetService: AssetService) {
+        val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
         for (i in 0..<assetService.getTotalItems()) {
             val itemType = ItemType.from(assetService.getItemPosition(i).type)
             if (itemType == ItemType.FINISH) {
@@ -74,7 +75,8 @@ data class GameMap(
                         GameElementState.INACTIVE,
                         finishItemAsset.imageAndBytes,
                         FrameMetadata(1, Cell(1, 1, width, height)),
-                        i
+                        i,
+                        animationFps
                     )
                 )
             } else {
@@ -88,7 +90,8 @@ data class GameMap(
                         GameElementState.ACTIVE,
                         collectibleItemAsset.imageAndBytes,
                         FrameMetadata(1, Cell(1, 1, width, height)),
-                        i
+                        i,
+                        animationFps
                     )
                 )
             }
@@ -96,6 +99,7 @@ data class GameMap(
     }
 
     fun generateMapEnemies(blockerEnemyAsset: ImageAsset, shooterEnemyAsset: ImageAsset, assetService: AssetService) {
+        val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
         for (i in 0..<assetService.getTotalEnemies()) {
             val itemType = EnemyType.from(assetService.getEnemyPosition(i).type)
             when (itemType) {
@@ -118,7 +122,8 @@ data class GameMap(
                                 Direction.LEFT
                             ),
                             GameElementCollisionState.FREE,
-                            EnemyInteractionState.ISOLATED
+                            EnemyInteractionState.ISOLATED,
+                            animationFps
                         )
                     )
                 }
@@ -142,7 +147,8 @@ data class GameMap(
                                 Direction.LEFT
                             ),
                             GameElementCollisionState.FREE,
-                            EnemyInteractionState.ISOLATED
+                            EnemyInteractionState.ISOLATED,
+                            animationFps
                         )
                     )
                 }
@@ -166,7 +172,8 @@ data class GameMap(
                                 Direction.LEFT
                             ),
                             GameElementCollisionState.FREE,
-                            EnemyInteractionState.ISOLATED
+                            EnemyInteractionState.ISOLATED,
+                            animationFps
                         )
                     )
                 }

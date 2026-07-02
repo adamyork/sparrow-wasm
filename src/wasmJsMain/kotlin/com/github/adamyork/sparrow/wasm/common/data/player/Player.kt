@@ -10,6 +10,7 @@ import com.github.adamyork.sparrow.wasm.common.data.GameElement
 import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
+import kotlinx.browser.window
 
 /**
  * Author: Adam York
@@ -29,6 +30,10 @@ data class Player(
     val moving: PlayerMovingState,
     val direction: Direction,
     val colliding: GameElementCollisionState,
+    val animationTargetFps: Double = 12.0,
+    var animationTickCounter: Int = 0,
+    var lastAnimationTickTimeMs: Double = 0.0,
+    var animationTickBufferMs: Double = 0.0,
 ) : GameElement {
 
     companion object {
@@ -37,6 +42,9 @@ data class Player(
         const val ANIMATION_JUMPING_FRAMES = 8
         const val ANIMATION_COLLISION_FRAMES = 8
     }
+
+    private val animationFrameIntervalMs: Double
+        get() = 1000.0 / animationTargetFps.coerceAtLeast(1.0)
 
     var movingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var jumpingFrames: HashMap<Int, FrameMetadata> = HashMap()
@@ -53,6 +61,23 @@ data class Player(
             EnemyInteractionState.ISOLATED,
             state
         )
+
+        // Keep simulation unbounded, but only advance animation frames at ~12 FPS.
+        val nowMs = window.performance.now()
+        if (lastAnimationTickTimeMs <= 0.0) {
+            lastAnimationTickTimeMs = nowMs
+            return Pair(frameMetadata, metadataState)
+        }
+        val elapsedMs = (nowMs - lastAnimationTickTimeMs).coerceAtLeast(0.0)
+        lastAnimationTickTimeMs = nowMs
+        animationTickBufferMs += elapsedMs
+        animationTickCounter += 1
+        if (animationTickBufferMs < animationFrameIntervalMs) {
+            return Pair(frameMetadata, metadataState)
+        }
+        animationTickBufferMs -= animationFrameIntervalMs
+        animationTickCounter = 0
+
         if (colliding == GameElementCollisionState.COLLIDING) {
             if (frameMetadata.frame >= ANIMATION_COLLISION_FRAMES) {
                 metadataState = metadataState.copy(colliding = GameElementCollisionState.FREE)
