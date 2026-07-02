@@ -35,7 +35,8 @@ class DefaultGame(
     )
 
     private val screen = GameUiMain(
-        controller = controller
+        controller = controller,
+        statusProvider = statusProvider
     )
 
     @Composable

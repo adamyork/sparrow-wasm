@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
 import kotlinx.browser.window
@@ -33,7 +34,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Copyright (c) Adam York
  */
 class GameUiMain(
-    private val controller: GameUiController
+    private val controller: GameUiController,
+    private val statusProvider: StatusProvider
 ) {
 
     private fun shouldEnableStart(
@@ -133,7 +135,8 @@ class GameUiMain(
         LaunchedEffect(isRunning) {
             if (isRunning) {
                 var frameId: Int
-                fun loop() {
+                fun loop(timestamp: Double) {
+                    statusProvider.setCurrentFrameTime(timestamp)
                     val frame = controller.tick()
                     frame.drawResult.farGroundBitmap?.let { image ->
                         gameUiDrawLayer.drawFarGround(
@@ -164,13 +167,12 @@ class GameUiMain(
                     totalLabel = frame.totalLabel
                     remainingLabel = frame.remainingLabel
                     gameStatusLabel = frame.gameStatusLabel
-                    frameId = window.requestAnimationFrame { _ ->
-                        loop()
-                    }
+                    statusProvider.lastPaintTime = timestamp
+                    frameId = window.requestAnimationFrame { ts -> loop(ts) }
                 }
-                frameId = window.requestAnimationFrame { _ ->
-                    loop()
-                }
+
+                frameId = window.requestAnimationFrame { ts -> loop(ts) }
+
                 try {
                     awaitCancellation()
                 } finally {
@@ -286,7 +288,11 @@ class GameUiMain(
                         ) {
                             Text(text = scoreLabel, style = MaterialTheme.typography.labelLarge, color = textMainColor)
                             Text(text = totalLabel, style = MaterialTheme.typography.labelLarge, color = textMainColor)
-                            Text(text = remainingLabel, style = MaterialTheme.typography.labelLarge, color = textMainColor)
+                            Text(
+                                text = remainingLabel,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = textMainColor
+                            )
                         }
                     }
                 }

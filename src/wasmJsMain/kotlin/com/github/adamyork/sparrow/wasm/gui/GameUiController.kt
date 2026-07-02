@@ -25,7 +25,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlin.time.Clock
 
 /**
  * Author: Adam York
@@ -115,7 +114,6 @@ class GameUiController(
             particles.populateColorMap(assetService)
             scoreService.gameMapItem = gameMap.items
             isInitialized = true
-            statusProvider.lastPaintTime = Clock.System.now().toEpochMilliseconds()
             logger.info { "splash loaded and game initialized" }
             loadedImage
         }.onFailure { logger.error { "init failed $it" } }.getOrNull()
@@ -210,7 +208,7 @@ class GameUiController(
     }
 
     private fun next(): DrawResult {
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = statusProvider.getCurrentFrameTime()
         if (!statusProvider.running || !isInitialized || !statusProvider.atOrUnderFpsMax(now)) {
             return DrawResult.EMPTY_DRAW_RESULT
         }
@@ -226,7 +224,6 @@ class GameUiController(
         stateElements.player = nextPlayer
         stateElements.gameMap = nextMap
         scoreService.gameMapItem = stateElements.gameMap.items
-        statusProvider.lastPaintTime = now
         return engine.draw(stateElements.gameMap, stateElements.viewPort, stateElements.player)
     }
 }
