@@ -12,15 +12,15 @@ import me.tatarka.inject.annotations.Inject
  */
 class DefaultPhysicsSettingsService : PhysicsSettingsService {
 
-    override var maxXVelocity: Double = 10.0
+    override var maxXVelocity: Double = 7.5
     override var maxYVelocity: Double = 48.0
     override var jumpDistance: Double = 256.0
-    override var gravity: Double = 11.0
-    override var friction: Double = 0.93
-    override var yVelocityCoefficient: Double = 0.5
+    override var gravity: Double = 7.5
+    override var friction: Double = 0.90
+    override var yVelocityCoefficient: Double = 0.25
     override var xMovementDistance: Double = 1.0
-    override var xAccelerationRate: Double = 1.9
-    override var xDeaccelerationRate: Double = 0.5
+    override var xAccelerationRate: Double = 2.5
+    override var xDeaccelerationRate: Double = 1.6
     override var projectileSpeed: Double = 10.0
 
 }
