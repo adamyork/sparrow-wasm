@@ -168,8 +168,8 @@ class GameUiController(
         )
     }
 
-    fun tick(): GeneralUiState {
-        val drawResult = next()
+    fun tick(timestamp: Double): GeneralUiState {
+        val drawResult = next(timestamp)
         wavService.playNext()
         val currentFps = statusProvider.getFps()
         val scoreLabels = getScoreLabels()
@@ -207,9 +207,9 @@ class GameUiController(
         }
     }
 
-    private fun next(): DrawResult {
+    private fun next(timestamp: Double): DrawResult {
         val now = statusProvider.getCurrentFrameTime()
-        if (!statusProvider.running || !isInitialized || !statusProvider.atOrUnderFpsMax(now)) {
+        if (!statusProvider.running || !isInitialized || !statusProvider.atOrUnderTargetFps(now)) {
             return DrawResult.EMPTY_DRAW_RESULT
         }
         val collisionBoundaries = engine.getCollisionBoundaries(stateElements.player)
@@ -224,7 +224,7 @@ class GameUiController(
         stateElements.player = nextPlayer
         stateElements.gameMap = nextMap
         scoreService.gameMapItem = stateElements.gameMap.items
-        return engine.draw(stateElements.gameMap, stateElements.viewPort, stateElements.player)
+        return engine.draw(stateElements.gameMap, stateElements.viewPort, stateElements.player, timestamp)
     }
 }
 

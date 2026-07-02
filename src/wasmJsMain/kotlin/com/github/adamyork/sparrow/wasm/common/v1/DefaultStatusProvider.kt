@@ -37,34 +37,21 @@ class DefaultStatusProvider(
     }
 
     override fun getDeltaTimeCoefficient(): Double {
-        val maxFps = assetService.gameConfig.engine.fps.max.toDouble()
-        val targetDeltaTimeMs = 1000.0 / maxFps
-
-        // Use 0.0 to compare with Double
+        val targetFps = assetService.gameConfig.engine.fps.target.toDouble()
+        val targetDeltaTimeMs = 1000.0 / targetFps
         if (lastPaintTime <= 0.0 || currentFrameTime <= 0.0) {
             return 1.0
         }
-
         val actualDeltaTimeMs = currentFrameTime - lastPaintTime
-        return if (actualDeltaTimeMs > targetDeltaTimeMs) {
-            val multiplier = actualDeltaTimeMs / targetDeltaTimeMs
-            logger.debug { "FPS drop: target=${targetDeltaTimeMs}ms, actual=${actualDeltaTimeMs}ms, coeff=${multiplier}" }
-            multiplier.coerceAtMost(2.0)
-        } else {
-            1.0
-        }
+        val coefficient = actualDeltaTimeMs / targetDeltaTimeMs
+        return coefficient.coerceIn(0.5, 2.0)
     }
 
-    // Changed parameter to Double to match browser timestamps
-    override fun atOrUnderFpsMax(nextPaintTimeMs: Double): Boolean {
-        val maxFps = assetService.gameConfig.engine.fps.max.toDouble()
-        val targetIntervalMs = 1000.0 / maxFps
+    override fun atOrUnderTargetFps(nextPaintTimeMs: Double): Boolean {
+        val target = assetService.gameConfig.engine.fps.target.toDouble()
+        val targetIntervalMs = 1000.0 / target
         val delta = nextPaintTimeMs - lastPaintTime
-
-        excessTime += delta
-
-        if (excessTime >= targetIntervalMs) {
-            excessTime -= targetIntervalMs
+        if (delta >= targetIntervalMs) {
             lastPaintTime = nextPaintTimeMs
             return true
         }

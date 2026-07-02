@@ -2,6 +2,7 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.*
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
@@ -43,7 +44,8 @@ class DefaultEngine @AppScope @Inject constructor(
     private val particles: Particles,
     private val audioQueue: DefaultAudioQueue,
     private val scoreService: ScoreService,
-    private val assetService: AssetService
+    private val assetService: AssetService,
+    private val statusProvider: StatusProvider
 ) : Engine {
 
     private val logger = KotlinLogging.logger {}
@@ -268,7 +270,8 @@ class DefaultEngine @AppScope @Inject constructor(
     override fun draw(
         map: GameMap,
         viewPort: ViewPort,
-        player: Player
+        player: Player,
+        timestamp: Double
     ): DrawResult {
         val foregroundSurface = getOrCreateForegroundSurface(viewPort)
         val foregroundCanvas = foregroundSurface.canvas
@@ -311,6 +314,7 @@ class DefaultEngine @AppScope @Inject constructor(
         }
         drawPlayer(player, viewPort, foregroundCanvas, playerImage!!)
         val foregroundImage = foregroundSurface.makeImageSnapshot()
+        statusProvider.lastPaintTime = timestamp
         return DrawResult(
             foregroundImage = foregroundImage,
             foregroundOffsetX = viewPort.x.toFloat(),

@@ -21,10 +21,10 @@ data class GameConfig(
  * Author: Adam York
  * Copyright (c) Adam York
  */
-data class EngineConfig(val fps: MinMax)
+data class EngineConfig(val fps: FpsTarget)
 
 @Serializable
-data class MinMax(val min: Int, val max: Int)
+data class FpsTarget(val target: Int)
 
 @Serializable
 data class ViewportConfig(val x: Int, val y: Int, val width: Int, val height: Int)

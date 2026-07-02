@@ -34,7 +34,8 @@ interface Engine {
     fun draw(
         map: GameMap,
         viewPort: ViewPort,
-        player: Player
+        player: Player,
+        timestamp:Double
     ): DrawResult
 
     fun createDefaultPlayer(playerAsset: ImageAsset): Player

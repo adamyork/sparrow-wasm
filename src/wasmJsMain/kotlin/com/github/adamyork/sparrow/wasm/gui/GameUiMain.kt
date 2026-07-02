@@ -137,7 +137,7 @@ class GameUiMain(
                 var frameId: Int
                 fun loop(timestamp: Double) {
                     statusProvider.setCurrentFrameTime(timestamp)
-                    val frame = controller.tick()
+                    val frame = controller.tick(timestamp)
                     frame.drawResult.farGroundBitmap?.let { image ->
                         gameUiDrawLayer.drawFarGround(
                             image,
@@ -167,7 +167,6 @@ class GameUiMain(
                     totalLabel = frame.totalLabel
                     remainingLabel = frame.remainingLabel
                     gameStatusLabel = frame.gameStatusLabel
-                    statusProvider.lastPaintTime = timestamp
                     frameId = window.requestAnimationFrame { ts -> loop(ts) }
                 }
 

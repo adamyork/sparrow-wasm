@@ -1,7 +1,6 @@
 engine:
   fps:
-    min: 12
-    max: 60
+    target: 60
 viewport:
   x: 0
   y: 0
