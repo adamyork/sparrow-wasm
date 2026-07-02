@@ -1,15 +1,8 @@
 package com.github.adamyork.sparrow.wasm.common.data.player
 
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
-import com.github.adamyork.sparrow.wasm.common.data.Cell
-import com.github.adamyork.sparrow.wasm.common.data.Direction
-import com.github.adamyork.sparrow.wasm.common.data.FrameMetadata
-import com.github.adamyork.sparrow.wasm.common.data.FrameMetadataState
-import com.github.adamyork.sparrow.wasm.common.data.GameElement
-import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
-import com.github.adamyork.sparrow.wasm.common.data.GameElementState
+import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
+import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import kotlinx.browser.window
 
 /**
@@ -57,67 +50,48 @@ data class Player(
     }
 
     override fun getNextFrameMetadataWithState(): Pair<FrameMetadata, FrameMetadataState> {
-        var metadataState = FrameMetadataState(
+        val metadataState = FrameMetadataState(
             GameElementCollisionState.FREE,
             EnemyInteractionState.ISOLATED,
             state
         )
-
-        // Keep simulation unbounded, but only advance animation frames at ~12 FPS.
         val nowMs = window.performance.now()
         if (lastAnimationTickTimeMs <= 0.0) {
             lastAnimationTickTimeMs = nowMs
             return Pair(frameMetadata, metadataState)
         }
-
         val elapsedMs = (nowMs - lastAnimationTickTimeMs).coerceAtLeast(0.0)
         lastAnimationTickTimeMs = nowMs
         animationTickBufferMs += elapsedMs
         animationTickCounter += 1
-
-        // If we are colliding, we prioritize collision frames regardless of the normal buffer
-        // to ensure the animation starts immediately on impact.
         if (colliding == GameElementCollisionState.COLLIDING) {
-            // Reset to frame 1 if we were not previously on a collision frame
-            val currentFrame = if (frameMetadata.frame > ANIMATION_COLLISION_FRAMES || frameMetadata.frame < 1) 1 else frameMetadata.frame
-
+            val currentFrame = frameMetadata.frame.coerceIn(1, ANIMATION_COLLISION_FRAMES)
             if (animationTickBufferMs < animationFrameIntervalMs) {
                 return Pair(collisionFrames[currentFrame] ?: collisionFrames[1]!!, metadataState)
             }
-
-            // Advance frame
             animationTickBufferMs -= animationFrameIntervalMs
             val nextFrame = currentFrame + 1
-
             return if (nextFrame > ANIMATION_COLLISION_FRAMES) {
-                // Animation finished: return to base frame and rely on state engine to update colliding status
                 Pair(movingFrames[1]!!, metadataState)
             } else {
                 Pair(collisionFrames[nextFrame] ?: collisionFrames[1]!!, metadataState)
             }
         }
-
-        // Normal non-colliding flow
         if (animationTickBufferMs < animationFrameIntervalMs) {
             return Pair(frameMetadata, metadataState)
         }
         animationTickBufferMs -= animationFrameIntervalMs
         animationTickCounter = 0
-
-        // Jump State
         if (jumping == PlayerJumpingState.INITIAL || jumping == PlayerJumpingState.RISING) {
             val nextFrame = if (frameMetadata.frame >= ANIMATION_JUMPING_FRAMES) 1 else frameMetadata.frame + 1
             val metadata = jumpingFrames[nextFrame] ?: jumpingFrames[1]!!
             return Pair(metadata, metadataState)
         }
-
-        // Moving State
         if (moving == PlayerMovingState.MOVING) {
             val nextFrame = if (frameMetadata.frame >= ANIMATION_MOVING_FRAMES) 1 else frameMetadata.frame + 1
             val metadata = movingFrames[nextFrame] ?: movingFrames[1]!!
             return Pair(metadata, metadataState)
         }
-
         return Pair(movingFrames[1]!!, metadataState)
     }
 

@@ -217,12 +217,18 @@ class DefaultEngine @AppScope @Inject constructor(
         return gameMap.enemies.map { enemy ->
             val nextState = enemy.getNextEnemyState(player)
             if (nextState != GameElementState.INACTIVE) {
-                val nextPosition = if (enemy is BlockerEnemy) {
-                    enemy.getNextPosition(deltaTimeCoefficient)
-                } else if (enemy is RunnerEnemy) {
-                    enemy.getNextPosition(deltaTimeCoefficient)
-                } else {
-                    enemy.getNextPosition()
+                val nextPosition = when (enemy) {
+                    is BlockerEnemy -> {
+                        enemy.getNextPosition(deltaTimeCoefficient)
+                    }
+
+                    is RunnerEnemy -> {
+                        enemy.getNextPosition(deltaTimeCoefficient)
+                    }
+
+                    else -> {
+                        enemy.getNextPosition()
+                    }
                 }
                 val itemX = nextPosition.x
                 val itemY = nextPosition.y
@@ -423,11 +429,7 @@ class DefaultEngine @AppScope @Inject constructor(
         val localCord = viewPort.globalToLocal(player.x, player.y)
         canvas.save()
         if (player.direction == Direction.LEFT) {
-            val pivotX = localCord.first + (player.width / 2f)
-            val pivotY = localCord.second + (player.height / 2f)
-            canvas.translate(pivotX, pivotY)
-            canvas.scale(-1f, 1f)
-            canvas.translate(-pivotX, -pivotY)
+            translateSpriteDirection(canvas, localCord, player.width, player.height)
         }
         val paint = Paint().apply {
             isAntiAlias = true
@@ -438,26 +440,9 @@ class DefaultEngine @AppScope @Inject constructor(
                 null
             }
         }
-        canvas.drawImageRect(
-            image = image,
-            src = Rect.makeXYWH(
-                player.frameMetadata.cell.x.toFloat(),
-                player.frameMetadata.cell.y.toFloat(),
-                player.width.toFloat(),
-                player.height.toFloat()
-            ),
-            dst = Rect.makeXYWH(
-                localCord.first.toFloat(),
-                localCord.second.toFloat(),
-                player.width.toFloat(),
-                player.height.toFloat()
-            ),
-            samplingMode = SamplingMode.LINEAR,
-            paint = paint,
-            strict = true
-        )
-        canvas.restore()
+        drawSprite(canvas, image, player, localCord, paint)
     }
+
 
     private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas, mapItem: Item?, mapItemImage: Image?) {
         map.particles.forEach { particle ->
@@ -538,32 +523,51 @@ class DefaultEngine @AppScope @Inject constructor(
                 val drawLeftFacing = transformDirection && element.nestedDirection() == Direction.LEFT
                 canvas.save()
                 if (drawLeftFacing) {
-                    val pivotX = localCord.first + (element.width / 2f)
-                    val pivotY = localCord.second + (element.height / 2f)
-                    canvas.translate(pivotX, pivotY)
-                    canvas.scale(-1f, 1f)
-                    canvas.translate(-pivotX, -pivotY)
+                    translateSpriteDirection(canvas, localCord, element.width, element.height)
                 }
-                canvas.drawImageRect(
-                    image = elementImage,
-                    src = Rect.makeXYWH(
-                        element.frameMetadata.cell.x.toFloat(),
-                        element.frameMetadata.cell.y.toFloat(),
-                        element.width.toFloat(),
-                        element.height.toFloat()
-                    ),
-                    dst = Rect.makeXYWH(
-                        localCord.first.toFloat(),
-                        localCord.second.toFloat(),
-                        element.width.toFloat(),
-                        element.height.toFloat()
-                    ),
-                    samplingMode = SamplingMode.LINEAR,
-                    paint = paint,
-                    strict = true
-                )
-                canvas.restore()
+                drawSprite(canvas, elementImage, element, localCord, paint)
             }
         }
+    }
+
+    private fun drawSprite(
+        canvas: Canvas,
+        image: Image,
+        element: GameElement,
+        localCord: Pair<Int, Int>,
+        paint: Paint
+    ) {
+        canvas.drawImageRect(
+            image = image,
+            src = Rect.makeXYWH(
+                element.frameMetadata.cell.x.toFloat(),
+                element.frameMetadata.cell.y.toFloat(),
+                element.width.toFloat(),
+                element.height.toFloat()
+            ),
+            dst = Rect.makeXYWH(
+                localCord.first.toFloat(),
+                localCord.second.toFloat(),
+                element.width.toFloat(),
+                element.height.toFloat()
+            ),
+            samplingMode = SamplingMode.LINEAR,
+            paint = paint,
+            strict = true
+        )
+        canvas.restore()
+    }
+
+    private fun translateSpriteDirection(
+        canvas: Canvas,
+        localCord: Pair<Int, Int>,
+        width: Int,
+        height: Int
+    ) {
+        val pivotX = localCord.first + (width / 2f)
+        val pivotY = localCord.second + (height / 2f)
+        canvas.translate(pivotX, pivotY)
+        canvas.scale(-1f, 1f)
+        canvas.translate(-pivotX, -pivotY)
     }
 }

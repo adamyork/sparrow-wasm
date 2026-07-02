@@ -26,7 +26,6 @@ import org.jetbrains.skia.Image
 import org.jetbrains.skia.Point
 import kotlin.math.pow
 import kotlin.math.sqrt
-import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * Author: Adam York
@@ -144,7 +143,6 @@ class DefaultCollision(
         return gameMap.copy(state = gameState, items = managedMapItems)
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     override fun checkForEnemyCollisionAndProximity(
         player: Player,
         gameMap: GameMap,
@@ -236,7 +234,6 @@ class DefaultCollision(
         return Pair(nextPlayer, gameMap.copy(enemies = managedMapEnemies, particles = managedMapParticles))
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     override fun checkForProjectileCollision(
         player: Player,
         gameMap: GameMap,
