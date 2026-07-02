@@ -10,12 +10,12 @@ import com.github.adamyork.sparrow.wasm.service.ScoreService
 import com.github.adamyork.sparrow.wasm.service.WavService
 import me.tatarka.inject.annotations.Inject
 
-@AppScope
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@AppScope
+@Inject
 class DefaultGame(
     private val assetService: AssetService,
     private val engine: Engine,

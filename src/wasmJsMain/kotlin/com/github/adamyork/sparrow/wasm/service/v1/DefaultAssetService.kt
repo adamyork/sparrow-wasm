@@ -33,12 +33,12 @@ import org.w3c.dom.url.URL
 import org.w3c.fetch.Response
 import org.w3c.files.Blob
 
-@AppScope
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@AppScope
+@Inject
 class DefaultAssetService : AssetService {
 
     private val httpClient = HttpClient(Js)

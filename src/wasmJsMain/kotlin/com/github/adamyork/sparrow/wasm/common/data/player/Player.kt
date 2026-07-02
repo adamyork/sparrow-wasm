@@ -30,6 +30,7 @@ data class Player(
     val moving: PlayerMovingState,
     val direction: Direction,
     val colliding: GameElementCollisionState,
+    val immunityTicks: Int = 0,
     val animationTargetFps: Double = 12.0,
     var animationTickCounter: Int = 0,
     var lastAnimationTickTimeMs: Double = 0.0,
@@ -41,6 +42,7 @@ data class Player(
         const val ANIMATION_MOVING_FRAMES = 4
         const val ANIMATION_JUMPING_FRAMES = 8
         const val ANIMATION_COLLISION_FRAMES = 8
+        const val IMMUNITY_TICKS_ON_HIT = 120
     }
 
     private val animationFrameIntervalMs: Double
@@ -55,7 +57,6 @@ data class Player(
     }
 
     override fun getNextFrameMetadataWithState(): Pair<FrameMetadata, FrameMetadataState> {
-        var metadata = movingFrames[1] ?: throw AnimationFrameException(movingFrames.toString(), 1)
         var metadataState = FrameMetadataState(
             GameElementCollisionState.FREE,
             EnemyInteractionState.ISOLATED,
@@ -68,50 +69,56 @@ data class Player(
             lastAnimationTickTimeMs = nowMs
             return Pair(frameMetadata, metadataState)
         }
+
         val elapsedMs = (nowMs - lastAnimationTickTimeMs).coerceAtLeast(0.0)
         lastAnimationTickTimeMs = nowMs
         animationTickBufferMs += elapsedMs
         animationTickCounter += 1
+
+        // If we are colliding, we prioritize collision frames regardless of the normal buffer
+        // to ensure the animation starts immediately on impact.
+        if (colliding == GameElementCollisionState.COLLIDING) {
+            // Reset to frame 1 if we were not previously on a collision frame
+            val currentFrame = if (frameMetadata.frame > ANIMATION_COLLISION_FRAMES || frameMetadata.frame < 1) 1 else frameMetadata.frame
+
+            if (animationTickBufferMs < animationFrameIntervalMs) {
+                return Pair(collisionFrames[currentFrame] ?: collisionFrames[1]!!, metadataState)
+            }
+
+            // Advance frame
+            animationTickBufferMs -= animationFrameIntervalMs
+            val nextFrame = currentFrame + 1
+
+            return if (nextFrame > ANIMATION_COLLISION_FRAMES) {
+                // Animation finished: return to base frame and rely on state engine to update colliding status
+                Pair(movingFrames[1]!!, metadataState)
+            } else {
+                Pair(collisionFrames[nextFrame] ?: collisionFrames[1]!!, metadataState)
+            }
+        }
+
+        // Normal non-colliding flow
         if (animationTickBufferMs < animationFrameIntervalMs) {
             return Pair(frameMetadata, metadataState)
         }
         animationTickBufferMs -= animationFrameIntervalMs
         animationTickCounter = 0
 
-        if (colliding == GameElementCollisionState.COLLIDING) {
-            if (frameMetadata.frame >= ANIMATION_COLLISION_FRAMES) {
-                metadataState = metadataState.copy(colliding = GameElementCollisionState.FREE)
-                metadata = movingFrames[1] ?: throw AnimationFrameException(movingFrames.toString(), 1)
-                return Pair(metadata, metadataState)
-            } else {
-                val nextFrame = frameMetadata.frame + 1
-                metadata = collisionFrames[nextFrame] ?: throw AnimationFrameException(collisionFrames.toString(), 1)
-                return Pair(metadata, metadataState)
-            }
-        }
-        // Only play jump frames on ascent; descent should return to base movement/idle frames.
+        // Jump State
         if (jumping == PlayerJumpingState.INITIAL || jumping == PlayerJumpingState.RISING) {
-            if (frameMetadata.frame >= ANIMATION_JUMPING_FRAMES) {
-                metadata = jumpingFrames[1] ?: throw AnimationFrameException(jumpingFrames.toString(), 1)
-                return Pair(metadata, metadataState)
-            } else {
-                val nextFrame = frameMetadata.frame + 1
-                metadata =
-                    jumpingFrames[nextFrame] ?: throw AnimationFrameException(jumpingFrames.toString(), nextFrame)
-                return Pair(metadata, metadataState)
-            }
+            val nextFrame = if (frameMetadata.frame >= ANIMATION_JUMPING_FRAMES) 1 else frameMetadata.frame + 1
+            val metadata = jumpingFrames[nextFrame] ?: jumpingFrames[1]!!
+            return Pair(metadata, metadataState)
         }
+
+        // Moving State
         if (moving == PlayerMovingState.MOVING) {
-            if (frameMetadata.frame >= ANIMATION_MOVING_FRAMES) {
-                metadata = movingFrames[1] ?: throw AnimationFrameException(movingFrames.toString(), 1)
-                return Pair(metadata, metadataState)
-            } else {
-                val nextFrame = frameMetadata.frame + 1
-                metadata = movingFrames[nextFrame] ?: throw AnimationFrameException(movingFrames.toString(), nextFrame)
-                return Pair(metadata, metadataState)
-            }
+            val nextFrame = if (frameMetadata.frame >= ANIMATION_MOVING_FRAMES) 1 else frameMetadata.frame + 1
+            val metadata = movingFrames[nextFrame] ?: movingFrames[1]!!
+            return Pair(metadata, metadataState)
         }
-        return Pair(metadata, metadataState)
+
+        return Pair(movingFrames[1]!!, metadataState)
     }
 
     private fun generateAnimationFrameIndex() {

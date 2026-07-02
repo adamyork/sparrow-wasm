@@ -28,12 +28,12 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 import kotlin.uuid.ExperimentalUuidApi
 
-@AppScope
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@AppScope
+@Inject
 class DefaultCollision(
     private val physics: Physics,
     private val scoreService: ScoreService
@@ -153,6 +153,7 @@ class DefaultCollision(
         particles: Particles
     ): Pair<Player, GameMap> {
         val managedMapParticles = gameMap.particles.toCollection(ArrayList())
+        val canTakeCollisionDamage = player.immunityTicks <= 0
         var playerIsColliding = false
         var closestEnemyRect: Rect? = null
         var minDistance = Float.MAX_VALUE
@@ -164,7 +165,7 @@ class DefaultCollision(
             val enemyRect = enemy.toRect()
             val isColliding = playerRect.overlaps(enemyRect)
             var isInteracting = false
-            if (isColliding) {
+            if (isColliding && canTakeCollisionDamage) {
                 val dist = distanceTo(
                     Point(player.x.toFloat(), player.y.toFloat()),
                     Point(enemy.x.toFloat(), enemy.y.toFloat())
@@ -243,11 +244,15 @@ class DefaultCollision(
         audioQueue: DefaultAudioQueue,
         particles: Particles
     ): Pair<Player, GameMap> {
+        val canTakeCollisionDamage = player.immunityTicks <= 0
         var playerIsColliding = false
         var targetRect: Rect? = null
         val playerRect = player.toRect()
         val updatedParticles = gameMap.particles.filter { particle ->
-            if (particle.type == ParticleType.PROJECTILE && playerRect.overlaps(particle.toRect())) {
+            if (canTakeCollisionDamage &&
+                particle.type == ParticleType.PROJECTILE &&
+                playerRect.overlaps(particle.toRect())
+            ) {
                 targetRect = particle.toRect()
                 audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                 playerIsColliding = true

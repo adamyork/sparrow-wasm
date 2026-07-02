@@ -4,12 +4,12 @@ import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.service.PhysicsSettingsService
 import me.tatarka.inject.annotations.Inject
 
-@AppScope
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@AppScope
+@Inject
 class DefaultPhysicsSettingsService : PhysicsSettingsService {
 
     override var maxXVelocity: Double = 7.5

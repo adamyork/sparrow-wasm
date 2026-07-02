@@ -13,11 +13,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import me.tatarka.inject.annotations.Inject
 
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@Inject
 class DefaultSparrowColorScheme : SparrowColorScheme {
 
     // --- Legacy CSS Constants ---

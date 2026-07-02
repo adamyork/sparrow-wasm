@@ -7,12 +7,12 @@ import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import me.tatarka.inject.annotations.Inject
 
-@AppScope
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@AppScope
+@Inject
 class DefaultScoreService : ScoreService {
 
     override var gameMapItem: ArrayList<Item> = ArrayList()

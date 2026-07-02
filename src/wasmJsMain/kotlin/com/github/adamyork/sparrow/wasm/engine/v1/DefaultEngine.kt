@@ -353,6 +353,7 @@ class DefaultEngine @AppScope @Inject constructor(
             PlayerMovingState.STATIONARY,
             Direction.RIGHT,
             GameElementCollisionState.FREE,
+            0,
             assetService.gameConfig.engine.fps.animation.toDouble()
         )
     }
@@ -430,6 +431,12 @@ class DefaultEngine @AppScope @Inject constructor(
         }
         val paint = Paint().apply {
             isAntiAlias = true
+            val shouldShowTint = (player.immunityTicks / 8) % 2 == 0
+            colorFilter = if (player.immunityTicks > 0 && shouldShowTint) {
+                ColorFilter.makeBlend(0x8000FF00.toInt(), BlendMode.SRC_ATOP)
+            } else {
+                null
+            }
         }
         canvas.drawImageRect(
             image = image,

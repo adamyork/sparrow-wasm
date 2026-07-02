@@ -10,12 +10,12 @@ import kotlinx.browser.document
 import me.tatarka.inject.annotations.Inject
 import org.w3c.dom.HTMLAudioElement
 
-@AppScope
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@AppScope
+@Inject
 class DefaultWavService(
     private val assetService: AssetService,
     private val audioQueue: DefaultAudioQueue

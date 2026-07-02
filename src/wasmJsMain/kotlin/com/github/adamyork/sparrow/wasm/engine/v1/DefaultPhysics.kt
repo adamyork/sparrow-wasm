@@ -89,13 +89,17 @@ class DefaultPhysics @AppScope @Inject constructor(
         val minBound = maxOf(0, leftEdge)
         val deltaX = velocityX * physicsSettingsService.xMovementDistance * deltaTime
         val nextX = (player.x + deltaX).roundToInt().coerceIn(minBound, rightEdge)
+        val nextImmunityTicks = (player.immunityTicks - 1).coerceAtLeast(0)
         return player.copy(
             x = nextX,
             vx = velocityX,
             y = nextY,
             vy = if (nextJumping == PlayerJumpingState.GROUNDED) 0.0 else velocityY,
             jumping = nextJumping,
-            colliding = if (isColliding && velocityX == 0.0) GameElementCollisionState.FREE else player.colliding
+            immunityTicks = nextImmunityTicks,
+            colliding = if (isColliding && velocityX == 0.0 && nextImmunityTicks <= 0)
+                GameElementCollisionState.FREE
+            else player.colliding
         )
     }
 
@@ -107,7 +111,10 @@ class DefaultPhysics @AppScope @Inject constructor(
         val knockbackStrength = 15.0
         return player.copy(
             vx = knockbackStrength * knockbackDirection,
-            colliding = GameElementCollisionState.COLLIDING
+            colliding = GameElementCollisionState.COLLIDING,
+            immunityTicks = Player.IMMUNITY_TICKS_ON_HIT,
+            animationTickCounter = 0,
+            animationTickBufferMs = 0.0
         )
     }
 

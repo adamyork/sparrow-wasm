@@ -13,12 +13,12 @@ import com.github.adamyork.sparrow.wasm.service.AssetService
 import me.tatarka.inject.annotations.Inject
 import kotlin.random.Random
 
-@AppScope
-@Inject
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@AppScope
+@Inject
 class DefaultParticles : Particles {
 
     companion object {
