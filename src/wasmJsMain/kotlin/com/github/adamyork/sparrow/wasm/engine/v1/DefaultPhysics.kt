@@ -34,7 +34,7 @@ class DefaultPhysics @AppScope @Inject constructor(
         collision: Collision
     ): Player {
         val dt = statusProvider.getDeltaTimeCoefficient()
-        val vx = getXVelocity(player.vx, player.moving, dt)
+        val vx = getXVelocity(player.colliding == GameElementCollisionState.COLLIDING, player.vx, player.moving, dt)
         val vy = getYVelocity(player.vy, player.jumping, dt)
 
         val yResult = movePlayerY(player.y, vy, player.jumping, collisionBoundaries, dt)
@@ -47,31 +47,20 @@ class DefaultPhysics @AppScope @Inject constructor(
         return player.copy(x = xResult.x, vx = xResult.vx, y = yResult.y, vy = yResult.vy, jumping = yResult.jumping)
     }
 
-    override fun applyPlayerCollisionPhysics(
-        player: Player,
-        rect: Rect?,
-        viewPort: ViewPort
-    ): Player {
+    override fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort): Player {
         val enemyRect = rect ?: return player
         val playerCenterX = player.x + (player.width / 2)
         val enemyCenterX = enemyRect.left + (enemyRect.width / 2)
-        val rawNextX = if (playerCenterX < enemyCenterX) {
-            enemyRect.left.toInt() - player.width
-        } else {
-            enemyRect.right.toInt()
-        }
-        val minX = 0
-        // Clamp in world coordinates; viewport width alone is local-space and causes large snaps.
-        val maxX = (viewPort.x + viewPort.width - player.width).coerceAtLeast(minX)
-        val clampedNextX = rawNextX.coerceIn(minX, maxX)
+        val knockbackDirection = if (playerCenterX < enemyCenterX) -1.0 else 1.0
+        val knockbackStrength = player.width
         return player.copy(
-            x = clampedNextX,
-            vx = 0.0,
+            vx = knockbackStrength * knockbackDirection,
             colliding = GameElementCollisionState.COLLIDING
         )
     }
 
-    private fun getXVelocity(vx: Double, moving: PlayerMovingState, dt: Double): Double {
+    private fun getXVelocity(isColliding: Boolean, vx: Double, moving: PlayerMovingState, dt: Double): Double {
+        if (isColliding) return vx
         var nextVx = vx
         if (moving == PlayerMovingState.MOVING) {
             // Acceleration is tuned as per-frame units; only scale for dropped-frame compensation.

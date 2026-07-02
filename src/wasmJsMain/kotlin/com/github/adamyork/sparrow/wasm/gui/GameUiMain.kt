@@ -78,7 +78,7 @@ class GameUiMain(
 
         LaunchedEffect(allTasksCompleted, splashImage, isLoadingChecklistVisible) {
             if (allTasksCompleted && splashImage != null && isLoadingChecklistVisible) {
-                kotlinx.coroutines.delay(2000.milliseconds)
+                kotlinx.coroutines.delay(1000.milliseconds)
                 isLoadingChecklistVisible = false
                 gameUiDrawLayer.drawSplash(splashImage!!)
             }
