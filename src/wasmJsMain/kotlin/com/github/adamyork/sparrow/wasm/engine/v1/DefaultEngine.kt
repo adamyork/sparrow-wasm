@@ -5,10 +5,7 @@ import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.*
-import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
-import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
-import com.github.adamyork.sparrow.wasm.common.data.item.Item
-import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
+import com.github.adamyork.sparrow.wasm.common.data.item.*
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
@@ -50,16 +47,19 @@ class DefaultEngine @AppScope @Inject constructor(
 
     private val logger = KotlinLogging.logger {}
 
-    private var mapItem: Item? = null
-    private var mapItemImage: Image? = null
-    private var playerImage: Image? = null
+    private var mapItem: Item = NoOpItem()
+    private var mapItemImage: Image = EmptyImage.createEmptyImage()
+    private var playerImage: Image = EmptyImage.createEmptyImage()
 
     private val itemImageCache: HashMap<String, Image> = hashMapOf()
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
+
     private var foregroundSurface: Surface? = null
-    private val mapElementPaint = Paint().apply {
-        isAntiAlias = true
-    }
+
+    private val mapElementPaint = Paint().apply { isAntiAlias = true }
+    private val particlePaint = Paint().apply { isAntiAlias = false; mode = PaintMode.FILL }
+    private val mapItemReturnPaint = Paint().apply { isAntiAlias = true }
+    private val playerPaint = Paint().apply { isAntiAlias = true }
 
     private fun getOrCreateForegroundSurface(viewPort: ViewPort): Surface {
         if (foregroundSurface == null) {
@@ -69,9 +69,21 @@ class DefaultEngine @AppScope @Inject constructor(
         return foregroundSurface!!
     }
 
-    override fun setCollisionBufferedImage(imageAndBytes: ImageAndBytes) {
-        this.collision.collisionImage = imageAndBytes
+    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player) {
+        this.collision.collisionImage = collisionImageAndBytes
         this.collision.cacheCollisionPixels()
+        gameMap.items.forEach { item ->
+            itemImageCache[item.type.name] = Image.makeFromBitmap(item.imageAndBytes.imageBitmap.asSkiaBitmap())
+        }
+        gameMap.enemies.forEach { enemy ->
+            enemyImageCache[enemy.type.name] = Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())
+        }
+        mapItem = gameMap.items.firstOrNull() ?: NoOpItem()
+        mapItemImage = mapItem.let {
+            Image.makeFromBitmap(it.imageAndBytes.imageBitmap.asSkiaBitmap())
+        }
+        playerImage = Image.makeFromBitmap(player.imageAndBytes.imageBitmap.asSkiaBitmap())
+
     }
 
     override fun getCollisionBoundaries(player: Player): CollisionBoundaries {
@@ -87,36 +99,39 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     override fun manageViewport(player: Player, viewPort: ViewPort): ViewPort {
-        var nextX = viewPort.x
-        var nextY = viewPort.y
-        if (player.direction == Direction.RIGHT) {
-            val adjustedX = player.x + player.width
-            val viewPortRightBoundary = viewPort.x + viewPort.width
-            if (adjustedX > viewPortRightBoundary) {
-                logger.debug { "move map horizontal right" }
-                val diff = adjustedX - viewPortRightBoundary
-                nextX =
-                    (nextX + diff).coerceAtMost(collision.collisionImage.imageBitmap.width - viewPort.width)
+        val nextX = when (player.direction) {
+            Direction.RIGHT -> {
+                val adjustedX = player.x + player.width
+                val viewPortRightBoundary = viewPort.x + viewPort.width
+                if (adjustedX > viewPortRightBoundary) {
+                    logger.debug { "move map horizontal right" }
+                    (viewPort.x + (adjustedX - viewPortRightBoundary))
+                        .coerceAtMost(collision.collisionImage.imageBitmap.width - viewPort.width)
+                } else viewPort.x
             }
-        } else {
-            val viewPortLeftBoundary = viewPort.x
-            if (player.x < viewPortLeftBoundary) {
-                logger.debug { "move map horizontal left" }
-                val diff = viewPortLeftBoundary - player.x
-                nextX = (nextX - diff).coerceAtLeast(0)
+
+            Direction.LEFT -> {
+                if (player.x < viewPort.x) {
+                    logger.debug { "move map horizontal left" }
+                    (viewPort.x - (viewPort.x - player.x))
+                        .coerceAtLeast(0)
+                } else viewPort.x
             }
         }
-        val playerBottom = player.y + player.height
-        val viewPortBottomBoundary = viewPort.y + viewPort.height
-        if (player.y < viewPort.y) {
-            logger.debug { "move map vertical up" }
-            val diff = viewPort.y - player.y
-            nextY = (nextY - diff).coerceAtLeast(0)
-        } else if (playerBottom > viewPortBottomBoundary) {
-            logger.debug { "move map vertical down" }
-            val diff = player.y - viewPort.y
-            nextY =
-                (nextY + diff).coerceAtMost(collision.collisionImage.imageBitmap.height - viewPort.height)
+        val nextY = when {
+            player.y < viewPort.y -> {
+                logger.debug { "move map vertical up" }
+                (viewPort.y - (viewPort.y - player.y))
+                    .coerceAtLeast(0)
+            }
+
+            (player.y + player.height) > (viewPort.y + viewPort.height) -> {
+                logger.debug { "move map vertical down" }
+                (viewPort.y + (player.y - viewPort.y))
+                    .coerceAtMost(collision.collisionImage.imageBitmap.height - viewPort.height)
+            }
+
+            else -> viewPort.y
         }
         val nextViewPort = ViewPort(nextX, nextY, viewPort.x, viewPort.y, viewPort.width, viewPort.height)
         if (nextX != viewPort.x || nextY != viewPort.y) {
@@ -138,7 +153,6 @@ class DefaultEngine @AppScope @Inject constructor(
         val managedAllParticles = physics.applyProjectileParticlePhysics(managedDustParticles, viewPort)
         var mapState = gameMap.state
         if (mapState == GameMapState.COLLECTING && scoreService.allFound()) {
-            //LOGGER.info("all items found map is in completing mode")
             mapState = GameMapState.COMPLETING
         }
         return gameMap.copy(
@@ -174,7 +188,7 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     private fun manageMapItems(gameMap: GameMap): ArrayList<Item> {
-        return gameMap.items.map { item ->
+        for ((index, item) in gameMap.items.withIndex()) {
             val itemX = item.x
             val itemY = item.y
             val frameMetadataWithState = (item as GameElement).getNextFrameMetadataWithState()
@@ -186,38 +200,36 @@ class DefaultEngine @AppScope @Inject constructor(
                 }
             }
             if (item.type == ItemType.FINISH) {
-                (item as FinishItem).copy(x = itemX, y = itemY, state = nextState, frameMetadata = metadata)
+                gameMap.items[index] =
+                    (item as FinishItem).copy(x = itemX, y = itemY, state = nextState, frameMetadata = metadata)
             } else {
-                (item as CollectibleItem).copy(
+                gameMap.items[index] = (item as CollectibleItem).copy(
                     x = itemX,
                     y = itemY,
                     state = nextState,
                     frameMetadata = metadata
                 )
             }
-        }.toCollection(ArrayList())
+        }
+        return gameMap.items
     }
 
     private fun returnMapItemAfterCollision(gameMap: GameMap): ArrayList<Item> {
-        val firstInactive: Item? =
-            gameMap.items.firstOrNull { item -> item.type == ItemType.COLLECTABLE && item.state == GameElementState.INACTIVE }
-        if (firstInactive != null) {
-            val remainingItems: ArrayList<Item> =
-                gameMap.items.filter { item -> item.type == ItemType.COLLECTABLE && item.id != firstInactive.id }
-                    .toCollection(ArrayList())
-            val reactivatedItem = (firstInactive as CollectibleItem).copy(
-                state = GameElementState.ACTIVE
-            )
-            remainingItems.add(reactivatedItem)
-            return remainingItems
-        } else {
-            return gameMap.items
+        val index = gameMap.items.indexOfFirst { item ->
+            item.type == ItemType.COLLECTABLE && item.state == GameElementState.INACTIVE
         }
+        if (index != -1) {
+            val item = gameMap.items[index]
+            if (item is CollectibleItem) {
+                gameMap.items[index] = item.copy(state = GameElementState.ACTIVE)
+            }
+        }
+        return gameMap.items
     }
 
     private fun manageMapEnemies(gameMap: GameMap, player: Player): ArrayList<Enemy> {
         val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
-        return gameMap.enemies.map { enemy ->
+        for ((index, enemy) in gameMap.enemies.withIndex()) {
             val nextState = enemy.getNextEnemyState(player)
             if (nextState != GameElementState.INACTIVE) {
                 val nextPosition = when (enemy) {
@@ -240,7 +252,7 @@ class DefaultEngine @AppScope @Inject constructor(
                 val metadataState = frameMetadataWithState.second
                 when (enemy.type) {
                     EnemyType.SHOOTER -> {
-                        (enemy as ShooterEnemy).copy(
+                        gameMap.enemies[index] = (enemy as ShooterEnemy).copy(
                             x = itemX,
                             y = itemY,
                             state = nextState,
@@ -252,7 +264,7 @@ class DefaultEngine @AppScope @Inject constructor(
                     }
 
                     EnemyType.RUNNER -> {
-                        (enemy as RunnerEnemy).copy(
+                        gameMap.enemies[index] = (enemy as RunnerEnemy).copy(
                             x = itemX,
                             y = itemY,
                             state = nextState,
@@ -264,7 +276,7 @@ class DefaultEngine @AppScope @Inject constructor(
                     }
 
                     else -> {
-                        (enemy as BlockerEnemy).copy(
+                        gameMap.enemies[index] = (enemy as BlockerEnemy).copy(
                             x = itemX,
                             y = itemY,
                             state = nextState,
@@ -276,11 +288,12 @@ class DefaultEngine @AppScope @Inject constructor(
                     }
                 }
             } else if (enemy.type == EnemyType.RUNNER) {
-                (enemy as RunnerEnemy).copy(state = nextState)
+                gameMap.enemies[index] = (enemy as RunnerEnemy).copy(state = nextState)
             } else {
-                enemy
+                gameMap.enemies[index] = enemy
             }
-        }.toCollection(ArrayList())
+        }
+        return gameMap.enemies
     }
 
     override fun draw(
@@ -292,41 +305,20 @@ class DefaultEngine @AppScope @Inject constructor(
         val foregroundSurface = getOrCreateForegroundSurface(viewPort)
         val foregroundCanvas = foregroundSurface.canvas
         foregroundCanvas.clear(0x00000000)
-        map.items.forEach { item ->
-            if (itemImageCache[item.type.name] == null) {
-                itemImageCache[item.type.name] =
-                    Image.makeFromBitmap(item.imageAndBytes.imageBitmap.asSkiaBitmap())
-            }
-        }
-        map.enemies.forEach { enemy ->
-            if (enemyImageCache[enemy.type.name] == null) {
-                enemyImageCache[enemy.type.name] =
-                    Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())
-            }
-        }
         drawMapElements(
-            map.items.map { item -> item as GameElement }.toCollection(ArrayList()),
+            map.items,
             viewPort,
             foregroundCanvas,
             transformDirection = false
         )
         drawMapElements(
-            map.enemies.map { item -> item as GameElement }.toCollection(ArrayList()),
+            map.enemies,
             viewPort,
             foregroundCanvas,
             transformDirection = true
         )
-        if (mapItem == null) {
-            mapItem = map.items.firstOrNull()
-        }
-        if (mapItemImage == null && mapItem != null) {
-            mapItemImage = Image.makeFromBitmap(mapItem!!.imageAndBytes.imageBitmap.asSkiaBitmap())
-        }
         drawParticles(map, viewPort, foregroundCanvas, mapItem, mapItemImage)
-        if (playerImage == null) {
-            playerImage = Image.makeFromBitmap(player.imageAndBytes.imageBitmap.asSkiaBitmap())
-        }
-        drawPlayer(player, viewPort, foregroundCanvas, playerImage!!)
+        drawPlayer(player, viewPort, foregroundCanvas, playerImage)
         val foregroundImage = foregroundSurface.makeImageSnapshot()
         statusProvider.lastPaintTime = timestamp
         return DrawResult(
@@ -428,38 +420,24 @@ class DefaultEngine @AppScope @Inject constructor(
         image: Image
     ) {
         val localCord = viewPort.globalToLocal(player.x, player.y)
-        canvas.save()
-        if (player.direction == Direction.LEFT) {
-            translateSpriteDirection(canvas, localCord, player.width, player.height)
+        val shouldShowTint = player.immunityTicks > 0 && (player.immunityTicks / 8) % 2 == 0
+        playerPaint.colorFilter = if (shouldShowTint) {
+            ColorFilter.makeBlend(0x8000FF00.toInt(), BlendMode.SRC_ATOP)
+        } else {
+            null
         }
-        val paint = Paint().apply {
-            isAntiAlias = true
-            val shouldShowTint = (player.immunityTicks / 8) % 2 == 0
-            colorFilter = if (player.immunityTicks > 0 && shouldShowTint) {
-                ColorFilter.makeBlend(0x8000FF00.toInt(), BlendMode.SRC_ATOP)
-            } else {
-                null
-            }
+        drawTransformed(canvas, localCord, player.width, player.height, player.direction == Direction.LEFT) {
+            drawSprite(canvas, image, player, localCord, playerPaint)
         }
-        drawSprite(canvas, image, player, localCord, paint)
     }
-
 
     private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas, mapItem: Item?, mapItemImage: Image?) {
         map.particles.forEach { particle ->
             val localCord = viewPort.globalToLocal(particle.x, particle.y)
             if (particle.type == ParticleType.MAP_ITEM_RETURN && mapItem != null && mapItemImage != null) {
-                val paint = Paint().apply {
-                    isAntiAlias = true
-                }
                 canvas.drawImageRect(
                     image = mapItemImage,
-                    src = Rect.makeXYWH(
-                        0f,
-                        0f,
-                        mapItem.width.toFloat(),
-                        mapItem.height.toFloat()
-                    ),
+                    src = Rect.makeXYWH(0f, 0f, mapItem.width.toFloat(), mapItem.height.toFloat()),
                     dst = Rect.makeXYWH(
                         localCord.first.toFloat(),
                         localCord.second.toFloat(),
@@ -467,65 +445,76 @@ class DefaultEngine @AppScope @Inject constructor(
                         particle.height.toFloat()
                     ),
                     samplingMode = SamplingMode.LINEAR,
-                    paint = paint,
+                    paint = mapItemReturnPaint,
                     strict = true
                 )
             } else {
                 val lifetime = particle.lifetime.coerceAtLeast(1)
                 val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
                 val lifeAlphaMultiplier = if (particle.type == ParticleType.PROJECTILE) 1f else 1f - ageProgress
-                val particleAlpha = (
-                        particle.color.alpha.coerceIn(0f, 1f) * lifeAlphaMultiplier * 255f
-                        ).toInt().coerceIn(0, 255)
+                val particleAlpha =
+                    (particle.color.alpha.coerceIn(0f, 1f) * lifeAlphaMultiplier * 255f).toInt().coerceIn(0, 255)
                 val particleRed = (particle.color.red.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
                 val particleGreen = (particle.color.green.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
                 val particleBlue = (particle.color.blue.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
-                val paint = Paint().apply {
-                    color = Color.makeARGB(particleAlpha, particleRed, particleGreen, particleBlue)
-                    mode = PaintMode.FILL
-                    isAntiAlias = false
-                }
+                particlePaint.color = Color.makeARGB(particleAlpha, particleRed, particleGreen, particleBlue)
                 val left = floor(localCord.first.toDouble()).toFloat()
                 val top = floor(localCord.second.toDouble()).toFloat()
                 val width = ceil(particle.width.toDouble()).toFloat()
                 val height = ceil(particle.height.toDouble()).toFloat()
+                val rect = Rect.makeXYWH(left, top, width, height)
                 if (particle.shape == ParticleShape.CIRCLE) {
-                    val ovalRect = Rect.makeXYWH(left, top, width, height)
-                    canvas.drawOval(ovalRect, paint)
+                    canvas.drawOval(rect, particlePaint)
                 } else {
-                    val rect = Rect.makeXYWH(left, top, width, height)
-                    canvas.drawRect(rect, paint)
+                    canvas.drawRect(rect, particlePaint)
                 }
             }
         }
     }
 
     private fun drawMapElements(
-        elements: ArrayList<GameElement>,
+        elements: ArrayList<out GameElement>,
         viewPort: ViewPort,
         canvas: Canvas,
         transformDirection: Boolean
     ) {
         elements.forEach { element ->
-            val passesCullingCheck = element.cullingCheck(viewPort)
-            if (element.state != GameElementState.INACTIVE && passesCullingCheck) {
+            if (element.state != GameElementState.INACTIVE && element.cullingCheck(viewPort)) {
                 val localCord = viewPort.globalToLocal(element.x, element.y)
                 val elementImage = when (element) {
                     is Enemy -> enemyImageCache[element.type.name]
                     is Item -> itemImageCache[element.type.name]
                     else -> null
                 } ?: throw IllegalStateException("No image found for element")
-                val drawLeftFacing = transformDirection && element.nestedDirection() == Direction.LEFT
-                canvas.save()
-                try {
-                    if (drawLeftFacing) {
-                        translateSpriteDirection(canvas, localCord, element.width, element.height)
-                    }
+
+                val flip = transformDirection && element.nestedDirection() == Direction.LEFT
+                drawTransformed(canvas, localCord, element.width, element.height, flip) {
                     drawSprite(canvas, elementImage, element, localCord, mapElementPaint)
-                } finally {
-                    canvas.restore()
                 }
             }
+        }
+    }
+
+    private fun drawTransformed(
+        canvas: Canvas,
+        localCord: Pair<Int, Int>,
+        width: Int,
+        height: Int,
+        flip: Boolean,
+        drawAction: () -> Unit
+    ) {
+        canvas.save()
+        try {
+            if (flip) {
+                val pivotX = localCord.first + (width / 2f)
+                val pivotY = localCord.second + (height / 2f)
+                canvas.translate(pivotX, pivotY)
+                canvas.scale(-1f, 1f)
+                canvas.translate(-pivotX, -pivotY)
+            }
+            drawAction()
+        } finally {
+            canvas.restore()
         }
     }
 
@@ -536,37 +525,25 @@ class DefaultEngine @AppScope @Inject constructor(
         localCord: Pair<Int, Int>,
         paint: Paint
     ) {
+        val srcX = element.frameMetadata.cell.x.toFloat()
+        val srcY = element.frameMetadata.cell.y.toFloat()
+        val w = element.width.toFloat()
+        val h = element.height.toFloat()
+        val dstX = localCord.first.toFloat()
+        val dstY = localCord.second.toFloat()
         canvas.drawImageRect(
             image = image,
-            src = Rect.makeXYWH(
-                element.frameMetadata.cell.x.toFloat(),
-                element.frameMetadata.cell.y.toFloat(),
-                element.width.toFloat(),
-                element.height.toFloat()
-            ),
-            dst = Rect.makeXYWH(
-                localCord.first.toFloat(),
-                localCord.second.toFloat(),
-                element.width.toFloat(),
-                element.height.toFloat()
-            ),
-            samplingMode = SamplingMode.LINEAR,
+            srcLeft = srcX,
+            srcTop = srcY,
+            srcRight = srcX + w,
+            srcBottom = srcY + h,
+            dstLeft = dstX,
+            dstTop = dstY,
+            dstRight = dstX + w,
+            dstBottom = dstY + h,
+            samplingMode = SamplingMode.DEFAULT,
             paint = paint,
             strict = true
         )
-        canvas.restore()
-    }
-
-    private fun translateSpriteDirection(
-        canvas: Canvas,
-        localCord: Pair<Int, Int>,
-        width: Int,
-        height: Int
-    ) {
-        val pivotX = localCord.first + (width / 2f)
-        val pivotY = localCord.second + (height / 2f)
-        canvas.translate(pivotX, pivotY)
-        canvas.scale(-1f, 1f)
-        canvas.translate(-pivotX, -pivotY)
     }
 }

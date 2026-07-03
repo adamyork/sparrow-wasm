@@ -84,11 +84,11 @@ class DefaultPhysics @AppScope @Inject constructor(
         } else {
             collisionBoundaries
         }
-        val leftEdge = minOf(adjustedBoundaries.left + 1, adjustedBoundaries.right - 1)
-        val rightEdge = maxOf(adjustedBoundaries.left + 1, adjustedBoundaries.right - 1)
-        val minBound = maxOf(0, leftEdge)
+        val safeLeft = min(adjustedBoundaries.left, adjustedBoundaries.right)
+        val safeRight = max(adjustedBoundaries.left, adjustedBoundaries.right)
+        val minBound = max(0, safeLeft)
         val deltaX = velocityX * physicsSettingsService.xMovementDistance * deltaTime
-        val nextX = (player.x + deltaX).roundToInt().coerceIn(minBound, rightEdge)
+        val nextX = (player.x + deltaX).roundToInt().coerceIn(minBound, safeRight)
         val nextImmunityTicks = (player.immunityTicks - 1).coerceAtLeast(0)
         return player.copy(
             x = nextX,
@@ -109,8 +109,16 @@ class DefaultPhysics @AppScope @Inject constructor(
         val enemyCenterX = enemyRect.left + (enemyRect.width / 2)
         val knockbackDirection = if (playerCenterX < enemyCenterX) -1.0 else 1.0
         val knockbackStrength = 15.0
+        val projectedVx = knockbackStrength * knockbackDirection
+        val projectedX = (player.x + projectedVx).toInt()
+        val effectiveWidthMultiplier = if (player.direction == Direction.LEFT) 2 else 1
+        val minBound = viewPort.x
+        val maxBound = (viewPort.x + viewPort.width) - (player.width * effectiveWidthMultiplier)
+        val clampedX = projectedX.coerceIn(minBound, maxBound)
+        val finalVx = if (projectedX != clampedX) 0.0 else projectedVx
         return player.copy(
-            vx = knockbackStrength * knockbackDirection,
+            x = clampedX,
+            vx = finalVx,
             colliding = GameElementCollisionState.COLLIDING,
             immunityTicks = Player.IMMUNITY_TICKS_ON_HIT,
             animationTickCounter = 0,
@@ -123,22 +131,15 @@ class DefaultPhysics @AppScope @Inject constructor(
         viewPort: ViewPort
     ): ArrayList<Particle> {
         val dt = statusProvider.getDeltaTimeCoefficient()
-        // Lower this value to slow down the animation (e.g., 0.5 is half-speed)
         val speedFactor = 0.25
-
         return mapParticles
             .map { particle ->
                 if (particle.type == ParticleType.COLLISION) {
-                    // Slower frame progression
                     val nextFrame = particle.frame + (1.0 * dt * speedFactor).toInt().coerceAtLeast(1)
-
                     var nextRadius = particle.radius
                     var position = Pair(particle.x.toDouble(), particle.y.toDouble())
-
                     if (particle.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
-                        // Slower radius expansion (change 10 to a smaller value if needed)
                         nextRadius = (particle.radius + (10 * dt * speedFactor)).toInt()
-
                         val pos = getCollisionParticlePosition(
                             nextRadius.toFloat(),
                             particle.id.toFloat(),
@@ -148,7 +149,6 @@ class DefaultPhysics @AppScope @Inject constructor(
                         position = Pair(pos.first.toDouble(), pos.second.toDouble())
                     } else {
                         if (particle.frame <= particle.lifetime) {
-                            // Slower gravity effect
                             position = Pair(
                                 particle.x.toDouble(),
                                 particle.y.toDouble() + (physicsSettingsService.gravity * dt * speedFactor)

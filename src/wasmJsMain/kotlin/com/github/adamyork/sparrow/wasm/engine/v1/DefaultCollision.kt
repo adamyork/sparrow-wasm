@@ -25,6 +25,7 @@ import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.Point
+import kotlin.math.absoluteValue
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -49,6 +50,9 @@ class DefaultCollision(
     private lateinit var collisionMask: BooleanArray
     private var bitmapWidth: Int = 0
     private var bitmapHeight: Int = 0
+    private var lastPlayerX: Int = -1
+    private var lastPlayerY: Int = -1
+    private var cachedBoundaries: CollisionBoundaries? = null
 
     override fun cacheCollisionPixels() {
         val image = Image.makeFromEncoded(collisionImage.bytes)
@@ -67,13 +71,20 @@ class DefaultCollision(
     }
 
     override fun getCollisionBoundaries(player: Player): CollisionBoundaries {
-        return CollisionBoundaries(
+        if (player.x == lastPlayerX && player.y == lastPlayerY && cachedBoundaries != null) {
+            return cachedBoundaries!!
+        }
+        lastPlayerX = player.x
+        lastPlayerY = player.y
+        cachedBoundaries = CollisionBoundaries(
             findEdgeIterative(player.x, player, Direction.LEFT),
             findEdgeIterative(player.x, player, Direction.RIGHT),
             findCeilingIterative(player.y, player),
             findFloorIterative(player.y, player)
         )
+        return cachedBoundaries!!
     }
+
 
     override fun recomputeXBoundaries(
         player: Player,
@@ -102,13 +113,22 @@ class DefaultCollision(
     }
 
     private fun findEdgeIterative(startX: Int, player: Player, direction: Direction): Int {
-        val range = if (direction == Direction.RIGHT) startX until bitmapWidth else startX downTo 0
+        val movementDelta = player.vx.absoluteValue.toInt()
+        val maxLookAhead = movementDelta + 2
+        val maxPossibleX = bitmapWidth - player.width
+        val range = if (direction == Direction.RIGHT) {
+            startX until (startX + maxLookAhead).coerceAtMost(maxPossibleX)
+        } else {
+            startX downTo (startX - maxLookAhead).coerceAtLeast(0)
+        }
         for (x in range) {
-            if (testMaskCollision(x, player.y, 1, player.height)) {
-                return if (direction == Direction.RIGHT) x - player.width else x
+            val checkX = if (direction == Direction.RIGHT) x + player.width - 1 else x
+            if (testMaskCollision(checkX.coerceIn(0, bitmapWidth - 1), player.y, 1, player.height)) {
+                return if (direction == Direction.RIGHT) x - 1 else x + 1
             }
         }
-        return if (direction == Direction.RIGHT) bitmapWidth - player.width else 0
+        val endPosition = if (direction == Direction.RIGHT) startX + maxLookAhead else startX - maxLookAhead
+        return endPosition.coerceIn(0, maxPossibleX)
     }
 
     private fun testMaskCollision(x: Int, y: Int, width: Int, height: Int): Boolean {

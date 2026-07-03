@@ -90,9 +90,10 @@ class GameUiController(
                 assetService.gameConfig.viewport.height
             )
             val gameMap = loadedAssets["map"] as GameMap
+            val player = engine.createDefaultPlayer(loadedAssets["player"] as ImageAsset)
             gameStateElements = GameStateElements(
                 viewPort = viewPort,
-                player = engine.createDefaultPlayer(loadedAssets["player"] as ImageAsset),
+                player = player,
                 gameMap = gameMap,
                 playerAsset = loadedAssets["player"] as ImageAsset,
                 mapItemCollectibleAsset = loadedAssets["collectible item"] as ImageAsset,
@@ -110,7 +111,7 @@ class GameUiController(
                 stateElements.mapEnemyShooterAsset,
                 assetService
             )
-            engine.setCollisionBufferedImage(gameMap.collisionAsset)
+            engine.initialize(gameMap,gameMap.collisionAsset, player )
             particles.populateColorMap(assetService)
             scoreService.gameMapItem = gameMap.items
             isInitialized = true

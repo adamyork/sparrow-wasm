@@ -15,7 +15,7 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
  */
 interface Engine {
 
-    fun setCollisionBufferedImage(imageAndBytes: ImageAndBytes)
+    fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player)
 
     fun getCollisionBoundaries(player: Player): CollisionBoundaries
 
@@ -35,7 +35,7 @@ interface Engine {
         map: GameMap,
         viewPort: ViewPort,
         player: Player,
-        timestamp:Double
+        timestamp: Double
     ): DrawResult
 
     fun createDefaultPlayer(playerAsset: ImageAsset): Player
