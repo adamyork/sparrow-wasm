@@ -37,7 +37,7 @@ class DefaultWavService(
             return
         }
         audioTag.currentTime = 0.0
-        audioTag.src = assetService.getAudio(nextSound)
+        audioTag.src = assetService.getAudioPath(nextSound)
         try {
             audioTag.play()
             audioQueue.queue.removeFirstOrNull()

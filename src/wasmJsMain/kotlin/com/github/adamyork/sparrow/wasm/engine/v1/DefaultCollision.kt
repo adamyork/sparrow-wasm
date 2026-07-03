@@ -6,6 +6,7 @@ import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.*
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
+import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
@@ -124,7 +125,7 @@ class DefaultCollision(
     override fun checkForItemCollision(player: Player, gameMap: GameMap, audioQueue: DefaultAudioQueue): GameMap {
         var gameState = gameMap.state
         val playerRect = player.toRect()
-        val managedMapItems = gameMap.items.map { item ->
+        val managedMapItems: ArrayList<Item> = gameMap.items.map { item ->
             var nextItemState = item.state
             var nextFrameMetaData = item.frameMetadata
             if (playerRect.overlaps(item.toRect()) && nextItemState == GameElementState.ACTIVE) {

@@ -5,6 +5,7 @@ package com.github.adamyork.sparrow.wasm.service
  * Copyright (c) Adam York
  */
 interface PhysicsSettingsService {
+
     var maxXVelocity: Double
     var maxYVelocity: Double
     var jumpDistance: Double
@@ -15,4 +16,5 @@ interface PhysicsSettingsService {
     var xAccelerationRate: Double
     var xDeaccelerationRate: Double
     var projectileSpeed: Double
+
 }

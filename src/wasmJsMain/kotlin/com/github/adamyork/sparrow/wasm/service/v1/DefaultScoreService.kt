@@ -1,8 +1,8 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.GameElementState
+import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import me.tatarka.inject.annotations.Inject
@@ -15,21 +15,21 @@ import me.tatarka.inject.annotations.Inject
 @Inject
 class DefaultScoreService : ScoreService {
 
-    override var gameMapItem: ArrayList<Item> = ArrayList()
+    private var internalGameMapItem: ArrayList<Item> = ArrayList()
+    private var cachedTotal: Int = 0
 
-    override fun getTotal(): Int {
-        return gameMapItem
-            .filter { it.type == ItemType.COLLECTABLE }
-            .size
-    }
+    override var gameMapItem: ArrayList<Item>
+        get() = internalGameMapItem
+        set(value) {
+            internalGameMapItem = value
+            cachedTotal = internalGameMapItem.count { it.type == ItemType.COLLECTABLE }
+        }
+
+    override fun getTotal(): Int = cachedTotal
 
     override fun getRemaining(): Int {
-        return gameMapItem
-            .filter { it.type == ItemType.COLLECTABLE }
-            .count { it.state == GameElementState.ACTIVE }
+        return internalGameMapItem.count { it.type == ItemType.COLLECTABLE && it.state == GameElementState.ACTIVE }
     }
 
-    override fun allFound(): Boolean {
-        return getRemaining() == 0
-    }
+    override fun allFound(): Boolean = getRemaining() == 0
 }

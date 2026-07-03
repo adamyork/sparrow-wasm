@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
  * Copyright (c) Adam York
  */
 data class ImageAndBytes(val bytes: ByteArray, val imageBitmap: ImageBitmap) {
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -24,4 +25,5 @@ data class ImageAndBytes(val bytes: ByteArray, val imageBitmap: ImageBitmap) {
         result = 31 * result + imageBitmap.hashCode()
         return result
     }
+
 }

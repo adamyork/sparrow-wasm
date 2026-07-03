@@ -11,8 +11,6 @@ interface ScoreService {
     var gameMapItem: ArrayList<Item>
 
     fun getTotal(): Int
-
     fun getRemaining(): Int
-
     fun allFound(): Boolean
 }

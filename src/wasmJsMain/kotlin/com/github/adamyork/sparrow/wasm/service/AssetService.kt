@@ -44,7 +44,7 @@ interface AssetService {
 
     fun getBackgroundAudio(): String
 
-    fun getAudio(sound: Sounds): String
+    fun getAudioPath(sound: Sounds): String
 
     fun getTextForGameState(gameMapState: GameMapState): TextAsset
 

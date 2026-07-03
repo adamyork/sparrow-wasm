@@ -1,12 +1,9 @@
 package com.github.adamyork.sparrow.wasm
 
-import io.github.oshai.kotlinlogging.Formatter
-import io.github.oshai.kotlinlogging.KLoggingEvent
-import io.github.oshai.kotlinlogging.KotlinLoggingConfiguration
-import io.github.oshai.kotlinlogging.Level
-import kotlinx.datetime.LocalDateTime
+import io.github.oshai.kotlinlogging.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 /**
  * Author: Adam York
@@ -14,18 +11,34 @@ import kotlinx.datetime.toLocalDateTime
  */
 object LogConfig {
 
+    private val timeZone = TimeZone.currentSystemDefault()
+    private var isInitialized = false
     fun initialize(minimumLevel: Level = Level.INFO) {
-        KotlinLoggingConfiguration.direct.logLevel = minimumLevel
-        KotlinLoggingConfiguration.direct.formatter = object : Formatter {
-            override fun formatMessage(loggingEvent: KLoggingEvent): String {
-                val levelStr = loggingEvent.level.name
-                val cleanName = loggingEvent.loggerName.substringAfterLast('.')
-                val instant: kotlin.time.Instant = kotlin.time.Clock.System.now()
-                val zone: TimeZone = TimeZone.currentSystemDefault()
-                val localDateTime: LocalDateTime = instant.toLocalDateTime(zone)
-                return "[$localDateTime] [sparrow-wasm] [kotlin] [${levelStr.lowercase()}] [${cleanName.lowercase()}] -> ${loggingEvent.message?.lowercase()}"
+        if (isInitialized) return
+        KotlinLoggingConfiguration.loggerFactory = DirectLoggerFactory
+        KotlinLoggingConfiguration.direct.apply {
+            logLevel = minimumLevel
+            appender = object : Appender {
+                override fun log(loggingEvent: KLoggingEvent) {
+                    try {
+                        val now = Clock.System.now()
+                        val timestamp = now.toLocalDateTime(timeZone)
+                        val level = loggingEvent.level.name.lowercase()
+                        val loggerName = loggingEvent.loggerName.substringAfterLast('.').lowercase()
+                        val message = loggingEvent.message?.lowercase() ?: ""
+                        val color = when (loggingEvent.level) {
+                            Level.ERROR -> "\u001B[31m"
+                            Level.WARN -> "\u001B[33m"
+                            Level.INFO -> "\u001B[32m"
+                            else -> "\u001B[36m"
+                        }
+                        println("$color[$timestamp] [sparrow-wasm] [kotlin] [$level] [$loggerName] -> $message")
+                    } catch (e: Exception) {
+                        println("\u001B[31mLogging error: ${e.message}\u001B[0m")
+                    }
+                }
             }
         }
+        isInitialized = true
     }
-
 }
