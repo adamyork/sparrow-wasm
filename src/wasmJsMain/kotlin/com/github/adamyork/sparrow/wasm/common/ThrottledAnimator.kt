@@ -3,7 +3,7 @@ package com.github.adamyork.sparrow.wasm.common
 
 import kotlinx.browser.window
 
-interface ThrottleAnimator {
+interface ThrottledAnimator {
 
     val animationTargetFps: Double
     var animationTickCounter: Int

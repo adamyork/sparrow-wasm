@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.common.data.enemy
 
 import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
-import com.github.adamyork.sparrow.wasm.common.ThrottleAnimator
+import com.github.adamyork.sparrow.wasm.common.ThrottledAnimator
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
@@ -28,7 +28,7 @@ data class ShooterEnemy(
     override var animationTickCounter: Int = 0,
     override var lastAnimationTickTimeMs: Double = 0.0,
     override var animationTickBufferMs: Double = 0.0,
-) : Enemy, ThrottleAnimator {
+) : Enemy, ThrottledAnimator {
 
     companion object {
         //val LOGGER: Logger = LoggerFactory.getLogger(ShooterEnemy::class.java)

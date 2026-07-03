@@ -14,7 +14,6 @@ import com.github.adamyork.sparrow.wasm.service.data.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.js.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.browser.window
@@ -35,9 +34,8 @@ import org.w3c.files.Blob
  */
 @AppScope
 @Inject
-class DefaultAssetService : AssetService {
+class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
 
-    private val httpClient = HttpClient(Js)
     val mapAssetMap: HashMap<Int, ImageAsset> = HashMap()
 
     private val logger = KotlinLogging.logger {}
@@ -77,50 +75,17 @@ class DefaultAssetService : AssetService {
         logger.info { "yaml loaded" }
         gameConfig = Yaml.default.decodeFromString(GameConfig.serializer(), yamlString)
         logger.info { "game config created" }
-        repeat(gameConfig.map.enemy.positions.size) { index ->
-            logger.info { "repeating enemy" }
-            val position = gameConfig.map.enemy.positions[index]
-            logger.info { index.toWord() }
-            val dimensions = gameConfig.map.enemy.asset[(index + 1).toWord()]
-            logger.info { dimensions?.path }
-            logger.info { position.type }
-            enemyInfoMap[index] = MapElementYamlEntry(
-                dimensions?.path ?: "",
-                dimensions?.width ?: 0,
-                dimensions?.height ?: 0,
-                position.x,
-                position.y,
-                position.type
-            )
-        }
-        repeat(gameConfig.map.item.positions.size) { index ->
-            logger.info { "repeating item" }
-            val position = gameConfig.map.item.positions[index]
-            val dimensions = gameConfig.map.item.asset[(index + 1).toWord()]
-            itemInfoMap[index] = MapElementYamlEntry(
-                dimensions?.path ?: "",
-                dimensions?.width ?: 0,
-                dimensions?.height ?: 0,
-                position.x,
-                position.y,
-                position.type
-            )
-        }
+        enemyInfoMap = gameConfig.map.enemy.positions.mapIndexed { index, pos ->
+            val dim = gameConfig.map.enemy.asset[pos.ref]
+                ?: throw AssetServiceReferenceException("no enemy asset for ${pos.ref}")
+            index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
+        }.toMap(HashMap())
+        itemInfoMap = gameConfig.map.item.positions.mapIndexed { index, pos ->
+            val dim = gameConfig.map.item.asset[pos.ref]
+                ?: throw AssetServiceReferenceException("no item asset for ${pos.ref}")
+            index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
+        }.toMap(HashMap())
         logger.info { "game config created" }
-    }
-
-    fun Int.toWord(): String = when (this) {
-        0 -> "zero"
-        1 -> "one"
-        2 -> "two"
-        3 -> "three"
-        4 -> "four"
-        5 -> "five"
-        6 -> "six"
-        7 -> "seven"
-        8 -> "eight"
-        9 -> "nine"
-        else -> this.toString()
     }
 
     override suspend fun loadBufferedImageAsync(file: String): ImageBitmap {
@@ -268,8 +233,13 @@ class DefaultAssetService : AssetService {
         logger.info { "fetchImageAndBytes for $path" }
         val response = httpClient.get(path)
         val bytes = response.body<ByteArray>()
-        val bitmap = Image.makeFromEncoded(bytes).toComposeImageBitmap()
-        return ImageAsset(width, height, ImageAndBytes(bytes, bitmap))
+        val skiaImage = Image.makeFromEncoded(bytes)
+        try {
+            val bitmap = skiaImage.toComposeImageBitmap()
+            return ImageAsset(width, height, ImageAndBytes(bytes, bitmap))
+        } finally {
+            skiaImage.close()
+        }
     }
 
 }

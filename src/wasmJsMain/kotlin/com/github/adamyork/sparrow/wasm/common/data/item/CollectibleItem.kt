@@ -1,11 +1,10 @@
 package com.github.adamyork.sparrow.wasm.common.data.item
 
 import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
-import com.github.adamyork.sparrow.wasm.common.ThrottleAnimator
+import com.github.adamyork.sparrow.wasm.common.ThrottledAnimator
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import kotlinx.browser.window
 
 /**
  * Author: Adam York
@@ -25,7 +24,7 @@ data class CollectibleItem(
     override var animationTickCounter: Int = 0,
     override var lastAnimationTickTimeMs: Double = 0.0,
     override var animationTickBufferMs: Double = 0.0
-) : Item, ThrottleAnimator {
+) : Item, ThrottledAnimator {
 
     companion object {
         //val LOGGER: Logger = LoggerFactory.getLogger(CollectibleItem::class.java)

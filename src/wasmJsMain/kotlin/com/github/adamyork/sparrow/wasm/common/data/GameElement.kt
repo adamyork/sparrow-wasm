@@ -20,4 +20,11 @@ interface GameElement {
 
     fun nestedDirection(): Direction
 
+    fun cullingCheck(viewPort: ViewPort): Boolean {
+        return (x + width > viewPort.x) &&
+                (x < viewPort.x + viewPort.width) &&
+                (y + height > viewPort.y) &&
+                (y < viewPort.y + viewPort.height)
+    }
+
 }

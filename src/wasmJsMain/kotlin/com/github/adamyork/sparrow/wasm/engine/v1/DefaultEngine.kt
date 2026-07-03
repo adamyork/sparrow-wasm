@@ -57,6 +57,9 @@ class DefaultEngine @AppScope @Inject constructor(
     private val itemImageCache: HashMap<String, Image> = hashMapOf()
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
     private var foregroundSurface: Surface? = null
+    private val mapElementPaint = Paint().apply {
+        isAntiAlias = true
+    }
 
     private fun getOrCreateForegroundSurface(viewPort: ViewPort): Surface {
         if (foregroundSurface == null) {
@@ -305,15 +308,13 @@ class DefaultEngine @AppScope @Inject constructor(
             map.items.map { item -> item as GameElement }.toCollection(ArrayList()),
             viewPort,
             foregroundCanvas,
-            transformDirection = false,
-            forEnemies = false
+            transformDirection = false
         )
         drawMapElements(
             map.enemies.map { item -> item as GameElement }.toCollection(ArrayList()),
             viewPort,
             foregroundCanvas,
-            transformDirection = true,
-            forEnemies = true
+            transformDirection = true
         )
         if (mapItem == null) {
             mapItem = map.items.firstOrNull()
@@ -503,29 +504,27 @@ class DefaultEngine @AppScope @Inject constructor(
         elements: ArrayList<GameElement>,
         viewPort: ViewPort,
         canvas: Canvas,
-        transformDirection: Boolean,
-        forEnemies: Boolean
+        transformDirection: Boolean
     ) {
-        val paint = Paint().apply {
-            isAntiAlias = true
-        }
         elements.forEach { element ->
-            val localCord = viewPort.globalToLocal(element.x, element.y)
-            if (element.state != GameElementState.INACTIVE) {
-                val elementImage: Image
-                if (forEnemies) {
-                    val casted = (element) as Enemy
-                    elementImage = enemyImageCache[casted.type.name]!!
-                } else {
-                    val casted = (element) as Item
-                    elementImage = itemImageCache[casted.type.name]!!
-                }
+            val passesCullingCheck = element.cullingCheck(viewPort)
+            if (element.state != GameElementState.INACTIVE && passesCullingCheck) {
+                val localCord = viewPort.globalToLocal(element.x, element.y)
+                val elementImage = when (element) {
+                    is Enemy -> enemyImageCache[element.type.name]
+                    is Item -> itemImageCache[element.type.name]
+                    else -> null
+                } ?: throw IllegalStateException("No image found for element")
                 val drawLeftFacing = transformDirection && element.nestedDirection() == Direction.LEFT
                 canvas.save()
-                if (drawLeftFacing) {
-                    translateSpriteDirection(canvas, localCord, element.width, element.height)
+                try {
+                    if (drawLeftFacing) {
+                        translateSpriteDirection(canvas, localCord, element.width, element.height)
+                    }
+                    drawSprite(canvas, elementImage, element, localCord, mapElementPaint)
+                } finally {
+                    canvas.restore()
                 }
-                drawSprite(canvas, elementImage, element, localCord, paint)
             }
         }
     }

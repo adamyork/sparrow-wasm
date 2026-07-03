@@ -5,6 +5,11 @@ import com.github.adamyork.sparrow.wasm.service.v1.DefaultAssetService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultPhysicsSettingsService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultScoreService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultWavService
+import io.ktor.client.*
+import io.ktor.client.engine.js.*
+import io.ktor.client.plugins.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import me.tatarka.inject.annotations.Provides
 
 /**
@@ -35,6 +40,15 @@ interface ServiceConfig {
     @Provides
     fun provideWavService(impl: DefaultWavService): WavService = impl
 
+    @AppScope
+    @Provides
+    fun provideHttpClient(): HttpClient = HttpClient(Js) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = 10000
+            connectTimeoutMillis = 10000
+            socketTimeoutMillis = 10000
+        }
+    }
 
 
 }

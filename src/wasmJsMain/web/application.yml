@@ -39,11 +39,13 @@ map:
         x: 0
         y: 450
         type: "collectable"
+        ref: "one"
       # noinspection SpringBootApplicationYaml
       1:
         x: 797
         y: 450
         type: "finish"
+        ref: "two"
   enemy:
     asset:
       one:
@@ -60,16 +62,19 @@ map:
         x: 1600
         y: 450
         type: "blocker"
+        ref: "one"
       # noinspection SpringBootApplicationYaml
       1:
         x: 1500
         y: 224
         type: "shooter"
+        ref: "two"
       # noinspection SpringBootApplicationYaml
       2:
         x: 500
         y: 672
         type: "runner"
+        ref: "two"
   directive:
     initial:
       text: "Collect all the greenies!"

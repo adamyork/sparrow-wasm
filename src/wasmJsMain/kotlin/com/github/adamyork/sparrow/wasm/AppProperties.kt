@@ -88,10 +88,10 @@ data class EnemyConfig(
 data class AssetDimensions(val width: Int, val height: Int, val path: String)
 
 @Serializable
-data class ItemPosition(val x: Int, val y: Int, val type: String)
+data class ItemPosition(val x: Int, val y: Int, val type: String, val ref: String)
 
 @Serializable
-data class EnemyPosition(val x: Int, val y: Int, val type: String)
+data class EnemyPosition(val x: Int, val y: Int, val type: String, val ref: String)
 
 /**
  * Author: Adam York
