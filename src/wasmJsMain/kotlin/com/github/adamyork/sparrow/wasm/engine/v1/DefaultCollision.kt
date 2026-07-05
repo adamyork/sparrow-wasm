@@ -6,7 +6,6 @@ import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.*
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
-import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
@@ -59,7 +58,6 @@ class DefaultCollision(
         val bitmap = Bitmap.makeFromImage(image)
         bitmapWidth = bitmap.width
         bitmapHeight = bitmap.height
-
         val pixelMap = bitmap.peekPixels() ?: throw IllegalStateException("Failed to peek pixels")
         collisionMask = BooleanArray(bitmapWidth * bitmapHeight)
         for (y in 0 until bitmapHeight) {
@@ -142,30 +140,36 @@ class DefaultCollision(
         return false
     }
 
-    //TODO ArrayList
     override fun checkForItemCollision(player: Player, gameMap: GameMap, audioQueue: DefaultAudioQueue): GameMap {
-        var gameState = gameMap.state
+        val items = gameMap.items
         val playerRect = player.toRect()
-        val managedMapItems: ArrayList<Item> = gameMap.items.map { item ->
-            var nextItemState = item.state
-            var nextFrameMetaData = item.frameMetadata
-            if (playerRect.overlaps(item.toRect()) && nextItemState == GameElementState.ACTIVE) {
+        var newGameState = gameMap.state
+        for (i in items.indices) {
+            val item = items[i]
+            if (item.state == GameElementState.ACTIVE && playerRect.overlaps(item.toRect())) {
                 if (item.type == ItemType.FINISH) {
-                    gameState = GameMapState.COMPLETED
-                    nextItemState = GameElementState.INACTIVE
+                    newGameState = GameMapState.COMPLETED
+                    val finishItem = item as FinishItem
+                    items[i] = finishItem.copy(
+                        state = GameElementState.INACTIVE
+                    )
                 } else {
-                    nextItemState = GameElementState.DEACTIVATING
                     audioQueue.queue.add(Sounds.ITEM_COLLECT)
-                    nextFrameMetaData = item.getFirstDeactivatingFrame()
+                    val collectItem = item as CollectibleItem
+                    items[i] = collectItem.copy(
+                        state = GameElementState.DEACTIVATING,
+                        frameMetadata = item.getFirstDeactivatingFrame()
+                    )
                 }
             }
-            if (item is FinishItem) item.copy(state = nextItemState, frameMetadata = nextFrameMetaData)
-            else (item as CollectibleItem).copy(state = nextItemState, frameMetadata = nextFrameMetaData)
-        }.toCollection(ArrayList())
-        return gameMap.copy(state = gameState, items = managedMapItems)
+        }
+        return if (newGameState != gameMap.state) {
+            gameMap.copy(state = newGameState)
+        } else {
+            gameMap
+        }
     }
 
-    //TODO array List
     override fun checkForEnemyCollisionAndProximity(
         player: Player,
         gameMap: GameMap,
@@ -173,16 +177,18 @@ class DefaultCollision(
         audioQueue: DefaultAudioQueue,
         particles: Particles
     ): Pair<Player, GameMap> {
-        val managedMapParticles = gameMap.particles.toCollection(ArrayList())
+        val managedMapParticles = gameMap.particles
+        val managedMapEnemies = gameMap.enemies
         val canTakeCollisionDamage = player.immunityTicks <= 0
         var playerIsColliding = false
         var closestEnemyRect: Rect? = null
         var minDistance = Float.MAX_VALUE
         val playerRect = player.toRect()
         val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(managedMapParticles, viewPort)
-        val managedMapEnemies = gameMap.enemies.map { enemy ->
+        for (i in managedMapEnemies.indices) {
+            val enemy = managedMapEnemies[i]
             val element = enemy as GameElement
-            if (element.state == GameElementState.INACTIVE) return@map enemy
+            if (element.state == GameElementState.INACTIVE) continue
             val enemyRect = enemy.toRect()
             val isColliding = playerRect.overlaps(enemyRect)
             var isInteracting = false
@@ -227,7 +233,7 @@ class DefaultCollision(
                 else -> enemy.interacting
             }
             val nextColliding = if (isColliding) GameElementCollisionState.COLLIDING else GameElementCollisionState.FREE
-            when (enemy) {
+            managedMapEnemies[i] = when (enemy) {
                 is ShooterEnemy -> enemy.copy(
                     frameMetadata = metadata,
                     colliding = nextColliding,
@@ -246,18 +252,15 @@ class DefaultCollision(
                     interacting = nextInteracting
                 )
             }
-        }.toCollection(ArrayList())
-
+        }
         val nextPlayer = if (playerIsColliding && closestEnemyRect != null) {
             physics.applyPlayerCollisionPhysics(player, closestEnemyRect, viewPort)
         } else {
             player
         }
-
-        return Pair(nextPlayer, gameMap.copy(enemies = managedMapEnemies, particles = managedMapParticles))
+        return Pair(nextPlayer, gameMap)
     }
 
-    //TODO ArrayList
     override fun checkForProjectileCollision(
         player: Player,
         gameMap: GameMap,
@@ -269,7 +272,9 @@ class DefaultCollision(
         var playerIsColliding = false
         var targetRect: Rect? = null
         val playerRect = player.toRect()
-        val updatedParticles = gameMap.particles.filter { particle ->
+        val particleList = gameMap.particles
+        for (i in particleList.indices.reversed()) {
+            val particle = particleList[i]
             if (canTakeCollisionDamage &&
                 particle.type == ParticleType.PROJECTILE &&
                 playerRect.overlaps(particle.toRect())
@@ -277,16 +282,14 @@ class DefaultCollision(
                 targetRect = particle.toRect()
                 audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                 playerIsColliding = true
-                false
-            } else {
-                true
+                particleList.removeAt(i)
             }
-        }.toCollection(ArrayList())
-        val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(updatedParticles, viewPort)
+        }
+        val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(particleList, viewPort)
         if (playerIsColliding && !isCollisionAnimating) {
-            updatedParticles.addAll(particles.createCollisionParticles(player.x, player.y))
+            particleList.addAll(particles.createCollisionParticles(player.x, player.y))
             if (scoreService.getTotal() != scoreService.getRemaining()) {
-                updatedParticles.add(particles.createMapItemReturnParticle(player))
+                particleList.add(particles.createMapItemReturnParticle(player))
             }
         }
         val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())
@@ -295,7 +298,7 @@ class DefaultCollision(
         } else {
             player
         }
-        return Pair(nextPlayer, gameMap.copy(particles = updatedParticles))
+        return Pair(nextPlayer, gameMap)
     }
 
     fun GameElement.toRect() = Rect(

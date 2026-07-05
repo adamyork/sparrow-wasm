@@ -138,14 +138,14 @@ class DefaultEngine @AppScope @Inject constructor(
     override fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort): GameMap {
         val managedMapItems = manageMapItems(gameMap)
         val managedMapEnemies = manageMapEnemies(gameMap, player)
-        val managedCollisionParticles = physics.applyCollisionParticlePhysics(gameMap.particles, viewPort)
-        val managedMapItemReturnParticles = physics.applyMapItemReturnParticlePhysics(managedCollisionParticles)
+        physics.applyCollisionParticlePhysics(gameMap.particles, viewPort)
+        physics.applyMapItemReturnParticlePhysics(gameMap.particles)
         if (player.moving == PlayerMovingState.MOVING && player.jumping == PlayerJumpingState.GROUNDED) {
             val nextDustParticles = particles.createDustParticles(player)
-            managedMapItemReturnParticles.addAll(nextDustParticles)
+            gameMap.particles.addAll(nextDustParticles)
         }
-        val managedDustParticles = physics.applyDustParticlePhysics(managedMapItemReturnParticles)
-        val managedAllParticles = physics.applyProjectileParticlePhysics(managedDustParticles, viewPort)
+        physics.applyDustParticlePhysics(gameMap.particles)
+        physics.applyProjectileParticlePhysics(gameMap.particles, viewPort)
         var mapState = gameMap.state
         if (mapState == GameMapState.COLLECTING && scoreService.allFound()) {
             mapState = GameMapState.COMPLETING
@@ -154,7 +154,7 @@ class DefaultEngine @AppScope @Inject constructor(
             state = mapState,
             items = managedMapItems,
             enemies = managedMapEnemies,
-            particles = managedAllParticles
+            particles = gameMap.particles
         )
     }
 

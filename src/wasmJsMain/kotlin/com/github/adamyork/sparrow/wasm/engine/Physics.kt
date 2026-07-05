@@ -20,12 +20,12 @@ interface Physics {
 
     fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort): Player
 
-    fun applyCollisionParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort): ArrayList<Particle>
+    fun applyCollisionParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort)
 
-    fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle>
+    fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>)
 
-    fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort): ArrayList<Particle>
+    fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort)
 
-    fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle>
+    fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>)
 
 }

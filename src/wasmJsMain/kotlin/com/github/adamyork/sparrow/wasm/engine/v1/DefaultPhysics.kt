@@ -129,53 +129,47 @@ class DefaultPhysics @AppScope @Inject constructor(
     override fun applyCollisionParticlePhysics(
         mapParticles: ArrayList<Particle>,
         viewPort: ViewPort
-    ): ArrayList<Particle> {
+    ) {
         val dt = statusProvider.getDeltaTimeCoefficient()
         val speedFactor = 0.25
-        return mapParticles
-            .map { particle ->
-                if (particle.type == ParticleType.COLLISION) {
-                    val nextFrame = particle.frame + (1.0 * dt * speedFactor).toInt().coerceAtLeast(1)
-                    var nextRadius = particle.radius
-                    var position = Pair(particle.x.toDouble(), particle.y.toDouble())
-                    if (particle.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
-                        nextRadius = (particle.radius + (10 * dt * speedFactor)).toInt()
-                        val pos = getCollisionParticlePosition(
-                            nextRadius.toFloat(),
-                            particle.id.toFloat(),
-                            particle.originX,
-                            particle.originY
-                        )
-                        position = Pair(pos.first.toDouble(), pos.second.toDouble())
-                    } else {
-                        if (particle.frame <= particle.lifetime) {
-                            position = Pair(
-                                particle.x.toDouble(),
-                                particle.y.toDouble() + (physicsSettingsService.gravity * dt * speedFactor)
-                            )
-                        }
-                    }
-                    particle.copy(
-                        x = position.first.toInt() + particle.xJitter,
-                        y = position.second.toInt() + particle.yJitter,
-                        frame = nextFrame,
-                        radius = nextRadius
+        for (i in mapParticles.indices.reversed()) {
+            val p = mapParticles[i]
+            if (p.type == ParticleType.COLLISION) {
+                val nextFrame = p.frame + (1.0 * dt * speedFactor).toInt().coerceAtLeast(1)
+                var nextRadius = p.radius
+                var positionX = p.x.toDouble()
+                var positionY = p.y.toDouble()
+                if (p.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
+                    nextRadius = (p.radius + (10 * dt * speedFactor)).toInt()
+                    val pos = getCollisionParticlePosition(
+                        nextRadius.toFloat(),
+                        p.id.toFloat(),
+                        p.originX,
+                        p.originY
                     )
+                    positionX = pos.first.toDouble()
+                    positionY = pos.second.toDouble()
                 } else {
-                    particle
+                    if (p.frame <= p.lifetime) {
+                        positionY += (physicsSettingsService.gravity * dt * speedFactor)
+                    }
+                }
+                val updated = p.copy(
+                    x = positionX.toInt() + p.xJitter,
+                    y = positionY.toInt() + p.yJitter,
+                    frame = nextFrame,
+                    radius = nextRadius
+                )
+                if (!updated.isActiveVisibleCollisionParticle(viewPort)) {
+                    mapParticles.removeAt(i)
+                } else {
+                    mapParticles[i] = updated
                 }
             }
-            .filter { particle ->
-                if (particle.type == ParticleType.COLLISION) {
-                    particle.isActiveVisibleCollisionParticle(viewPort)
-                } else {
-                    true
-                }
-            }
-            .toCollection(ArrayList())
+        }
     }
 
-    override fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
+    override fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>) {
         val dt = statusProvider.getDeltaTimeCoefficient()
         for (i in mapParticles.size - 1 downTo 0) {
             val p = mapParticles[i]
@@ -192,17 +186,16 @@ class DefaultPhysics @AppScope @Inject constructor(
                 }
             }
         }
-        return mapParticles
     }
 
-    //TODO ArrayList
     override fun applyProjectileParticlePhysics(
         mapParticles: ArrayList<Particle>,
         viewPort: ViewPort
-    ): ArrayList<Particle> {
+    ) {
         val dt = statusProvider.getDeltaTimeCoefficient()
         val speed = physicsSettingsService.projectileSpeed * dt
-        return mapParticles.map { p ->
+        for (i in mapParticles.indices.reversed()) {
+            val p = mapParticles[i]
             if (p.type == ParticleType.PROJECTILE) {
                 val directionX = p.originX - p.xJitter
                 val directionY = p.originY - p.yJitter
@@ -214,17 +207,18 @@ class DefaultPhysics @AppScope @Inject constructor(
                 }
                 val nextX = p.x + (unitVector.first * speed)
                 val nextY = p.y + (unitVector.second * speed)
-                p.copy(x = nextX.roundToInt(), y = nextY.roundToInt(), frame = p.frame + 1)
+                val updated = p.copy(x = nextX.roundToInt(), y = nextY.roundToInt(), frame = p.frame + 1)
+                if (!isParticleInViewPort(updated, viewPort)) {
+                    mapParticles.removeAt(i)
+                } else {
+                    mapParticles[i] = updated
+                }
             } else {
-                p
+                if (p.frame > p.lifetime) {
+                    mapParticles.removeAt(i)
+                }
             }
-        }.filter { particle ->
-            if (particle.type == ParticleType.PROJECTILE) {
-                isParticleInViewPort(particle, viewPort)
-            } else {
-                particle.frame <= particle.lifetime
-            }
-        }.toCollection(ArrayList())
+        }
     }
 
     private fun isParticleInViewPort(particle: Particle, viewPort: ViewPort): Boolean {
@@ -237,21 +231,26 @@ class DefaultPhysics @AppScope @Inject constructor(
         return particleRight >= left && particle.x <= right && particleBottom >= top && particle.y <= bottom
     }
 
-    override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
-        return mapParticles
-            .map { particle ->
-                if (particle.type == ParticleType.MAP_ITEM_RETURN) {
-                    val nextFrame = particle.frame + 1
-                    val step = nextFrame.toFloat() / (particle.lifetime - 1)
-                    val angle = PI * (1 + step)
-                    val nextX = particle.originX + cos(angle).toFloat() * 90
-                    val nextY = particle.originY + sin(angle).toFloat() * 90
-                    particle.copy(x = nextX.toInt(), y = nextY.toInt(), frame = nextFrame)
+    override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>) {
+        for (i in mapParticles.indices.reversed()) {
+            val p = mapParticles[i]
+            if (p.type == ParticleType.MAP_ITEM_RETURN) {
+                val nextFrame = p.frame + 1
+                if (nextFrame > p.lifetime) {
+                    mapParticles.removeAt(i)
                 } else {
-                    particle
+                    val step = nextFrame.toFloat() / (p.lifetime - 1)
+                    val angle = PI * (1 + step)
+                    val nextX = p.originX + cos(angle).toFloat() * 90
+                    val nextY = p.originY + sin(angle).toFloat() * 90
+                    mapParticles[i] = p.copy(x = nextX.toInt(), y = nextY.toInt(), frame = nextFrame)
                 }
-            }.filter { particle -> particle.frame <= particle.lifetime }
-            .toCollection(ArrayList())
+            } else {
+                if (p.frame > p.lifetime) {
+                    mapParticles.removeAt(i)
+                }
+            }
+        }
     }
 
     private fun getCollisionParticlePosition(
