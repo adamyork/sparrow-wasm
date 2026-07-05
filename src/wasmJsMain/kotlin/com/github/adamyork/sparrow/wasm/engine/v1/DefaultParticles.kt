@@ -38,8 +38,9 @@ class DefaultParticles : Particles {
         40 to 3, 32 to 9, 25 to 11, 18 to 10, 11 to 8, 22 to 12
     )
 
-    private val colorMap = mutableMapOf<ParticleType, Color>()
+    private var colorMap: Map<ParticleType, Color> = emptyMap()
     private val collisionPool = ArrayList<Particle>(COLLISION_PARTICLE_COUNT)
+    private val dustParticleList = ArrayList<Particle>(dustParticleOffsets.size)
 
     override fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle> {
         val collisionColor = colorMap[ParticleType.COLLISION] ?: Color.White
@@ -79,46 +80,40 @@ class DefaultParticles : Particles {
     }
 
     override fun createDustParticles(player: Player): ArrayList<Particle> {
+        dustParticleList.clear()
         val footY = player.y + player.height - (player.height / DUST_Y_OFFSET)
         val color = colorMap[ParticleType.DUST] ?: Color.White
-        val maxDustIndex = (dustParticleOffsets.size - 1).coerceAtLeast(1)
-        val invMaxDustIndex = 1f / maxDustIndex
-        return ArrayList<Particle>(dustParticleOffsets.size).apply {
-            dustParticleOffsets.forEachIndexed { index, (offsetX, offsetY) ->
-                val diameter = ((index * BASE_DIAMETER_MULTIPLIER) + BASE_DIAMETER_MULTIPLIER_BUFFER).coerceAtMost(
-                    DIAMETER_MAX
-                )
-                val anchorX = if (player.direction == Direction.LEFT) {
-                    player.x + player.width - (player.width / 4) + offsetX
-                } else {
-                    player.x + (player.width / 4) - offsetX
-                }
-                val particleX = anchorX - (diameter / 2)
-                val particleY = (footY - offsetY) - (diameter / 2)
-                val alphaFactor = 1f - (index * invMaxDustIndex)
-                val adjustedAlpha = (color.alpha * alphaFactor).coerceIn(0f, 1f)
-                val adjustedAlphaColor = Color(color.red, color.green, color.blue, adjustedAlpha)
-                add(
-                    Particle(
-                        index,
-                        particleX,
-                        particleY,
-                        player.x,
-                        player.y,
-                        diameter,
-                        diameter,
-                        ParticleType.DUST,
-                        0,
-                        5,
-                        0,
-                        0,
-                        0,
-                        adjustedAlphaColor,
-                        ParticleShape.CIRCLE
-                    )
-                )
+        dustParticleOffsets.forEachIndexed { index, (offsetX, offsetY) ->
+            val diameter = ((index * BASE_DIAMETER_MULTIPLIER) + BASE_DIAMETER_MULTIPLIER_BUFFER)
+                .coerceAtMost(DIAMETER_MAX)
+            val anchorX = if (player.direction == Direction.LEFT) {
+                player.x + player.width - (player.width / 4) + offsetX
+            } else {
+                player.x + (player.width / 4) - offsetX
             }
+            val particleX = anchorX - (diameter / 2)
+            val particleY = (footY - offsetY) - (diameter / 2)
+            dustParticleList.add(
+                Particle(
+                    index,
+                    particleX,
+                    particleY,
+                    player.x,
+                    player.y,
+                    diameter,
+                    diameter,
+                    ParticleType.DUST,
+                    0,
+                    20,
+                    0,
+                    0,
+                    0,
+                    color,
+                    ParticleShape.CIRCLE
+                )
+            )
         }
+        return dustParticleList
     }
 
     override fun createProjectileParticle(
@@ -171,34 +166,29 @@ class DefaultParticles : Particles {
     }
 
     override fun populateColorMap(assetService: AssetService) {
-        colorMap[ParticleType.DUST] = Color(
-            assetService.gameConfig.particle.player.movement.color.r.toFloat(),
-            assetService.gameConfig.particle.player.movement.color.g.toFloat(),
-            assetService.gameConfig.particle.player.movement.color.b.toFloat(),
-            assetService.gameConfig.particle.player.movement.color.a.toFloat()
-        )
-        colorMap[ParticleType.COLLISION] = Color(
-            assetService.gameConfig.particle.player.collision.color.r.toFloat(),
-            assetService.gameConfig.particle.player.collision.color.g.toFloat(),
-            assetService.gameConfig.particle.player.collision.color.b.toFloat(),
-            assetService.gameConfig.particle.player.collision.color.a.toFloat()
-        )
-        colorMap[ParticleType.PROJECTILE] = Color(
-            assetService.gameConfig.particle.enemy.projectile.color.r.toFloat(),
-            assetService.gameConfig.particle.enemy.projectile.color.g.toFloat(),
-            assetService.gameConfig.particle.enemy.projectile.color.b.toFloat(),
-            assetService.gameConfig.particle.enemy.projectile.color.a.toFloat()
+        colorMap = mapOf(
+            ParticleType.DUST to Color(
+                assetService.gameConfig.particle.player.movement.color.r.toFloat(),
+                assetService.gameConfig.particle.player.movement.color.g.toFloat(),
+                assetService.gameConfig.particle.player.movement.color.b.toFloat(),
+                assetService.gameConfig.particle.player.movement.color.a.toFloat()
+            ),
+            ParticleType.COLLISION to Color(
+                assetService.gameConfig.particle.player.collision.color.r.toFloat(),
+                assetService.gameConfig.particle.player.collision.color.g.toFloat(),
+                assetService.gameConfig.particle.player.collision.color.b.toFloat(),
+                assetService.gameConfig.particle.player.collision.color.a.toFloat()
+            ),
+            ParticleType.PROJECTILE to Color(
+                assetService.gameConfig.particle.enemy.projectile.color.r.toFloat(),
+                assetService.gameConfig.particle.enemy.projectile.color.g.toFloat(),
+                assetService.gameConfig.particle.enemy.projectile.color.b.toFloat(),
+                assetService.gameConfig.particle.enemy.projectile.color.a.toFloat()
+            )
         )
     }
 
-    private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int {
-        var count = 0
-        for (particle in particles) {
-            if (particle.type == ParticleType.PROJECTILE) {
-                count++
-            }
-        }
-        return count
-    }
+    private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int =
+        particles.count { it.type == ParticleType.PROJECTILE }
 
 }

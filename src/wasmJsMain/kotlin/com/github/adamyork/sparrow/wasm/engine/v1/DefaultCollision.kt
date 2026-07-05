@@ -142,6 +142,7 @@ class DefaultCollision(
         return false
     }
 
+    //TODO ArrayList
     override fun checkForItemCollision(player: Player, gameMap: GameMap, audioQueue: DefaultAudioQueue): GameMap {
         var gameState = gameMap.state
         val playerRect = player.toRect()
@@ -164,6 +165,7 @@ class DefaultCollision(
         return gameMap.copy(state = gameState, items = managedMapItems)
     }
 
+    //TODO array List
     override fun checkForEnemyCollisionAndProximity(
         player: Player,
         gameMap: GameMap,
@@ -255,6 +257,7 @@ class DefaultCollision(
         return Pair(nextPlayer, gameMap.copy(enemies = managedMapEnemies, particles = managedMapParticles))
     }
 
+    //TODO ArrayList
     override fun checkForProjectileCollision(
         player: Player,
         gameMap: GameMap,

@@ -16,10 +16,7 @@ import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.Physics
-import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
-import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
-import com.github.adamyork.sparrow.wasm.engine.data.ParticleShape
-import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
+import com.github.adamyork.sparrow.wasm.engine.data.*
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
@@ -27,8 +24,6 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
-import kotlin.math.ceil
-import kotlin.math.floor
 
 
 /**
@@ -432,43 +427,62 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas, mapItem: Item?, mapItemImage: Image?) {
-        map.particles.forEach { particle ->
-            val localCord = viewPort.globalToLocal(particle.x, particle.y)
-            if (particle.type == ParticleType.MAP_ITEM_RETURN && mapItem != null && mapItemImage != null) {
-                canvas.drawImageRect(
-                    image = mapItemImage,
-                    src = Rect.makeXYWH(0f, 0f, mapItem.width.toFloat(), mapItem.height.toFloat()),
-                    dst = Rect.makeXYWH(
-                        localCord.first.toFloat(),
-                        localCord.second.toFloat(),
-                        particle.width.toFloat(),
-                        particle.height.toFloat()
-                    ),
-                    samplingMode = SamplingMode.LINEAR,
-                    paint = mapItemReturnPaint,
-                    strict = true
-                )
-            } else {
-                val lifetime = particle.lifetime.coerceAtLeast(1)
-                val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
-                val lifeAlphaMultiplier = if (particle.type == ParticleType.PROJECTILE) 1f else 1f - ageProgress
-                val particleAlpha =
-                    (particle.color.alpha.coerceIn(0f, 1f) * lifeAlphaMultiplier * 255f).toInt().coerceIn(0, 255)
-                val particleRed = (particle.color.red.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
-                val particleGreen = (particle.color.green.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
-                val particleBlue = (particle.color.blue.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
-                particlePaint.color = Color.makeARGB(particleAlpha, particleRed, particleGreen, particleBlue)
-                val left = floor(localCord.first.toDouble()).toFloat()
-                val top = floor(localCord.second.toDouble()).toFloat()
-                val width = ceil(particle.width.toDouble()).toFloat()
-                val height = ceil(particle.height.toDouble()).toFloat()
-                val rect = Rect.makeXYWH(left, top, width, height)
+        val vpX = viewPort.x.toFloat()
+        val vpY = viewPort.y.toFloat()
+        val groups = mutableMapOf<Int, MutableList<Particle>>()
+        for (particle in map.particles) {
+            if (particle.type == ParticleType.MAP_ITEM_RETURN) {
+                if (mapItem != null && mapItemImage != null) {
+                    val localX = particle.x.toFloat() - vpX
+                    val localY = particle.y.toFloat() - vpY
+                    canvas.drawImageRect(
+                        image = mapItemImage,
+                        srcLeft = 0f, srcTop = 0f,
+                        srcRight = mapItem.width.toFloat(), srcBottom = mapItem.height.toFloat(),
+                        dstLeft = localX, dstTop = localY,
+                        dstRight = localX + particle.width.toFloat(),
+                        dstBottom = localY + particle.height.toFloat(),
+                        samplingMode = SamplingMode.LINEAR,
+                        paint = mapItemReturnPaint,
+                        strict = true
+                    )
+                }
+                continue
+            }
+            val lifetime = if (particle.lifetime <= 0) 1 else particle.lifetime
+            val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
+            val alphaMultiplier = when {
+                particle.type == ParticleType.PROJECTILE -> 1.0f
+                ageProgress < 0.33f -> 1.0f
+                ageProgress < 0.66f -> 0.66f
+                else -> 0.33f
+            }
+            val alpha = (particle.color.alpha.coerceIn(0f, 1f) * alphaMultiplier * 255f).toInt().coerceIn(0, 255)
+            val color = Color.makeARGB(
+                alpha,
+                (particle.color.red * 255).toInt(),
+                (particle.color.green * 255).toInt(),
+                (particle.color.blue * 255).toInt()
+            )
+            groups.getOrPut(color) { mutableListOf() }.add(particle)
+        }
+        for ((color, particleList) in groups) {
+            val builder = PathBuilder()
+            for (particle in particleList) {
+                val x = particle.x.toFloat() - vpX
+                val y = particle.y.toFloat() - vpY
+                val w = particle.width.toFloat()
+                val h = particle.height.toFloat()
                 if (particle.shape == ParticleShape.CIRCLE) {
-                    canvas.drawOval(rect, particlePaint)
+                    builder.addOval(Rect.makeXYWH(x, y, w, h))
                 } else {
-                    canvas.drawRect(rect, particlePaint)
+                    builder.addRect(Rect.makeXYWH(x, y, w, h))
                 }
             }
+            val batchPath = builder.detach()
+            particlePaint.color = color
+            canvas.drawPath(batchPath, particlePaint)
+            batchPath.close()
         }
     }
 

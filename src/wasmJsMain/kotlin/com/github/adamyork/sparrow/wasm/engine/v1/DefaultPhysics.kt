@@ -177,20 +177,25 @@ class DefaultPhysics @AppScope @Inject constructor(
 
     override fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>): ArrayList<Particle> {
         val dt = statusProvider.getDeltaTimeCoefficient()
-        return mapParticles.map { p ->
+        for (i in mapParticles.size - 1 downTo 0) {
+            val p = mapParticles[i]
             if (p.type == ParticleType.DUST) {
-                val growth = 1.0 * dt
-                p.copy(
-                    width = (p.width + growth).toInt().coerceAtMost(40),
-                    height = (p.height + growth).toInt().coerceAtMost(40),
-                    frame = p.frame + 1
-                )
-            } else {
-                p
+                if (p.frame >= p.lifetime) {
+                    mapParticles.removeAt(i)
+                } else {
+                    val growth = 1.0 * dt
+                    mapParticles[i] = p.copy(
+                        width = (p.width + growth).toInt().coerceAtMost(40),
+                        height = (p.height + growth).toInt().coerceAtMost(40),
+                        frame = p.frame + 1
+                    )
+                }
             }
-        }.filter { it.frame <= it.lifetime }.toCollection(ArrayList())
+        }
+        return mapParticles
     }
 
+    //TODO ArrayList
     override fun applyProjectileParticlePhysics(
         mapParticles: ArrayList<Particle>,
         viewPort: ViewPort
