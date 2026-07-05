@@ -4,8 +4,14 @@ import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.*
-import com.github.adamyork.sparrow.wasm.common.data.enemy.*
-import com.github.adamyork.sparrow.wasm.common.data.item.*
+import com.github.adamyork.sparrow.wasm.common.data.enemy.BlockerEnemy
+import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
+import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
+import com.github.adamyork.sparrow.wasm.common.data.enemy.RunnerEnemy
+import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
+import com.github.adamyork.sparrow.wasm.common.data.item.Item
+import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
+import com.github.adamyork.sparrow.wasm.common.data.item.NoOpItem
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
@@ -90,7 +96,9 @@ class DefaultEngine @AppScope @Inject constructor(
         val nextFrameMetadataWithState = physicsAppliedPlayer.getNextFrameMetadataWithState()
         val metadata = nextFrameMetadataWithState.first
         val metadataState = nextFrameMetadataWithState.second
-        return physicsAppliedPlayer.copy(frameMetadata = metadata, colliding = metadataState.colliding)
+        physicsAppliedPlayer.frameMetadata = metadata
+        physicsAppliedPlayer.colliding = metadataState.colliding
+        return physicsAppliedPlayer
     }
 
     override fun manageViewport(player: Player, viewPort: ViewPort): ViewPort {
@@ -141,8 +149,7 @@ class DefaultEngine @AppScope @Inject constructor(
         physics.applyCollisionParticlePhysics(gameMap.particles, viewPort)
         physics.applyMapItemReturnParticlePhysics(gameMap.particles)
         if (player.moving == PlayerMovingState.MOVING && player.jumping == PlayerJumpingState.GROUNDED) {
-            val nextDustParticles = particles.createDustParticles(player)
-            gameMap.particles.addAll(nextDustParticles)
+            particles.createDustParticles(player, gameMap.particles)
         }
         physics.applyDustParticlePhysics(gameMap.particles)
         physics.applyProjectileParticlePhysics(gameMap.particles, viewPort)
@@ -150,12 +157,11 @@ class DefaultEngine @AppScope @Inject constructor(
         if (mapState == GameMapState.COLLECTING && scoreService.allFound()) {
             mapState = GameMapState.COMPLETING
         }
-        return gameMap.copy(
-            state = mapState,
-            items = managedMapItems,
-            enemies = managedMapEnemies,
-            particles = gameMap.particles
-        )
+        gameMap.state = mapState
+        gameMap.items = managedMapItems
+        gameMap.enemies = managedMapEnemies
+        gameMap.particles = gameMap.particles
+        return gameMap
     }
 
     override fun manageEnemyAndItemCollision(
@@ -177,7 +183,7 @@ class DefaultEngine @AppScope @Inject constructor(
         var nextGameMap = projectTileCollisionResult.second
         if (projectTileCollisionResult.first.colliding == GameElementCollisionState.COLLIDING) {
             val nextItems = returnMapItemAfterCollision(nextGameMap)
-            nextGameMap = nextGameMap.copy(items = nextItems)
+            nextGameMap.items = nextItems
         }
         return Pair(projectTileCollisionResult.first, nextGameMap)
     }
@@ -195,15 +201,17 @@ class DefaultEngine @AppScope @Inject constructor(
                 }
             }
             if (item.type == ItemType.FINISH) {
-                gameMap.items[index] =
-                    (item as FinishItem).copy(x = itemX, y = itemY, state = nextState, frameMetadata = metadata)
+                item.x = itemX
+                item.y = itemY
+                item.state = nextState
+                item.frameMetadata = metadata
+                gameMap.items[index] = item
             } else {
-                gameMap.items[index] = (item as CollectibleItem).copy(
-                    x = itemX,
-                    y = itemY,
-                    state = nextState,
-                    frameMetadata = metadata
-                )
+                item.x = itemX
+                item.y = itemY
+                item.state = nextState
+                item.frameMetadata = metadata
+                gameMap.items[index] = item
             }
         }
         return gameMap.items
@@ -216,7 +224,8 @@ class DefaultEngine @AppScope @Inject constructor(
         if (index != -1) {
             val item = gameMap.items[index]
             if (item is CollectibleItem) {
-                gameMap.items[index] = item.copy(state = GameElementState.ACTIVE)
+                item.state = GameElementState.ACTIVE
+                gameMap.items[index] = item
             }
         }
         return gameMap.items
@@ -245,45 +254,17 @@ class DefaultEngine @AppScope @Inject constructor(
                 val frameMetadataWithState = (enemy as GameElement).getNextFrameMetadataWithState()
                 val metadata = frameMetadataWithState.first
                 val metadataState = frameMetadataWithState.second
-                when (enemy.type) {
-                    EnemyType.SHOOTER -> {
-                        gameMap.enemies[index] = (enemy as ShooterEnemy).copy(
-                            x = itemX,
-                            y = itemY,
-                            state = nextState,
-                            frameMetadata = metadata,
-                            enemyPosition = nextPosition,
-                            colliding = metadataState.colliding,
-                            interacting = metadataState.interacting
-                        )
-                    }
-
-                    EnemyType.RUNNER -> {
-                        gameMap.enemies[index] = (enemy as RunnerEnemy).copy(
-                            x = itemX,
-                            y = itemY,
-                            state = nextState,
-                            frameMetadata = metadata,
-                            enemyPosition = nextPosition,
-                            colliding = metadataState.colliding,
-                            interacting = metadataState.interacting
-                        )
-                    }
-
-                    else -> {
-                        gameMap.enemies[index] = (enemy as BlockerEnemy).copy(
-                            x = itemX,
-                            y = itemY,
-                            state = nextState,
-                            frameMetadata = metadata,
-                            enemyPosition = nextPosition,
-                            colliding = metadataState.colliding,
-                            interacting = metadataState.interacting
-                        )
-                    }
-                }
+                enemy.x = itemX
+                enemy.y = itemY
+                enemy.state = nextState
+                enemy.frameMetadata = metadata
+                enemy.enemyPosition = nextPosition
+                enemy.colliding = metadataState.colliding
+                enemy.interacting = metadataState.interacting
+                gameMap.enemies[index] = enemy
             } else if (enemy.type == EnemyType.RUNNER) {
-                gameMap.enemies[index] = (enemy as RunnerEnemy).copy(state = nextState)
+                enemy.state = nextState
+                gameMap.enemies[index] = enemy
             } else {
                 gameMap.enemies[index] = enemy
             }
@@ -356,17 +337,17 @@ class DefaultEngine @AppScope @Inject constructor(
         when (controlAction) {
             ControlAction.LEFT, ControlAction.RIGHT -> {
                 val direction = if (controlAction == ControlAction.LEFT) Direction.LEFT else Direction.RIGHT
-                return player.copy(
-                    moving = PlayerMovingState.MOVING,
-                    direction = direction,
-                    vx = adjustXVelocity(controlAction, player)
-                )
+                player.moving = PlayerMovingState.MOVING
+                player.direction = direction
+                player.vx = adjustXVelocity(controlAction, player)
+                return player
             }
 
             ControlAction.JUMP -> {
                 if (player.jumping == PlayerJumpingState.GROUNDED) {
                     audioQueue.queue.add(Sounds.JUMP)
-                    return player.copy(jumping = PlayerJumpingState.INITIAL)
+                    player.jumping = PlayerJumpingState.INITIAL
+                    return player
                 }
             }
         }
@@ -403,7 +384,7 @@ class DefaultEngine @AppScope @Inject constructor(
         val isStoppingRight = movingRight && player.direction == Direction.RIGHT
         val matchesDirection = isStoppingLeft || isStoppingRight
         if (matchesDirection) {
-            return player.copy(moving = PlayerMovingState.STATIONARY)
+            player.moving = PlayerMovingState.STATIONARY
         }
         return player
     }

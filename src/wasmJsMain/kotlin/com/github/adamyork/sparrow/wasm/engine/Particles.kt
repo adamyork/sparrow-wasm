@@ -15,14 +15,14 @@ interface Particles {
 
     fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle>
 
-    fun createDustParticles(player: Player): ArrayList<Particle>
+    fun createDustParticles(player: Player, particles: ArrayList<Particle>)
 
     fun createProjectileParticle(
         player: Player,
         enemy: Enemy,
         particles: ArrayList<Particle>
-    ): Pair<ArrayList<Particle>, Boolean>
+    ): Boolean
 
-    fun createMapItemReturnParticle(player: Player): Particle
+    fun createMapItemReturnParticle(player: Player, particles: ArrayList<Particle>)
 
 }

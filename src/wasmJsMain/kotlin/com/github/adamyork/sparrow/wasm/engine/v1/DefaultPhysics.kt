@@ -80,7 +80,8 @@ class DefaultPhysics @AppScope @Inject constructor(
             else -> player.jumping
         }
         val adjustedBoundaries = if (player.y != nextY) {
-            collision.recomputeXBoundaries(player.copy(y = nextY), collisionBoundaries)
+            player.y = nextY
+            collision.recomputeXBoundaries(player, collisionBoundaries)
         } else {
             collisionBoundaries
         }
@@ -90,17 +91,16 @@ class DefaultPhysics @AppScope @Inject constructor(
         val deltaX = velocityX * physicsSettingsService.xMovementDistance * deltaTime
         val nextX = (player.x + deltaX).roundToInt().coerceIn(minBound, safeRight)
         val nextImmunityTicks = (player.immunityTicks - 1).coerceAtLeast(0)
-        return player.copy(
-            x = nextX,
-            vx = velocityX,
-            y = nextY,
-            vy = if (nextJumping == PlayerJumpingState.GROUNDED) 0.0 else velocityY,
-            jumping = nextJumping,
-            immunityTicks = nextImmunityTicks,
-            colliding = if (isColliding && velocityX == 0.0 && nextImmunityTicks <= 0)
-                GameElementCollisionState.FREE
-            else player.colliding
-        )
+        player.x = nextX
+        player.vx = velocityX
+        player.y = nextY
+        player.vy = if (nextJumping == PlayerJumpingState.GROUNDED) 0.0 else velocityY
+        player.jumping = nextJumping
+        player.immunityTicks = nextImmunityTicks
+        player.colliding = if (isColliding && velocityX == 0.0 && nextImmunityTicks <= 0)
+            GameElementCollisionState.FREE
+        else player.colliding
+        return player
     }
 
     override fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort): Player {
@@ -116,14 +116,13 @@ class DefaultPhysics @AppScope @Inject constructor(
         val maxBound = (viewPort.x + viewPort.width) - (player.width * effectiveWidthMultiplier)
         val clampedX = projectedX.coerceIn(minBound, maxBound)
         val finalVx = if (projectedX != clampedX) 0.0 else projectedVx
-        return player.copy(
-            x = clampedX,
-            vx = finalVx,
-            colliding = GameElementCollisionState.COLLIDING,
-            immunityTicks = Player.IMMUNITY_TICKS_ON_HIT,
-            animationTickCounter = 0,
-            animationTickBufferMs = 0.0
-        )
+        player.x = clampedX
+        player.vx = finalVx
+        player.colliding = GameElementCollisionState.COLLIDING
+        player.immunityTicks = Player.IMMUNITY_TICKS_ON_HIT
+        player.animationTickCounter = 0
+        player.animationTickBufferMs = 0.0
+        return player
     }
 
     override fun applyCollisionParticlePhysics(

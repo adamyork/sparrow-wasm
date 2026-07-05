@@ -17,9 +17,9 @@ interface Enemy : GameElement {
     val type: EnemyType
     val originX: Int
     val originY: Int
-    val enemyPosition: EnemyPosition
-    val colliding: GameElementCollisionState
-    val interacting: EnemyInteractionState
+    var enemyPosition: EnemyPosition
+    var colliding: GameElementCollisionState
+    var interacting: EnemyInteractionState
 
     fun getNextPosition(): EnemyPosition
 

@@ -40,7 +40,6 @@ class DefaultParticles : Particles {
 
     private var colorMap: Map<ParticleType, Color> = emptyMap()
     private val collisionPool = ArrayList<Particle>(COLLISION_PARTICLE_COUNT)
-    private val dustParticleList = ArrayList<Particle>(dustParticleOffsets.size)
 
     override fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle> {
         val collisionColor = colorMap[ParticleType.COLLISION] ?: Color.White
@@ -79,8 +78,7 @@ class DefaultParticles : Particles {
         return collisionPool
     }
 
-    override fun createDustParticles(player: Player): ArrayList<Particle> {
-        dustParticleList.clear()
+    override fun createDustParticles(player: Player, particles: ArrayList<Particle>) {
         val footY = player.y + player.height - (player.height / DUST_Y_OFFSET)
         val color = colorMap[ParticleType.DUST] ?: Color.White
         dustParticleOffsets.forEachIndexed { index, (offsetX, offsetY) ->
@@ -93,7 +91,7 @@ class DefaultParticles : Particles {
             }
             val particleX = anchorX - (diameter / 2)
             val particleY = (footY - offsetY) - (diameter / 2)
-            dustParticleList.add(
+            particles.add(
                 Particle(
                     index,
                     particleX,
@@ -113,16 +111,15 @@ class DefaultParticles : Particles {
                 )
             )
         }
-        return dustParticleList
     }
 
     override fun createProjectileParticle(
         player: Player,
         enemy: Enemy,
         particles: ArrayList<Particle>
-    ): Pair<ArrayList<Particle>, Boolean> {
+    ): Boolean {
         val count = getActiveProjectileCount(particles)
-        if (count >= MAX_ACTIVE_PROJECTILES) return particles to false
+        if (count >= MAX_ACTIVE_PROJECTILES) return false
         particles.add(
             Particle(
                 count + 1,
@@ -142,26 +139,28 @@ class DefaultParticles : Particles {
                 ParticleShape.CIRCLE
             )
         )
-        return particles to true
+        return true
     }
 
-    override fun createMapItemReturnParticle(player: Player): Particle {
-        return Particle(
-            0,
-            player.x,
-            player.y,
-            player.x,
-            player.y,
-            MAP_ITEM_RETURN_SIZE,
-            MAP_ITEM_RETURN_SIZE,
-            ParticleType.MAP_ITEM_RETURN,
-            0,
-            16,
-            0,
-            0,
-            1,
-            Color.White,
-            ParticleShape.RECT
+    override fun createMapItemReturnParticle(player: Player, particles: ArrayList<Particle>) {
+        particles.add(
+            Particle(
+                0,
+                player.x,
+                player.y,
+                player.x,
+                player.y,
+                MAP_ITEM_RETURN_SIZE,
+                MAP_ITEM_RETURN_SIZE,
+                ParticleType.MAP_ITEM_RETURN,
+                0,
+                16,
+                0,
+                0,
+                1,
+                Color.White,
+                ParticleShape.RECT
+            )
         )
     }
 

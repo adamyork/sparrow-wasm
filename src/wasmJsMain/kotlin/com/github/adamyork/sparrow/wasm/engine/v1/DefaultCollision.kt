@@ -3,8 +3,9 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.data.*
-import com.github.adamyork.sparrow.wasm.common.data.enemy.*
-import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
+import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
+import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
+import com.github.adamyork.sparrow.wasm.common.data.enemy.ShooterEnemy
 import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
@@ -150,21 +151,19 @@ class DefaultCollision(
                 if (item.type == ItemType.FINISH) {
                     newGameState = GameMapState.COMPLETED
                     val finishItem = item as FinishItem
-                    items[i] = finishItem.copy(
-                        state = GameElementState.INACTIVE
-                    )
+                    finishItem.state = GameElementState.INACTIVE
+                    items[i] = finishItem
                 } else {
                     audioQueue.queue.add(Sounds.ITEM_COLLECT)
-                    val collectItem = item as CollectibleItem
-                    items[i] = collectItem.copy(
-                        state = GameElementState.DEACTIVATING,
-                        frameMetadata = item.getFirstDeactivatingFrame()
-                    )
+                    item.state = GameElementState.DEACTIVATING
+                    item.frameMetadata = item.getFirstDeactivatingFrame()
+                    items[i] = item
                 }
             }
         }
         return if (newGameState != gameMap.state) {
-            gameMap.copy(state = newGameState)
+            gameMap.state = newGameState
+            gameMap
         } else {
             gameMap
         }
@@ -206,7 +205,7 @@ class DefaultCollision(
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                     managedMapParticles.addAll(particles.createCollisionParticles(enemy.x, enemy.y))
                     if (scoreService.getTotal() != scoreService.getRemaining()) {
-                        managedMapParticles.add(particles.createMapItemReturnParticle(player))
+                        particles.createMapItemReturnParticle(player, managedMapParticles)
                     }
                 }
                 playerIsColliding = true
@@ -218,7 +217,7 @@ class DefaultCollision(
                     Point(enemy.x.toFloat(), enemy.y.toFloat())
                 ) <= ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD
             ) {
-                val (_, added) = particles.createProjectileParticle(player, enemy, managedMapParticles)
+                val added = particles.createProjectileParticle(player, enemy, managedMapParticles)
                 if (added) {
                     isInteracting = true
                     audioQueue.queue.add(Sounds.ENEMY_SHOOT)
@@ -233,25 +232,10 @@ class DefaultCollision(
                 else -> enemy.interacting
             }
             val nextColliding = if (isColliding) GameElementCollisionState.COLLIDING else GameElementCollisionState.FREE
-            managedMapEnemies[i] = when (enemy) {
-                is ShooterEnemy -> enemy.copy(
-                    frameMetadata = metadata,
-                    colliding = nextColliding,
-                    interacting = nextInteracting
-                )
-
-                is RunnerEnemy -> enemy.copy(
-                    frameMetadata = metadata,
-                    colliding = nextColliding,
-                    interacting = nextInteracting
-                )
-
-                else -> (enemy as BlockerEnemy).copy(
-                    frameMetadata = metadata,
-                    colliding = nextColliding,
-                    interacting = nextInteracting
-                )
-            }
+            enemy.frameMetadata = metadata
+            enemy.colliding = nextColliding
+            enemy.interacting = nextInteracting
+            managedMapEnemies[i] = enemy
         }
         val nextPlayer = if (playerIsColliding && closestEnemyRect != null) {
             physics.applyPlayerCollisionPhysics(player, closestEnemyRect, viewPort)
@@ -289,7 +273,7 @@ class DefaultCollision(
         if (playerIsColliding && !isCollisionAnimating) {
             particleList.addAll(particles.createCollisionParticles(player.x, player.y))
             if (scoreService.getTotal() != scoreService.getRemaining()) {
-                particleList.add(particles.createMapItemReturnParticle(player))
+                particles.createMapItemReturnParticle(player, particleList)
             }
         }
         val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())

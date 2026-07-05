@@ -10,20 +10,20 @@ import kotlin.math.floor
  * Author: Adam York
  * Copyright (c) Adam York
  */
-data class BlockerEnemy(
-    override val x: Int,
-    override val y: Int,
+class BlockerEnemy(
+    override var x: Int,
+    override var y: Int,
     override val width: Int,
     override val height: Int,
-    override val state: GameElementState,
-    override val frameMetadata: FrameMetadata,
+    override var state: GameElementState,
+    override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
     override val type: EnemyType,
     override val originX: Int,
     override val originY: Int,
-    override val enemyPosition: EnemyPosition,
-    override val colliding: GameElementCollisionState,
-    override val interacting: EnemyInteractionState,
+    override var enemyPosition: EnemyPosition,
+    override var colliding: GameElementCollisionState,
+    override var interacting: EnemyInteractionState,
     override val animationTargetFps: Double = 12.0,
     override var animationTickCounter: Int = 0,
     override var lastAnimationTickTimeMs: Double = 0.0,

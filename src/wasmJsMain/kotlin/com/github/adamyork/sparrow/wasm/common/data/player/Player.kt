@@ -9,21 +9,21 @@ import kotlinx.browser.window
  * Author: Adam York
  * Copyright (c) Adam York
  */
-data class Player(
-    override val x: Int,
-    override val y: Int,
+class Player(
+    override var x: Int,
+    override var y: Int,
     override val width: Int,
     override val height: Int,
-    override val state: GameElementState,
-    override val frameMetadata: FrameMetadata,
+    override var state: GameElementState,
+    override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
     var vx: Double,
-    val vy: Double,
-    val jumping: PlayerJumpingState,
-    val moving: PlayerMovingState,
-    val direction: Direction,
-    val colliding: GameElementCollisionState,
-    val immunityTicks: Int = 0,
+    var vy: Double,
+    var jumping: PlayerJumpingState,
+    var moving: PlayerMovingState,
+    var direction: Direction,
+    var colliding: GameElementCollisionState,
+    var immunityTicks: Int = 0,
     val animationTargetFps: Double = 12.0,
     var animationTickCounter: Int = 0,
     var lastAnimationTickTimeMs: Double = 0.0,

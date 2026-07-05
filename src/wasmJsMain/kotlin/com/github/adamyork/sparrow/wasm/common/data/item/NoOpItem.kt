@@ -8,12 +8,12 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 class NoOpItem : Item {
     override val type: ItemType = ItemType.FINISH
     override val id: Int = -1
-    override val frameMetadata: FrameMetadata = FrameMetadata(0, Cell(0, 0, 0, 0))
-    override val x: Int = 0
-    override val y: Int = 0
+    override var frameMetadata: FrameMetadata = FrameMetadata(0, Cell(0, 0, 0, 0))
+    override var x: Int = 0
+    override var y: Int = 0
     override val height: Int = 0
     override val width: Int = 0
-    override val state: GameElementState = GameElementState.INACTIVE
+    override var state: GameElementState = GameElementState.INACTIVE
     override val imageAndBytes: ImageAndBytes =
         ImageAndBytes(byteArrayOf(), EmptyImage.createEmptyImage().toComposeImageBitmap())
 

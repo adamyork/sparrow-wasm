@@ -10,15 +10,15 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
  * Author: Adam York
  * Copyright (c) Adam York
  */
-data class CollectibleItem(
+class CollectibleItem(
     override val width: Int,
     override val height: Int,
-    override val x: Int,
-    override val y: Int,
+    override var x: Int,
+    override var y: Int,
     override val type: ItemType,
-    override val state: GameElementState,
+    override var state: GameElementState,
     override val imageAndBytes: ImageAndBytes,
-    override val frameMetadata: FrameMetadata,
+    override var frameMetadata: FrameMetadata,
     override val id: Int,
     override val animationTargetFps: Double = 12.0,
     override var animationTickCounter: Int = 0,

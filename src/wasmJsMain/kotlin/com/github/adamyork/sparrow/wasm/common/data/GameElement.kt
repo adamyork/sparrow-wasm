@@ -8,12 +8,12 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
  */
 interface GameElement {
 
-    val x: Int
-    val y: Int
+    var x: Int
+    var y: Int
     val height: Int
     val width: Int
-    val state: GameElementState
-    val frameMetadata: FrameMetadata
+    var state: GameElementState
+    var frameMetadata: FrameMetadata
     val imageAndBytes: ImageAndBytes
 
     fun getNextFrameMetadataWithState(): Pair<FrameMetadata, FrameMetadataState>
