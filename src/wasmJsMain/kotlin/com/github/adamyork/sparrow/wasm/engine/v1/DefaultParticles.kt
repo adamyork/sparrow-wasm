@@ -39,13 +39,11 @@ class DefaultParticles : Particles {
     )
 
     private var colorMap: Map<ParticleType, Color> = emptyMap()
-    private val collisionPool = ArrayList<Particle>(COLLISION_PARTICLE_COUNT)
 
-    override fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle> {
+    override fun applyCollisionParticles(originX: Int, originY: Int, particles: ArrayList<Particle>) {
         val collisionColor = colorMap[ParticleType.COLLISION] ?: Color.White
-        if (collisionPool.isEmpty()) {
             repeat(COLLISION_PARTICLE_COUNT) { index ->
-                collisionPool.add(
+                particles.add(
                     Particle(
                         index,
                         originX,
@@ -64,21 +62,10 @@ class DefaultParticles : Particles {
                         ParticleShape.RECT
                     )
                 )
-            }
         }
-        collisionPool.forEachIndexed { i, p ->
-            collisionPool[i] = p.copy(
-                x = originX,
-                y = originY,
-                originX = originX,
-                originY = originY,
-                frame = 0
-            )
-        }
-        return collisionPool
     }
 
-    override fun createDustParticles(player: Player, particles: ArrayList<Particle>) {
+    override fun applyDustParticles(player: Player, particles: ArrayList<Particle>) {
         val footY = player.y + player.height - (player.height / DUST_Y_OFFSET)
         val color = colorMap[ParticleType.DUST] ?: Color.White
         dustParticleOffsets.forEachIndexed { index, (offsetX, offsetY) ->
@@ -113,7 +100,7 @@ class DefaultParticles : Particles {
         }
     }
 
-    override fun createProjectileParticle(
+    override fun applyProjectileParticle(
         player: Player,
         enemy: Enemy,
         particles: ArrayList<Particle>
@@ -142,7 +129,7 @@ class DefaultParticles : Particles {
         return true
     }
 
-    override fun createMapItemReturnParticle(player: Player, particles: ArrayList<Particle>) {
+    override fun applyMapItemReturnParticle(player: Player, particles: ArrayList<Particle>) {
         particles.add(
             Particle(
                 0,

@@ -13,16 +13,16 @@ interface Particles {
 
     fun populateColorMap(assetService: AssetService)
 
-    fun createCollisionParticles(originX: Int, originY: Int): ArrayList<Particle>
+    fun applyCollisionParticles(originX: Int, originY: Int, particles: ArrayList<Particle>)
 
-    fun createDustParticles(player: Player, particles: ArrayList<Particle>)
+    fun applyDustParticles(player: Player, particles: ArrayList<Particle>)
 
-    fun createProjectileParticle(
+    fun applyProjectileParticle(
         player: Player,
         enemy: Enemy,
         particles: ArrayList<Particle>
     ): Boolean
 
-    fun createMapItemReturnParticle(player: Player, particles: ArrayList<Particle>)
+    fun applyMapItemReturnParticle(player: Player, particles: ArrayList<Particle>)
 
 }

@@ -85,16 +85,14 @@ class DefaultCollision(
     }
 
 
-    override fun recomputeXBoundaries(
+    override fun updateCollisionXBoundaries(
         player: Player,
-        previousBoundaries: CollisionBoundaries
-    ): CollisionBoundaries {
-        return CollisionBoundaries(
-            findEdgeIterative(player.x, player, Direction.LEFT),
-            findEdgeIterative(player.x, player, Direction.RIGHT),
-            previousBoundaries.top,
-            previousBoundaries.bottom
-        )
+        collisionBoundaries: CollisionBoundaries
+    ) {
+        collisionBoundaries.left = findEdgeIterative(player.x, player, Direction.LEFT)
+        collisionBoundaries.right = findEdgeIterative(player.x, player, Direction.RIGHT)
+        collisionBoundaries.top = collisionBoundaries.top
+        collisionBoundaries.bottom = collisionBoundaries.bottom
     }
 
     private fun findFloorIterative(startY: Int, player: Player): Int {
@@ -141,7 +139,7 @@ class DefaultCollision(
         return false
     }
 
-    override fun checkForItemCollision(player: Player, gameMap: GameMap, audioQueue: DefaultAudioQueue): GameMap {
+    override fun applyAllItemCollision(player: Player, gameMap: GameMap, audioQueue: DefaultAudioQueue) {
         val items = gameMap.items
         val playerRect = player.toRect()
         var newGameState = gameMap.state
@@ -161,15 +159,12 @@ class DefaultCollision(
                 }
             }
         }
-        return if (newGameState != gameMap.state) {
+        if (newGameState != gameMap.state) {
             gameMap.state = newGameState
-            gameMap
-        } else {
-            gameMap
         }
     }
 
-    override fun checkForEnemyCollisionAndProximity(
+    override fun applyEnemyAndProximityCollision(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
@@ -203,9 +198,9 @@ class DefaultCollision(
                 if (!isCollisionAnimating) {
                     logger.info { "collision adding particles" }
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
-                    managedMapParticles.addAll(particles.createCollisionParticles(enemy.x, enemy.y))
+                    particles.applyCollisionParticles(enemy.x, enemy.y, managedMapParticles)
                     if (scoreService.getTotal() != scoreService.getRemaining()) {
-                        particles.createMapItemReturnParticle(player, managedMapParticles)
+                        particles.applyMapItemReturnParticle(player, managedMapParticles)
                     }
                 }
                 playerIsColliding = true
@@ -217,7 +212,7 @@ class DefaultCollision(
                     Point(enemy.x.toFloat(), enemy.y.toFloat())
                 ) <= ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD
             ) {
-                val added = particles.createProjectileParticle(player, enemy, managedMapParticles)
+                val added = particles.applyProjectileParticle(player, enemy, managedMapParticles)
                 if (added) {
                     isInteracting = true
                     audioQueue.queue.add(Sounds.ENEMY_SHOOT)
@@ -271,9 +266,9 @@ class DefaultCollision(
         }
         val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(particleList, viewPort)
         if (playerIsColliding && !isCollisionAnimating) {
-            particleList.addAll(particles.createCollisionParticles(player.x, player.y))
+            particles.applyCollisionParticles(player.x, player.y, particleList)
             if (scoreService.getTotal() != scoreService.getRemaining()) {
-                particles.createMapItemReturnParticle(player, particleList)
+                particles.applyMapItemReturnParticle(player, particleList)
             }
         }
         val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())

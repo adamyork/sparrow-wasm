@@ -215,7 +215,7 @@ class GameUiController(
         val collisionBoundaries = engine.getCollisionBoundaries(stateElements.player)
         stateElements.player = engine.managePlayer(stateElements.player, collisionBoundaries)
         stateElements.viewPort = engine.manageViewport(stateElements.player, stateElements.viewPort)
-        stateElements.gameMap = engine.manageMap(stateElements.player, stateElements.gameMap, stateElements.viewPort)
+        engine.manageMap(stateElements.player, stateElements.gameMap, stateElements.viewPort)
         val (nextPlayer, nextMap) = engine.manageEnemyAndItemCollision(
             stateElements.player,
             stateElements.gameMap,

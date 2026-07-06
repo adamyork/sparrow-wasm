@@ -79,14 +79,12 @@ class DefaultPhysics @AppScope @Inject constructor(
             player.jumping == PlayerJumpingState.INITIAL -> PlayerJumpingState.RISING
             else -> player.jumping
         }
-        val adjustedBoundaries = if (player.y != nextY) {
+        if (player.y != nextY) {
             player.y = nextY
-            collision.recomputeXBoundaries(player, collisionBoundaries)
-        } else {
-            collisionBoundaries
+            collision.updateCollisionXBoundaries(player, collisionBoundaries)
         }
-        val safeLeft = min(adjustedBoundaries.left, adjustedBoundaries.right)
-        val safeRight = max(adjustedBoundaries.left, adjustedBoundaries.right)
+        val safeLeft = min(collisionBoundaries.left, collisionBoundaries.right)
+        val safeRight = max(collisionBoundaries.left, collisionBoundaries.right)
         val minBound = max(0, safeLeft)
         val deltaX = velocityX * physicsSettingsService.xMovementDistance * deltaTime
         val nextX = (player.x + deltaX).roundToInt().coerceIn(minBound, safeRight)

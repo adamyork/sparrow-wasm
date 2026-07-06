@@ -143,13 +143,13 @@ class DefaultEngine @AppScope @Inject constructor(
         return nextViewPort
     }
 
-    override fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort): GameMap {
-        val managedMapItems = manageMapItems(gameMap)
-        val managedMapEnemies = manageMapEnemies(gameMap, player)
+    override fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort) {
+        manageMapItems(gameMap)
+        manageMapEnemies(gameMap, player)
         physics.applyCollisionParticlePhysics(gameMap.particles, viewPort)
         physics.applyMapItemReturnParticlePhysics(gameMap.particles)
         if (player.moving == PlayerMovingState.MOVING && player.jumping == PlayerJumpingState.GROUNDED) {
-            particles.createDustParticles(player, gameMap.particles)
+            particles.applyDustParticles(player, gameMap.particles)
         }
         physics.applyDustParticlePhysics(gameMap.particles)
         physics.applyProjectileParticlePhysics(gameMap.particles, viewPort)
@@ -158,10 +158,6 @@ class DefaultEngine @AppScope @Inject constructor(
             mapState = GameMapState.COMPLETING
         }
         gameMap.state = mapState
-        gameMap.items = managedMapItems
-        gameMap.enemies = managedMapEnemies
-        gameMap.particles = gameMap.particles
-        return gameMap
     }
 
     override fun manageEnemyAndItemCollision(
@@ -169,9 +165,9 @@ class DefaultEngine @AppScope @Inject constructor(
         map: GameMap,
         viewPort: ViewPort
     ): Pair<Player, GameMap> {
-        val nextMap = collision.checkForItemCollision(player, map, audioQueue)
+        collision.applyAllItemCollision(player, map, audioQueue)
         val enemyCollisionResult =
-            collision.checkForEnemyCollisionAndProximity(player, nextMap, viewPort, audioQueue, particles)
+            collision.applyEnemyAndProximityCollision(player, map, viewPort, audioQueue, particles)
         val projectTileCollisionResult =
             collision.checkForProjectileCollision(
                 enemyCollisionResult.first,
@@ -182,13 +178,12 @@ class DefaultEngine @AppScope @Inject constructor(
             )
         var nextGameMap = projectTileCollisionResult.second
         if (projectTileCollisionResult.first.colliding == GameElementCollisionState.COLLIDING) {
-            val nextItems = returnMapItemAfterCollision(nextGameMap)
-            nextGameMap.items = nextItems
+            returnMapItemAfterCollision(nextGameMap)
         }
         return Pair(projectTileCollisionResult.first, nextGameMap)
     }
 
-    private fun manageMapItems(gameMap: GameMap): ArrayList<Item> {
+    private fun manageMapItems(gameMap: GameMap) {
         for ((index, item) in gameMap.items.withIndex()) {
             val itemX = item.x
             val itemY = item.y
@@ -214,10 +209,9 @@ class DefaultEngine @AppScope @Inject constructor(
                 gameMap.items[index] = item
             }
         }
-        return gameMap.items
     }
 
-    private fun returnMapItemAfterCollision(gameMap: GameMap): ArrayList<Item> {
+    private fun returnMapItemAfterCollision(gameMap: GameMap) {
         val index = gameMap.items.indexOfFirst { item ->
             item.type == ItemType.COLLECTABLE && item.state == GameElementState.INACTIVE
         }
@@ -228,10 +222,9 @@ class DefaultEngine @AppScope @Inject constructor(
                 gameMap.items[index] = item
             }
         }
-        return gameMap.items
     }
 
-    private fun manageMapEnemies(gameMap: GameMap, player: Player): ArrayList<Enemy> {
+    private fun manageMapEnemies(gameMap: GameMap, player: Player) {
         val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
         for ((index, enemy) in gameMap.enemies.withIndex()) {
             val nextState = enemy.getNextEnemyState(player)
@@ -269,7 +262,6 @@ class DefaultEngine @AppScope @Inject constructor(
                 gameMap.enemies[index] = enemy
             }
         }
-        return gameMap.enemies
     }
 
     override fun draw(
