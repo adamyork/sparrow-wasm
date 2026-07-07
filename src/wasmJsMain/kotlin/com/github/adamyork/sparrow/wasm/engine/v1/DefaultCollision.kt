@@ -24,10 +24,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Image
-import org.jetbrains.skia.Point
 import kotlin.math.absoluteValue
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 /**
  * Author: Adam York
@@ -42,6 +39,8 @@ class DefaultCollision(
 
     companion object {
         const val COLLISION_COLOR_VALUE: Int = -16711906
+        private const val SHOOTER_PROXIMITY_THRESHOLD_SQUARED: Int =
+            ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD * ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD
     }
 
     private val logger = KotlinLogging.logger {}
@@ -174,7 +173,7 @@ class DefaultCollision(
         val canTakeCollisionDamage = player.immunityTicks <= 0
         var playerIsColliding = false
         var closestEnemyRect: Rect? = null
-        var minDistance = Float.MAX_VALUE
+        var minDistanceSquared = Int.MAX_VALUE
         val playerRect = player.toRect()
         val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(managedMapParticles, viewPort)
         for (i in managedMapEnemies.indices) {
@@ -185,12 +184,9 @@ class DefaultCollision(
             val isColliding = playerRect.overlaps(enemyRect)
             var isInteracting = false
             if (isColliding && canTakeCollisionDamage) {
-                val dist = distanceTo(
-                    Point(player.x.toFloat(), player.y.toFloat()),
-                    Point(enemy.x.toFloat(), enemy.y.toFloat())
-                )
-                if (dist < minDistance) {
-                    minDistance = dist.toFloat()
+                val distanceSquared = distanceSquared(player.x, player.y, enemy.x, enemy.y)
+                if (distanceSquared < minDistanceSquared) {
+                    minDistanceSquared = distanceSquared
                     closestEnemyRect = enemyRect
                 }
                 if (!isCollisionAnimating) {
@@ -205,10 +201,7 @@ class DefaultCollision(
             }
             if (!isColliding && enemy.type == EnemyType.SHOOTER &&
                 enemy.interacting != EnemyInteractionState.INTERACTING &&
-                distanceTo(
-                    Point(player.x.toFloat(), player.y.toFloat()),
-                    Point(enemy.x.toFloat(), enemy.y.toFloat())
-                ) <= ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD
+                distanceSquared(player.x, player.y, enemy.x, enemy.y) <= SHOOTER_PROXIMITY_THRESHOLD_SQUARED
             ) {
                 val added = particles.applyProjectileParticle(player, enemy, managedMapParticles)
                 if (added) {
@@ -272,8 +265,10 @@ class DefaultCollision(
         }
     }
 
-    private fun distanceTo(first: Point, second: Point): Int {
-        return sqrt((second.x - first.x).pow(2) + (second.y - first.y).pow(2)).toInt()
+    private fun distanceSquared(x1: Int, y1: Int, x2: Int, y2: Int): Int {
+        val dx = x2 - x1
+        val dy = y2 - y1
+        return (dx * dx) + (dy * dy)
     }
 
 }

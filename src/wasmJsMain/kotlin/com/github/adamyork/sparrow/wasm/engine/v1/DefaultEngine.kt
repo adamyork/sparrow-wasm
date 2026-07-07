@@ -54,13 +54,18 @@ class DefaultEngine @AppScope @Inject constructor(
 
     private val itemImageCache: HashMap<String, Image> = hashMapOf()
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
+    private val flippedFrameCache: HashMap<String, Image> = hashMapOf()
 
     private var foregroundSurface: Surface? = null
 
     private val mapElementPaint = Paint().apply { isAntiAlias = true }
     private val particlePaint = Paint().apply { isAntiAlias = false; mode = PaintMode.FILL }
     private val mapItemReturnPaint = Paint().apply { isAntiAlias = true }
-    private val playerPaint = Paint().apply { isAntiAlias = true }
+    private val playerPaintNormal = Paint().apply { isAntiAlias = true }
+    private val playerPaintTinted = Paint().apply {
+        isAntiAlias = true
+        colorFilter = ColorFilter.makeBlend(0x8000FF00.toInt(), BlendMode.SRC_ATOP)
+    }
 
     private fun getOrCreateForegroundSurface(viewPort: ViewPort): Surface =
         foregroundSurface ?: Surface.makeRaster(ImageInfo.makeN32Premul(viewPort.width, viewPort.height)).also {
@@ -68,6 +73,8 @@ class DefaultEngine @AppScope @Inject constructor(
         }
 
     override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player) {
+        flippedFrameCache.values.forEach { it.close() }
+        flippedFrameCache.clear()
         this.collision.collisionImage = collisionImageAndBytes
         this.collision.cacheCollisionPixels()
         gameMap.items.forEach { item ->
@@ -245,20 +252,27 @@ class DefaultEngine @AppScope @Inject constructor(
         val foregroundSurface = getOrCreateForegroundSurface(viewPort)
         val foregroundCanvas = foregroundSurface.canvas
         foregroundCanvas.clear(0x00000000)
+
         drawMapElements(
             map.items,
             viewPort,
             foregroundCanvas,
             transformDirection = false
         )
-        drawMapElements(
-            map.enemies,
-            viewPort,
-            foregroundCanvas,
-            transformDirection = true
-        )
+
+        val hasVisibleEnemyCandidates = hasVisibleActiveElements(map.enemies, viewPort)
+        if (hasVisibleEnemyCandidates) {
+            drawMapElements(
+                map.enemies,
+                viewPort,
+                foregroundCanvas,
+                transformDirection = true
+            )
+        }
+
         drawParticles(map, viewPort, foregroundCanvas, mapItem, mapItemImage)
         drawPlayer(player, viewPort, foregroundCanvas, playerImage)
+
         val foregroundImage = foregroundSurface.makeImageSnapshot()
         statusProvider.lastPaintTime = timestamp
         return DrawResult(
@@ -337,23 +351,33 @@ class DefaultEngine @AppScope @Inject constructor(
         canvas: Canvas,
         image: Image
     ) {
-        val localCord = viewPort.globalToLocal(player.x, player.y)
+        val localX = player.x - viewPort.x
+        val localY = player.y - viewPort.y
         val shouldShowTint = player.immunityTicks > 0 && (player.immunityTicks / 8) % 2 == 0
-        playerPaint.colorFilter = if (shouldShowTint) {
-            ColorFilter.makeBlend(0x8000FF00.toInt(), BlendMode.SRC_ATOP)
+        val activePlayerPaint = if (shouldShowTint) playerPaintTinted else playerPaintNormal
+
+        val flip = player.direction == Direction.LEFT
+        if (flip) {
+            drawFlippedSprite(canvas, image, player, localX, localY, activePlayerPaint)
         } else {
-            null
-        }
-        drawTransformed(canvas, localCord, player.width, player.height, player.direction == Direction.LEFT) {
-            drawSprite(canvas, image, player, localCord, playerPaint)
+            drawSprite(canvas, image, player, localX, localY, activePlayerPaint)
         }
     }
 
-    private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas, mapItem: Item?, mapItemImage: Image?) {
+    private fun drawParticles(
+        map: GameMap,
+        viewPort: ViewPort,
+        canvas: Canvas,
+        mapItem: Item?,
+        mapItemImage: Image?
+    ) {
         val vpX = viewPort.x.toFloat()
         val vpY = viewPort.y.toFloat()
         val groups = mutableMapOf<Int, MutableList<Particle>>()
         for (particle in map.particles) {
+            if (!particle.cullingCheck(viewPort)) {
+                continue
+            }
             if (particle.type == ParticleType.MAP_ITEM_RETURN) {
                 if (mapItem != null && mapItemImage != null) {
                     val localX = particle.x.toFloat() - vpX
@@ -409,15 +433,27 @@ class DefaultEngine @AppScope @Inject constructor(
         }
     }
 
+    private fun hasVisibleActiveElements(elements: ArrayList<out GameElement>, viewPort: ViewPort): Boolean {
+        for (i in 0 until elements.size) {
+            val element = elements[i]
+            if (element.state != GameElementState.INACTIVE && element.cullingCheck(viewPort)) {
+                return true
+            }
+        }
+        return false
+    }
+
     private fun drawMapElements(
         elements: ArrayList<out GameElement>,
         viewPort: ViewPort,
         canvas: Canvas,
         transformDirection: Boolean
     ) {
-        elements.forEach { element ->
+        for (i in 0 until elements.size) {
+            val element = elements[i]
             if (element.state != GameElementState.INACTIVE && element.cullingCheck(viewPort)) {
-                val localCord = viewPort.globalToLocal(element.x, element.y)
+                val localX = element.x - viewPort.x
+                val localY = element.y - viewPort.y
                 val elementImage = when (element) {
                     is Enemy -> enemyImageCache[element.type.name]
                     is Item -> itemImageCache[element.type.name]
@@ -425,49 +461,97 @@ class DefaultEngine @AppScope @Inject constructor(
                 } ?: throw IllegalStateException("No image found for element")
 
                 val flip = transformDirection && element.nestedDirection() == Direction.LEFT
-                drawTransformed(canvas, localCord, element.width, element.height, flip) {
-                    drawSprite(canvas, elementImage, element, localCord, mapElementPaint)
+                if (flip) {
+                    drawFlippedSprite(canvas, elementImage, element, localX, localY, mapElementPaint)
+                } else {
+                    drawSprite(canvas, elementImage, element, localX, localY, mapElementPaint)
                 }
             }
         }
     }
 
-    private fun drawTransformed(
+    private fun drawFlippedSprite(
         canvas: Canvas,
-        localCord: Pair<Int, Int>,
-        width: Int,
-        height: Int,
-        flip: Boolean,
-        drawAction: () -> Unit
+        image: Image,
+        element: GameElement,
+        localX: Int,
+        localY: Int,
+        paint: Paint
     ) {
-        canvas.save()
-        try {
-            if (flip) {
-                val pivotX = localCord.first + (width / 2f)
-                val pivotY = localCord.second + (height / 2f)
-                canvas.translate(pivotX, pivotY)
-                canvas.scale(-1f, 1f)
-                canvas.translate(-pivotX, -pivotY)
-            }
-            drawAction()
-        } finally {
-            canvas.restore()
+        val flippedFrame = getOrCreateFlippedFrame(image, element)
+        val w = element.width.toFloat()
+        val h = element.height.toFloat()
+        val dstX = localX.toFloat()
+        val dstY = localY.toFloat()
+        canvas.drawImageRect(
+            image = flippedFrame,
+            srcLeft = 0f,
+            srcTop = 0f,
+            srcRight = w,
+            srcBottom = h,
+            dstLeft = dstX,
+            dstTop = dstY,
+            dstRight = dstX + w,
+            dstBottom = dstY + h,
+            samplingMode = SamplingMode.DEFAULT,
+            paint = paint,
+            strict = true
+        )
+    }
+
+    private fun getOrCreateFlippedFrame(image: Image, element: GameElement): Image {
+        val srcX = element.frameMetadata.cell.x
+        val srcY = element.frameMetadata.cell.y
+        val width = element.width
+        val height = element.height
+        val cacheKey = "${image.hashCode()}:$srcX:$srcY:$width:$height"
+        val cached = flippedFrameCache[cacheKey]
+        if (cached != null) {
+            return cached
         }
+        val surface = Surface.makeRasterN32Premul(width, height)
+        val subsetCanvas = surface.canvas
+        subsetCanvas.clear(0x00000000)
+        subsetCanvas.save()
+        try {
+            subsetCanvas.translate(width.toFloat(), 0f)
+            subsetCanvas.scale(-1f, 1f)
+            subsetCanvas.drawImageRect(
+                image = image,
+                srcLeft = srcX.toFloat(),
+                srcTop = srcY.toFloat(),
+                srcRight = (srcX + width).toFloat(),
+                srcBottom = (srcY + height).toFloat(),
+                dstLeft = 0f,
+                dstTop = 0f,
+                dstRight = width.toFloat(),
+                dstBottom = height.toFloat(),
+                samplingMode = SamplingMode.DEFAULT,
+                paint = null,
+                strict = true
+            )
+        } finally {
+            subsetCanvas.restore()
+        }
+        val flippedFrame = surface.makeImageSnapshot()
+        flippedFrameCache[cacheKey] = flippedFrame
+        return flippedFrame
     }
 
     private fun drawSprite(
         canvas: Canvas,
         image: Image,
         element: GameElement,
-        localCord: Pair<Int, Int>,
+        localX: Int,
+        localY: Int,
         paint: Paint
     ) {
         val srcX = element.frameMetadata.cell.x.toFloat()
         val srcY = element.frameMetadata.cell.y.toFloat()
         val w = element.width.toFloat()
         val h = element.height.toFloat()
-        val dstX = localCord.first.toFloat()
-        val dstY = localCord.second.toFloat()
+        val dstX = localX.toFloat()
+        val dstY = localY.toFloat()
         canvas.drawImageRect(
             image = image,
             srcLeft = srcX,

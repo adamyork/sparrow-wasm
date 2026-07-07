@@ -155,6 +155,7 @@ class GameUiController(
         engine.manageViewport(stateElements.player, stateElements.viewPort)
         engine.manageMap(stateElements.player, stateElements.gameMap, stateElements.viewPort)
         engine.manageEnemyAndItemCollision(stateElements.player, stateElements.gameMap, stateElements.viewPort)
+
         scoreService.gameMapItem = stateElements.gameMap.items
         val drawResult = engine.draw(stateElements.gameMap, stateElements.viewPort, stateElements.player, timestamp)
         wavService.playNext()
