@@ -19,17 +19,13 @@ interface Engine {
 
     fun getCollisionBoundaries(player: Player): CollisionBoundaries
 
-    fun managePlayer(player: Player, collisionBoundaries: CollisionBoundaries): Player
+    fun managePlayer(player: Player, collisionBoundaries: CollisionBoundaries)
 
-    fun manageViewport(player: Player, viewPort: ViewPort): ViewPort
+    fun manageViewport(player: Player, viewPort: ViewPort)
 
     fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort)
 
-    fun manageEnemyAndItemCollision(
-        player: Player,
-        map: GameMap,
-        viewPort: ViewPort
-    ): Pair<Player, GameMap>
+    fun manageEnemyAndItemCollision(player: Player, map: GameMap, viewPort: ViewPort)
 
     fun draw(
         map: GameMap,
@@ -40,8 +36,8 @@ interface Engine {
 
     fun createDefaultPlayer(playerAsset: ImageAsset): Player
 
-    fun startInput(controlAction: ControlAction, player: Player): Player
+    fun startInput(controlAction: ControlAction, player: Player)
 
-    fun stopInput(controlAction: ControlAction, player: Player): Player
+    fun stopInput(controlAction: ControlAction, player: Player)
 
 }

@@ -104,15 +104,21 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
 
     override suspend fun loadMap(id: Int, listener: LoadingProgressListener): GameMap {
         logger.info { "loading map $id" }
-        val assets = listOf(
+        val mapPaths = listOf(
             gameConfig.map.bg,
             gameConfig.map.mg,
             gameConfig.map.fg,
             gameConfig.map.col
-        ).map { path ->
-            val asset = fetchImageAndBytes(path, gameConfig.map.width, gameConfig.map.height)
-            listener.onTaskCompleted(path)
-            asset
+        )
+        val assets = coroutineScope {
+            val deferredAssets = mapPaths.map { path ->
+                path to async { fetchImageAndBytes(path, gameConfig.map.width, gameConfig.map.height) }
+            }
+            deferredAssets.map { (path, deferredAsset) ->
+                val asset = deferredAsset.await()
+                listener.onTaskCompleted(path)
+                asset
+            }
         }
         mapAssetMap[id] = assets[0]
         mapAssetMap[id + 1] = assets[1]
@@ -199,22 +205,24 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
         return audioMap[sound] ?: throw AssetServiceReferenceException("no audio path for for key $sound")
     }
 
-    override fun getTextForGameState(gameMapState: GameMapState): TextAsset {
-        when (gameMapState) {
+    override fun getTextForGameState(gameMapState: GameMapState?): TextAsset {
+        return when (gameMapState) {
             GameMapState.COLLECTING -> {
                 val color = stringToColor(gameConfig.map.directive.initial.color)
-                return TextAsset(gameConfig.map.directive.initial.text, color)
+                TextAsset(gameConfig.map.directive.initial.text, color)
             }
 
             GameMapState.COMPLETING -> {
                 val color = stringToColor(gameConfig.map.directive.finish.color)
-                return TextAsset(gameConfig.map.directive.finish.text, color)
+                TextAsset(gameConfig.map.directive.finish.text, color)
             }
 
-            else -> {
+            GameMapState.COMPLETED -> {
                 val color = stringToColor(gameConfig.map.directive.complete.color)
-                return TextAsset(gameConfig.map.directive.complete.text, color)
+                TextAsset(gameConfig.map.directive.complete.text, color)
             }
+
+            null -> TextAsset("Press Start To Begin", Color.Black)
         }
     }
 

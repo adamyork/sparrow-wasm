@@ -5,7 +5,11 @@ import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 
-class NoOpItem : Item {
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
+class DefaultItem : Item {
     override val type: ItemType = ItemType.FINISH
     override val id: Int = -1
     override var frameMetadata: FrameMetadata = FrameMetadata(0, Cell(0, 0, 0, 0))

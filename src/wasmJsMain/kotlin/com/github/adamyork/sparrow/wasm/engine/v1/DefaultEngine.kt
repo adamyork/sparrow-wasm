@@ -11,7 +11,7 @@ import com.github.adamyork.sparrow.wasm.common.data.enemy.RunnerEnemy
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
-import com.github.adamyork.sparrow.wasm.common.data.item.NoOpItem
+import com.github.adamyork.sparrow.wasm.common.data.item.DefaultItem
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
@@ -48,7 +48,7 @@ class DefaultEngine @AppScope @Inject constructor(
 
     private val logger = KotlinLogging.logger {}
 
-    private var mapItem: Item = NoOpItem()
+    private var mapItem: Item = DefaultItem()
     private var mapItemImage: Image = EmptyImage.createEmptyImage()
     private var playerImage: Image = EmptyImage.createEmptyImage()
 
@@ -62,13 +62,10 @@ class DefaultEngine @AppScope @Inject constructor(
     private val mapItemReturnPaint = Paint().apply { isAntiAlias = true }
     private val playerPaint = Paint().apply { isAntiAlias = true }
 
-    private fun getOrCreateForegroundSurface(viewPort: ViewPort): Surface {
-        if (foregroundSurface == null) {
-            val imageInfo = ImageInfo.makeN32Premul(viewPort.width, viewPort.height)
-            foregroundSurface = Surface.makeRaster(imageInfo)
+    private fun getOrCreateForegroundSurface(viewPort: ViewPort): Surface =
+        foregroundSurface ?: Surface.makeRaster(ImageInfo.makeN32Premul(viewPort.width, viewPort.height)).also {
+            foregroundSurface = it
         }
-        return foregroundSurface!!
-    }
 
     override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player) {
         this.collision.collisionImage = collisionImageAndBytes
@@ -79,29 +76,23 @@ class DefaultEngine @AppScope @Inject constructor(
         gameMap.enemies.forEach { enemy ->
             enemyImageCache[enemy.type.name] = Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())
         }
-        mapItem = gameMap.items.firstOrNull() ?: NoOpItem()
-        mapItemImage = mapItem.let {
-            Image.makeFromBitmap(it.imageAndBytes.imageBitmap.asSkiaBitmap())
-        }
+        mapItem = gameMap.items.firstOrNull() ?: DefaultItem()
+        mapItemImage = Image.makeFromBitmap(mapItem.imageAndBytes.imageBitmap.asSkiaBitmap())
         playerImage = Image.makeFromBitmap(player.imageAndBytes.imageBitmap.asSkiaBitmap())
 
     }
 
-    override fun getCollisionBoundaries(player: Player): CollisionBoundaries {
-        return collision.getCollisionBoundaries(player)
+    override fun getCollisionBoundaries(player: Player): CollisionBoundaries =
+        collision.getCollisionBoundaries(player)
+
+    override fun managePlayer(player: Player, collisionBoundaries: CollisionBoundaries) {
+        physics.applyPlayerPhysics(player, collisionBoundaries, collision)
+        val (metadata, metadataState) = player.getNextFrameMetadataWithState()
+        player.frameMetadata = metadata
+        player.colliding = metadataState.colliding
     }
 
-    override fun managePlayer(player: Player, collisionBoundaries: CollisionBoundaries): Player {
-        val physicsAppliedPlayer = physics.applyPlayerPhysics(player, collisionBoundaries, collision)
-        val nextFrameMetadataWithState = physicsAppliedPlayer.getNextFrameMetadataWithState()
-        val metadata = nextFrameMetadataWithState.first
-        val metadataState = nextFrameMetadataWithState.second
-        physicsAppliedPlayer.frameMetadata = metadata
-        physicsAppliedPlayer.colliding = metadataState.colliding
-        return physicsAppliedPlayer
-    }
-
-    override fun manageViewport(player: Player, viewPort: ViewPort): ViewPort {
+    override fun manageViewport(player: Player, viewPort: ViewPort) {
         val nextX = when (player.direction) {
             Direction.RIGHT -> {
                 val adjustedX = player.x + player.width
@@ -136,11 +127,10 @@ class DefaultEngine @AppScope @Inject constructor(
 
             else -> viewPort.y
         }
-        val nextViewPort = ViewPort(nextX, nextY, viewPort.x, viewPort.y, viewPort.width, viewPort.height)
-        if (nextX != viewPort.x || nextY != viewPort.y) {
-            logger.debug { "viewport has changed $nextViewPort" }
-        }
-        return nextViewPort
+        viewPort.x = nextX
+        viewPort.y = nextY
+        viewPort.lastX = viewPort.x
+        viewPort.lastY = viewPort.y
     }
 
     override fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort) {
@@ -153,65 +143,51 @@ class DefaultEngine @AppScope @Inject constructor(
         }
         physics.applyDustParticlePhysics(gameMap.particles)
         physics.applyProjectileParticlePhysics(gameMap.particles, viewPort)
-        var mapState = gameMap.state
-        if (mapState == GameMapState.COLLECTING && scoreService.allFound()) {
-            mapState = GameMapState.COMPLETING
+        val allCollectiblesFound = scoreService.allFound()
+        gameMap.state = when (gameMap.state) {
+            GameMapState.COLLECTING if allCollectiblesFound -> GameMapState.COMPLETING
+            GameMapState.COMPLETING if !allCollectiblesFound -> GameMapState.COLLECTING
+            else -> gameMap.state
         }
-        gameMap.state = mapState
     }
 
     override fun manageEnemyAndItemCollision(
         player: Player,
         map: GameMap,
         viewPort: ViewPort
-    ): Pair<Player, GameMap> {
+    ) {
         collision.applyAllItemCollision(player, map, audioQueue)
-        val enemyCollisionResult =
-            collision.applyEnemyAndProximityCollision(player, map, viewPort, audioQueue, particles)
-        val projectTileCollisionResult =
-            collision.checkForProjectileCollision(
-                enemyCollisionResult.first,
-                enemyCollisionResult.second,
-                viewPort,
-                audioQueue,
-                particles
-            )
-        var nextGameMap = projectTileCollisionResult.second
-        if (projectTileCollisionResult.first.colliding == GameElementCollisionState.COLLIDING) {
-            returnMapItemAfterCollision(nextGameMap)
+        collision.applyEnemyAndProximityCollision(player, map, viewPort, audioQueue, particles)
+        collision.applyProjectileCollision(
+            player,
+            map,
+            viewPort,
+            audioQueue,
+            particles
+        )
+        if (player.colliding == GameElementCollisionState.COLLIDING) {
+            adjustMapAfterItemCollision(map)
         }
-        return Pair(projectTileCollisionResult.first, nextGameMap)
     }
 
     private fun manageMapItems(gameMap: GameMap) {
         for ((index, item) in gameMap.items.withIndex()) {
-            val itemX = item.x
-            val itemY = item.y
-            val frameMetadataWithState = (item as GameElement).getNextFrameMetadataWithState()
-            val metadata = frameMetadataWithState.first
-            var nextState = frameMetadataWithState.second.state
+            val (metadata, metadataState) = (item as GameElement).getNextFrameMetadataWithState()
+            var nextState = metadataState.state
             if (item.type == ItemType.FINISH) {
                 if (gameMap.state == GameMapState.COMPLETING && item.state == GameElementState.INACTIVE) {
                     nextState = GameElementState.ACTIVE
+                } else if (gameMap.state == GameMapState.COLLECTING && item.state != GameElementState.INACTIVE) {
+                    nextState = GameElementState.INACTIVE
                 }
             }
-            if (item.type == ItemType.FINISH) {
-                item.x = itemX
-                item.y = itemY
-                item.state = nextState
-                item.frameMetadata = metadata
-                gameMap.items[index] = item
-            } else {
-                item.x = itemX
-                item.y = itemY
-                item.state = nextState
-                item.frameMetadata = metadata
-                gameMap.items[index] = item
-            }
+            item.state = nextState
+            item.frameMetadata = metadata
+            gameMap.items[index] = item
         }
     }
 
-    private fun returnMapItemAfterCollision(gameMap: GameMap) {
+    private fun adjustMapAfterItemCollision(gameMap: GameMap) {
         val index = gameMap.items.indexOfFirst { item ->
             item.type == ItemType.COLLECTABLE && item.state == GameElementState.INACTIVE
         }
@@ -220,6 +196,9 @@ class DefaultEngine @AppScope @Inject constructor(
             if (item is CollectibleItem) {
                 item.state = GameElementState.ACTIVE
                 gameMap.items[index] = item
+                if (gameMap.state == GameMapState.COMPLETING) {
+                    gameMap.state = GameMapState.COLLECTING
+                }
             }
         }
     }
@@ -242,25 +221,18 @@ class DefaultEngine @AppScope @Inject constructor(
                         enemy.getNextPosition()
                     }
                 }
-                val itemX = nextPosition.x
-                val itemY = nextPosition.y
-                val frameMetadataWithState = (enemy as GameElement).getNextFrameMetadataWithState()
-                val metadata = frameMetadataWithState.first
-                val metadataState = frameMetadataWithState.second
-                enemy.x = itemX
-                enemy.y = itemY
+                val (metadata, metadataState) = (enemy as GameElement).getNextFrameMetadataWithState()
+                enemy.x = nextPosition.x
+                enemy.y = nextPosition.y
                 enemy.state = nextState
                 enemy.frameMetadata = metadata
                 enemy.enemyPosition = nextPosition
                 enemy.colliding = metadataState.colliding
                 enemy.interacting = metadataState.interacting
-                gameMap.enemies[index] = enemy
             } else if (enemy.type == EnemyType.RUNNER) {
                 enemy.state = nextState
-                gameMap.enemies[index] = enemy
-            } else {
-                gameMap.enemies[index] = enemy
             }
+            gameMap.enemies[index] = enemy
         }
     }
 
@@ -325,46 +297,25 @@ class DefaultEngine @AppScope @Inject constructor(
         )
     }
 
-    override fun startInput(controlAction: ControlAction, player: Player): Player {
+    override fun startInput(controlAction: ControlAction, player: Player) {
         when (controlAction) {
             ControlAction.LEFT, ControlAction.RIGHT -> {
                 val direction = if (controlAction == ControlAction.LEFT) Direction.LEFT else Direction.RIGHT
                 player.moving = PlayerMovingState.MOVING
                 player.direction = direction
-                player.vx = adjustXVelocity(controlAction, player)
-                return player
+                physics.changeXVelocityIfDirectionChanged(controlAction, player)
             }
 
             ControlAction.JUMP -> {
                 if (player.jumping == PlayerJumpingState.GROUNDED) {
                     audioQueue.queue.add(Sounds.JUMP)
                     player.jumping = PlayerJumpingState.INITIAL
-                    return player
                 }
             }
         }
-        return player
     }
 
-    private fun adjustXVelocity(controlAction: ControlAction, player: Player): Double {
-        val movingLeft = controlAction == ControlAction.LEFT
-        val movingRight = controlAction == ControlAction.RIGHT
-        val isChangingToLeft = movingLeft && player.direction == Direction.RIGHT
-        val isChangingToRight = movingRight && player.direction == Direction.LEFT
-        val isChangingDirection = isChangingToLeft || isChangingToRight
-        return if (isChangingDirection) {
-            logger.info { getDirectionChangedLogMessage(player) }
-            0.0
-        } else {
-            player.vx
-        }
-    }
-
-    private fun getDirectionChangedLogMessage(player: Player): String {
-        return "direction changed player vx was: ${player.vx} and is now 0"
-    }
-
-    override fun stopInput(controlAction: ControlAction, player: Player): Player {
+    override fun stopInput(controlAction: ControlAction, player: Player) {
         val movingLeft = controlAction == ControlAction.LEFT
         val movingRight = controlAction == ControlAction.RIGHT
         if (movingLeft && player.direction == Direction.RIGHT) {
@@ -378,7 +329,6 @@ class DefaultEngine @AppScope @Inject constructor(
         if (matchesDirection) {
             player.moving = PlayerMovingState.STATIONARY
         }
-        return player
     }
 
     private fun drawPlayer(

@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common.data
 
+import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 
 /**
@@ -26,5 +27,12 @@ interface GameElement {
                 (y + height > viewPort.y) &&
                 (y < viewPort.y + viewPort.height)
     }
+
+    fun toRect() = Rect(
+        x.toFloat(),
+        y.toFloat(),
+        (x + width).toFloat(),
+        (y + height).toFloat()
+    )
 
 }

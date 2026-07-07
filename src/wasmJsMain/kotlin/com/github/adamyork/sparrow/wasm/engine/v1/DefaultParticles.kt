@@ -141,7 +141,7 @@ class DefaultParticles : Particles {
                 MAP_ITEM_RETURN_SIZE,
                 ParticleType.MAP_ITEM_RETURN,
                 0,
-                16,
+                50,
                 0,
                 0,
                 1,

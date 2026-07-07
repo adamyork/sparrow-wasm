@@ -2,6 +2,7 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.Direction
 import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
@@ -15,6 +16,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.PhysicsSettingsService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import kotlin.math.*
 
@@ -27,6 +29,8 @@ class DefaultPhysics @AppScope @Inject constructor(
     val physicsSettingsService: PhysicsSettingsService
 ) : Physics {
 
+    private val logger = KotlinLogging.logger {}
+
     private val statusProvider: DefaultStatusProvider
         get() = statusProviderFactory()
 
@@ -34,7 +38,7 @@ class DefaultPhysics @AppScope @Inject constructor(
         player: Player,
         collisionBoundaries: CollisionBoundaries,
         collision: Collision
-    ): Player {
+    ) {
         val deltaTime = statusProvider.getDeltaTimeCoefficient()
         val isColliding = player.colliding == GameElementCollisionState.COLLIDING
         var velocityX = if (isColliding) {
@@ -98,11 +102,10 @@ class DefaultPhysics @AppScope @Inject constructor(
         player.colliding = if (isColliding && velocityX == 0.0 && nextImmunityTicks <= 0)
             GameElementCollisionState.FREE
         else player.colliding
-        return player
     }
 
-    override fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort): Player {
-        val enemyRect = rect ?: return player
+    override fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort) {
+        val enemyRect = rect ?: return
         val playerCenterX = player.x + (player.width / 2)
         val enemyCenterX = enemyRect.left + (enemyRect.width / 2)
         val knockbackDirection = if (playerCenterX < enemyCenterX) -1.0 else 1.0
@@ -120,7 +123,6 @@ class DefaultPhysics @AppScope @Inject constructor(
         player.immunityTicks = Player.IMMUNITY_TICKS_ON_HIT
         player.animationTickCounter = 0
         player.animationTickBufferMs = 0.0
-        return player
     }
 
     override fun applyCollisionParticlePhysics(
@@ -229,6 +231,14 @@ class DefaultPhysics @AppScope @Inject constructor(
     }
 
     override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>) {
+        val dt = statusProvider.getDeltaTimeCoefficient()
+        val speed = physicsSettingsService.projectileSpeed * dt
+        val baseProjectileSpeed = physicsSettingsService.projectileSpeed
+        val speedScale = if (baseProjectileSpeed > 0.0) {
+            speed / baseProjectileSpeed
+        } else {
+            1.0
+        }
         for (i in mapParticles.indices.reversed()) {
             val p = mapParticles[i]
             if (p.type == ParticleType.MAP_ITEM_RETURN) {
@@ -236,8 +246,9 @@ class DefaultPhysics @AppScope @Inject constructor(
                 if (nextFrame > p.lifetime) {
                     mapParticles.removeAt(i)
                 } else {
-                    val step = nextFrame.toFloat() / (p.lifetime - 1)
-                    val angle = PI * (1 + step)
+                    val lifetimeWindow = (p.lifetime - 1).coerceAtLeast(1)
+                    val step = ((nextFrame.toDouble() * speedScale) / lifetimeWindow).coerceIn(0.0, 1.0)
+                    val angle = PI * (1.0 + step)
                     val nextX = p.originX + cos(angle).toFloat() * 90
                     val nextY = p.originY + sin(angle).toFloat() * 90
                     mapParticles[i] = p.copy(x = nextX.toInt(), y = nextY.toInt(), frame = nextFrame)
@@ -247,6 +258,18 @@ class DefaultPhysics @AppScope @Inject constructor(
                     mapParticles.removeAt(i)
                 }
             }
+        }
+    }
+
+    override fun changeXVelocityIfDirectionChanged(controlAction: ControlAction, player: Player) {
+        val movingLeft = controlAction == ControlAction.LEFT
+        val movingRight = controlAction == ControlAction.RIGHT
+        val isChangingToLeft = movingLeft && player.direction == Direction.RIGHT
+        val isChangingToRight = movingRight && player.direction == Direction.LEFT
+        val isChangingDirection = isChangingToLeft || isChangingToRight
+        if (isChangingDirection) {
+            logger.info { "direction changed player vx was: ${player.vx} and is now 0" }
+            player.vx = 0.0
         }
     }
 

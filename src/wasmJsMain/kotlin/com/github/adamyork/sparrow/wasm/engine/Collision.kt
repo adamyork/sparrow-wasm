@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.engine
 
+import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
@@ -19,23 +20,23 @@ interface Collision {
 
     fun updateCollisionXBoundaries(player: Player, collisionBoundaries: CollisionBoundaries)
 
-    fun applyAllItemCollision(player: Player, gameMap: GameMap, audioQueue: DefaultAudioQueue)
+    fun applyAllItemCollision(player: Player, gameMap: GameMap, audioQueue: AudioQueue)
 
     fun applyEnemyAndProximityCollision(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: DefaultAudioQueue,
+        audioQueue: AudioQueue,
         particles: Particles
-    ): Pair<Player, GameMap>
+    )
 
-    fun checkForProjectileCollision(
+    fun applyProjectileCollision(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: DefaultAudioQueue,
+        audioQueue: AudioQueue,
         particles: Particles
-    ): Pair<Player, GameMap>
+    )
 
     fun cacheCollisionPixels()
 }

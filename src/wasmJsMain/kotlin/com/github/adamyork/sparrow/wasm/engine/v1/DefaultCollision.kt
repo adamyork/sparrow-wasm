@@ -2,6 +2,7 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
@@ -11,7 +12,6 @@ import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
-import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.Physics
@@ -91,8 +91,6 @@ class DefaultCollision(
     ) {
         collisionBoundaries.left = findEdgeIterative(player.x, player, Direction.LEFT)
         collisionBoundaries.right = findEdgeIterative(player.x, player, Direction.RIGHT)
-        collisionBoundaries.top = collisionBoundaries.top
-        collisionBoundaries.bottom = collisionBoundaries.bottom
     }
 
     private fun findFloorIterative(startY: Int, player: Player): Int {
@@ -139,7 +137,7 @@ class DefaultCollision(
         return false
     }
 
-    override fun applyAllItemCollision(player: Player, gameMap: GameMap, audioQueue: DefaultAudioQueue) {
+    override fun applyAllItemCollision(player: Player, gameMap: GameMap, audioQueue: AudioQueue) {
         val items = gameMap.items
         val playerRect = player.toRect()
         var newGameState = gameMap.state
@@ -168,9 +166,9 @@ class DefaultCollision(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: DefaultAudioQueue,
+        audioQueue: AudioQueue,
         particles: Particles
-    ): Pair<Player, GameMap> {
+    ) {
         val managedMapParticles = gameMap.particles
         val managedMapEnemies = gameMap.enemies
         val canTakeCollisionDamage = player.immunityTicks <= 0
@@ -232,21 +230,18 @@ class DefaultCollision(
             enemy.interacting = nextInteracting
             managedMapEnemies[i] = enemy
         }
-        val nextPlayer = if (playerIsColliding && closestEnemyRect != null) {
+        if (playerIsColliding && closestEnemyRect != null) {
             physics.applyPlayerCollisionPhysics(player, closestEnemyRect, viewPort)
-        } else {
-            player
         }
-        return Pair(nextPlayer, gameMap)
     }
 
-    override fun checkForProjectileCollision(
+    override fun applyProjectileCollision(
         player: Player,
         gameMap: GameMap,
         viewPort: ViewPort,
-        audioQueue: DefaultAudioQueue,
+        audioQueue: AudioQueue,
         particles: Particles
-    ): Pair<Player, GameMap> {
+    ) {
         val canTakeCollisionDamage = player.immunityTicks <= 0
         var playerIsColliding = false
         var targetRect: Rect? = null
@@ -272,20 +267,10 @@ class DefaultCollision(
             }
         }
         val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())
-        val nextPlayer = if (playerIsColliding && adjustedTargetRect != null) {
+        if (playerIsColliding && adjustedTargetRect != null) {
             physics.applyPlayerCollisionPhysics(player, adjustedTargetRect, viewPort)
-        } else {
-            player
         }
-        return Pair(nextPlayer, gameMap)
     }
-
-    fun GameElement.toRect() = Rect(
-        x.toFloat(),
-        y.toFloat(),
-        (x + width).toFloat(),
-        (y + height).toFloat()
-    )
 
     private fun distanceTo(first: Point, second: Point): Int {
         return sqrt((second.x - first.x).pow(2) + (second.y - first.y).pow(2)).toInt()
