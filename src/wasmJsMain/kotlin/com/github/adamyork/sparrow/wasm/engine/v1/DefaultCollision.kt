@@ -194,7 +194,10 @@ class DefaultCollision(
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                     particles.applyCollisionParticles(enemy.x, enemy.y, managedMapParticles)
                     if (scoreService.getTotal() != scoreService.getRemaining()) {
-                        particles.applyMapItemReturnParticle(player, managedMapParticles)
+                        val firstMapItem =
+                            gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == GameElementState.INACTIVE }
+                                ?: throw IllegalStateException("needs to be at least one map item")
+                        particles.applyMapItemReturnParticle(player, firstMapItem, managedMapParticles)
                     }
                 }
                 playerIsColliding = true
@@ -256,7 +259,10 @@ class DefaultCollision(
         if (playerIsColliding && !isCollisionAnimating) {
             particles.applyCollisionParticles(player.x, player.y, particleList)
             if (scoreService.getTotal() != scoreService.getRemaining()) {
-                particles.applyMapItemReturnParticle(player, particleList)
+                val firstMapItem =
+                    gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == GameElementState.INACTIVE }
+                        ?: throw IllegalStateException("needs to be at least one map item")
+                particles.applyMapItemReturnParticle(player, firstMapItem, particleList)
             }
         }
         val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())

@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.wasm.engine
 
 import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
+import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.service.AssetService
@@ -23,6 +24,6 @@ interface Particles {
         particles: ArrayList<Particle>
     ): Boolean
 
-    fun applyMapItemReturnParticle(player: Player, particles: ArrayList<Particle>)
+    fun applyMapItemReturnParticle(player: Player, mapItem: Item, particles: ArrayList<Particle>)
 
 }

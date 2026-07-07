@@ -27,7 +27,7 @@ interface Physics {
 
     fun applyProjectileParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort)
 
-    fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>)
+    fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort)
 
     fun changeXVelocityIfDirectionChanged(controlAction: ControlAction, player: Player)
 

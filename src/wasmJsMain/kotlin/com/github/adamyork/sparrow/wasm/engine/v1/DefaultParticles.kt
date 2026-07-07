@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.data.Direction
 import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
+import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
@@ -42,26 +43,26 @@ class DefaultParticles : Particles {
 
     override fun applyCollisionParticles(originX: Int, originY: Int, particles: ArrayList<Particle>) {
         val collisionColor = colorMap[ParticleType.COLLISION] ?: Color.White
-            repeat(COLLISION_PARTICLE_COUNT) { index ->
-                particles.add(
-                    Particle(
-                        index,
-                        originX,
-                        originY,
-                        originX,
-                        originY,
-                        4,
-                        4,
-                        ParticleType.COLLISION,
-                        0,
-                        20,
-                        Random.nextInt(50),
-                        Random.nextInt(50),
-                        1,
-                        collisionColor,
-                        ParticleShape.RECT
-                    )
+        repeat(COLLISION_PARTICLE_COUNT) { index ->
+            particles.add(
+                Particle(
+                    index,
+                    originX,
+                    originY,
+                    originX,
+                    originY,
+                    4,
+                    4,
+                    ParticleType.COLLISION,
+                    0,
+                    20,
+                    Random.nextInt(50),
+                    Random.nextInt(50),
+                    1,
+                    collisionColor,
+                    ParticleShape.RECT
                 )
+            )
         }
     }
 
@@ -129,19 +130,19 @@ class DefaultParticles : Particles {
         return true
     }
 
-    override fun applyMapItemReturnParticle(player: Player, particles: ArrayList<Particle>) {
+    override fun applyMapItemReturnParticle(player: Player, mapItem: Item, particles: ArrayList<Particle>) {
         particles.add(
             Particle(
                 0,
                 player.x,
                 player.y,
-                player.x,
-                player.y,
-                MAP_ITEM_RETURN_SIZE,
-                MAP_ITEM_RETURN_SIZE,
+                mapItem.x,
+                mapItem.y,
+                mapItem.width,
+                mapItem.height,
                 ParticleType.MAP_ITEM_RETURN,
                 0,
-                50,
+                500,
                 0,
                 0,
                 1,

@@ -230,28 +230,29 @@ class DefaultPhysics @AppScope @Inject constructor(
         return particleRight >= left && particle.x <= right && particleBottom >= top && particle.y <= bottom
     }
 
-    override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>) {
+    override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort) {
         val dt = statusProvider.getDeltaTimeCoefficient()
-        val speed = physicsSettingsService.projectileSpeed * dt
-        val baseProjectileSpeed = physicsSettingsService.projectileSpeed
-        val speedScale = if (baseProjectileSpeed > 0.0) {
-            speed / baseProjectileSpeed
-        } else {
-            1.0
-        }
+        val speed = 30.0
         for (i in mapParticles.indices.reversed()) {
             val p = mapParticles[i]
             if (p.type == ParticleType.MAP_ITEM_RETURN) {
                 val nextFrame = p.frame + 1
-                if (nextFrame > p.lifetime) {
+                val localCoords = viewPort.globalToLocal(p.originX, p.originY)
+                val dx = localCoords.first - p.x.toDouble()
+                val dy = localCoords.second - p.y.toDouble()
+                val distance = sqrt(dx * dx + dy * dy)
+                if (distance < 5.0 || nextFrame >= p.lifetime) {
                     mapParticles.removeAt(i)
                 } else {
-                    val lifetimeWindow = (p.lifetime - 1).coerceAtLeast(1)
-                    val step = ((nextFrame.toDouble() * speedScale) / lifetimeWindow).coerceIn(0.0, 1.0)
-                    val angle = PI * (1.0 + step)
-                    val nextX = p.originX + cos(angle).toFloat() * 90
-                    val nextY = p.originY + sin(angle).toFloat() * 90
-                    mapParticles[i] = p.copy(x = nextX.toInt(), y = nextY.toInt(), frame = nextFrame)
+                    val moveStep = speed * dt
+                    val ratio = moveStep / distance
+                    val nextX = p.x + (dx * ratio)
+                    val nextY = p.y + (dy * ratio)
+                    mapParticles[i] = p.copy(
+                        x = nextX.toInt(),
+                        y = nextY.toInt(),
+                        frame = nextFrame
+                    )
                 }
             } else {
                 if (p.frame > p.lifetime) {
@@ -260,6 +261,7 @@ class DefaultPhysics @AppScope @Inject constructor(
             }
         }
     }
+
 
     override fun changeXVelocityIfDirectionChanged(controlAction: ControlAction, player: Player) {
         val movingLeft = controlAction == ControlAction.LEFT

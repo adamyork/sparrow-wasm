@@ -9,9 +9,9 @@ import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
 import com.github.adamyork.sparrow.wasm.common.data.enemy.RunnerEnemy
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
+import com.github.adamyork.sparrow.wasm.common.data.item.DefaultItem
 import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
-import com.github.adamyork.sparrow.wasm.common.data.item.DefaultItem
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
@@ -30,7 +30,6 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
-
 
 /**
  * Author: Adam York
@@ -86,7 +85,6 @@ class DefaultEngine @AppScope @Inject constructor(
         mapItem = gameMap.items.firstOrNull() ?: DefaultItem()
         mapItemImage = Image.makeFromBitmap(mapItem.imageAndBytes.imageBitmap.asSkiaBitmap())
         playerImage = Image.makeFromBitmap(player.imageAndBytes.imageBitmap.asSkiaBitmap())
-
     }
 
     override fun getCollisionBoundaries(player: Player): CollisionBoundaries =
@@ -105,7 +103,6 @@ class DefaultEngine @AppScope @Inject constructor(
                 val adjustedX = player.x + player.width
                 val viewPortRightBoundary = viewPort.x + viewPort.width
                 if (adjustedX > viewPortRightBoundary) {
-                    logger.debug { "move map horizontal right" }
                     (viewPort.x + (adjustedX - viewPortRightBoundary))
                         .coerceAtMost(collision.collisionImage.imageBitmap.width - viewPort.width)
                 } else viewPort.x
@@ -113,24 +110,16 @@ class DefaultEngine @AppScope @Inject constructor(
 
             Direction.LEFT -> {
                 if (player.x < viewPort.x) {
-                    logger.debug { "move map horizontal left" }
                     (viewPort.x - (viewPort.x - player.x))
                         .coerceAtLeast(0)
                 } else viewPort.x
             }
         }
         val nextY = when {
-            player.y < viewPort.y -> {
-                logger.debug { "move map vertical up" }
-                (viewPort.y - (viewPort.y - player.y))
-                    .coerceAtLeast(0)
-            }
-
-            (player.y + player.height) > (viewPort.y + viewPort.height) -> {
-                logger.debug { "move map vertical down" }
-                (viewPort.y + (player.y - viewPort.y))
-                    .coerceAtMost(collision.collisionImage.imageBitmap.height - viewPort.height)
-            }
+            player.y < viewPort.y -> (viewPort.y - (viewPort.y - player.y)).coerceAtLeast(0)
+            (player.y + player.height) > (viewPort.y + viewPort.height) -> (viewPort.y + (player.y - viewPort.y)).coerceAtMost(
+                collision.collisionImage.imageBitmap.height - viewPort.height
+            )
 
             else -> viewPort.y
         }
@@ -144,7 +133,7 @@ class DefaultEngine @AppScope @Inject constructor(
         manageMapItems(gameMap)
         manageMapEnemies(gameMap, player)
         physics.applyCollisionParticlePhysics(gameMap.particles, viewPort)
-        physics.applyMapItemReturnParticlePhysics(gameMap.particles)
+        physics.applyMapItemReturnParticlePhysics(gameMap.particles, viewPort)
         if (player.moving == PlayerMovingState.MOVING && player.jumping == PlayerJumpingState.GROUNDED) {
             particles.applyDustParticles(player, gameMap.particles)
         }
@@ -158,20 +147,10 @@ class DefaultEngine @AppScope @Inject constructor(
         }
     }
 
-    override fun manageEnemyAndItemCollision(
-        player: Player,
-        map: GameMap,
-        viewPort: ViewPort
-    ) {
+    override fun manageEnemyAndItemCollision(player: Player, map: GameMap, viewPort: ViewPort) {
         collision.applyAllItemCollision(player, map, audioQueue)
         collision.applyEnemyAndProximityCollision(player, map, viewPort, audioQueue, particles)
-        collision.applyProjectileCollision(
-            player,
-            map,
-            viewPort,
-            audioQueue,
-            particles
-        )
+        collision.applyProjectileCollision(player, map, viewPort, audioQueue, particles)
         if (player.colliding == GameElementCollisionState.COLLIDING) {
             adjustMapAfterItemCollision(map)
         }
@@ -216,17 +195,9 @@ class DefaultEngine @AppScope @Inject constructor(
             val nextState = enemy.getNextEnemyState(player)
             if (nextState != GameElementState.INACTIVE) {
                 val nextPosition = when (enemy) {
-                    is BlockerEnemy -> {
-                        enemy.getNextPosition(deltaTimeCoefficient)
-                    }
-
-                    is RunnerEnemy -> {
-                        enemy.getNextPosition(deltaTimeCoefficient)
-                    }
-
-                    else -> {
-                        enemy.getNextPosition()
-                    }
+                    is BlockerEnemy -> enemy.getNextPosition(deltaTimeCoefficient)
+                    is RunnerEnemy -> enemy.getNextPosition(deltaTimeCoefficient)
+                    else -> enemy.getNextPosition()
                 }
                 val (metadata, metadataState) = (enemy as GameElement).getNextFrameMetadataWithState()
                 enemy.x = nextPosition.x
@@ -243,31 +214,15 @@ class DefaultEngine @AppScope @Inject constructor(
         }
     }
 
-    override fun draw(
-        map: GameMap,
-        viewPort: ViewPort,
-        player: Player,
-        timestamp: Double
-    ): DrawResult {
+    override fun draw(map: GameMap, viewPort: ViewPort, player: Player, timestamp: Double): DrawResult {
         val foregroundSurface = getOrCreateForegroundSurface(viewPort)
         val foregroundCanvas = foregroundSurface.canvas
         foregroundCanvas.clear(0x00000000)
 
-        drawMapElements(
-            map.items,
-            viewPort,
-            foregroundCanvas,
-            transformDirection = false
-        )
+        drawMapElements(map.items, viewPort, foregroundCanvas, false)
 
-        val hasVisibleEnemyCandidates = hasVisibleActiveElements(map.enemies, viewPort)
-        if (hasVisibleEnemyCandidates) {
-            drawMapElements(
-                map.enemies,
-                viewPort,
-                foregroundCanvas,
-                transformDirection = true
-            )
+        if (hasVisibleActiveElements(map.enemies, viewPort)) {
+            drawMapElements(map.enemies, viewPort, foregroundCanvas, true)
         }
 
         drawParticles(map, viewPort, foregroundCanvas, mapItem, mapItemImage)
@@ -332,52 +287,121 @@ class DefaultEngine @AppScope @Inject constructor(
     override fun stopInput(controlAction: ControlAction, player: Player) {
         val movingLeft = controlAction == ControlAction.LEFT
         val movingRight = controlAction == ControlAction.RIGHT
-        if (movingLeft && player.direction == Direction.RIGHT) {
-            logger.warn { "stop player left called before right started" }
-        } else if (movingRight && player.direction == Direction.LEFT) {
-            logger.warn { "stop player right called before left started" }
-        }
         val isStoppingLeft = movingLeft && player.direction == Direction.LEFT
         val isStoppingRight = movingRight && player.direction == Direction.RIGHT
-        val matchesDirection = isStoppingLeft || isStoppingRight
-        if (matchesDirection) {
+        if (isStoppingLeft || isStoppingRight) {
             player.moving = PlayerMovingState.STATIONARY
         }
     }
 
-    private fun drawPlayer(
-        player: Player,
-        viewPort: ViewPort,
-        canvas: Canvas,
-        image: Image
-    ) {
+    private fun drawPlayer(player: Player, viewPort: ViewPort, canvas: Canvas, image: Image) {
         val localX = player.x - viewPort.x
         val localY = player.y - viewPort.y
         val shouldShowTint = player.immunityTicks > 0 && (player.immunityTicks / 8) % 2 == 0
         val activePlayerPaint = if (shouldShowTint) playerPaintTinted else playerPaintNormal
+        val isFlipped = player.direction == Direction.LEFT
 
-        val flip = player.direction == Direction.LEFT
-        if (flip) {
-            drawFlippedSprite(canvas, image, player, localX, localY, activePlayerPaint)
-        } else {
-            drawSprite(canvas, image, player, localX, localY, activePlayerPaint)
+        drawSprite(canvas, image, player, localX, localY, activePlayerPaint, isFlipped)
+    }
+
+    private fun drawMapElements(
+        elements: ArrayList<out GameElement>,
+        viewPort: ViewPort,
+        canvas: Canvas,
+        transformDirection: Boolean
+    ) {
+        for (element in elements) {
+            if (element.state != GameElementState.INACTIVE && element.cullingCheck(viewPort)) {
+                val localX = element.x - viewPort.x
+                val localY = element.y - viewPort.y
+                val elementImage = when (element) {
+                    is Enemy -> enemyImageCache[element.type.name]
+                    is Item -> itemImageCache[element.type.name]
+                    else -> null
+                } ?: throw IllegalStateException("No image found for element")
+
+                val isFlipped = transformDirection && element.nestedDirection() == Direction.LEFT
+                drawSprite(canvas, elementImage, element, localX, localY, mapElementPaint, isFlipped)
+            }
         }
     }
 
-    private fun drawParticles(
-        map: GameMap,
-        viewPort: ViewPort,
+    private fun drawSprite(
         canvas: Canvas,
-        mapItem: Item?,
-        mapItemImage: Image?
+        image: Image,
+        element: GameElement,
+        localX: Int,
+        localY: Int,
+        paint: Paint,
+        isFlipped: Boolean
     ) {
+        val (w, h) = element.width.toFloat() to element.height.toFloat()
+        val (dstX, dstY) = localX.toFloat() to localY.toFloat()
+
+        val targetImage = if (isFlipped) getOrCreateFlippedFrame(image, element) else image
+        val srcX = if (isFlipped) 0f else element.frameMetadata.cell.x.toFloat()
+        val srcY = if (isFlipped) 0f else element.frameMetadata.cell.y.toFloat()
+
+        canvas.drawImageRect(
+            image = targetImage,
+            srcLeft = srcX,
+            srcTop = srcY,
+            srcRight = srcX + w,
+            srcBottom = srcY + h,
+            dstLeft = dstX,
+            dstTop = dstY,
+            dstRight = dstX + w,
+            dstBottom = dstY + h,
+            samplingMode = SamplingMode.DEFAULT,
+            paint = paint,
+            strict = true
+        )
+    }
+
+    private fun getOrCreateFlippedFrame(image: Image, element: GameElement): Image {
+        val srcX = element.frameMetadata.cell.x
+        val srcY = element.frameMetadata.cell.y
+        val width = element.width
+        val height = element.height
+        val cacheKey = "${image.hashCode()}:$srcX:$srcY:$width:$height"
+
+        return flippedFrameCache[cacheKey] ?: run {
+            val surface = Surface.makeRasterN32Premul(width, height)
+            surface.canvas.apply {
+                clear(0x00000000)
+                save()
+                translate(width.toFloat(), 0f)
+                scale(-1f, 1f)
+                drawImageRect(
+                    image = image,
+                    srcLeft = srcX.toFloat(),
+                    srcTop = srcY.toFloat(),
+                    srcRight = (srcX + width).toFloat(),
+                    srcBottom = (srcY + height).toFloat(),
+                    dstLeft = 0f,
+                    dstTop = 0f,
+                    dstRight = width.toFloat(),
+                    dstBottom = height.toFloat(),
+                    samplingMode = SamplingMode.DEFAULT,
+                    paint = null,
+                    strict = true
+                )
+                restore()
+            }
+            val flippedFrame = surface.makeImageSnapshot()
+            flippedFrameCache[cacheKey] = flippedFrame
+            flippedFrame
+        }
+    }
+
+    private fun drawParticles(map: GameMap, viewPort: ViewPort, canvas: Canvas, mapItem: Item?, mapItemImage: Image?) {
         val vpX = viewPort.x.toFloat()
         val vpY = viewPort.y.toFloat()
         val groups = mutableMapOf<Int, MutableList<Particle>>()
+
         for (particle in map.particles) {
-            if (!particle.cullingCheck(viewPort)) {
-                continue
-            }
+            if (!particle.cullingCheck(viewPort)) continue
+
             if (particle.type == ParticleType.MAP_ITEM_RETURN) {
                 if (mapItem != null && mapItemImage != null) {
                     val localX = particle.x.toFloat() - vpX
@@ -396,6 +420,7 @@ class DefaultEngine @AppScope @Inject constructor(
                 }
                 continue
             }
+
             val lifetime = if (particle.lifetime <= 0) 1 else particle.lifetime
             val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
             val alphaMultiplier = when {
@@ -413,17 +438,16 @@ class DefaultEngine @AppScope @Inject constructor(
             )
             groups.getOrPut(color) { mutableListOf() }.add(particle)
         }
+
         for ((color, particleList) in groups) {
             val builder = PathBuilder()
             for (particle in particleList) {
                 val x = particle.x.toFloat() - vpX
                 val y = particle.y.toFloat() - vpY
-                val w = particle.width.toFloat()
-                val h = particle.height.toFloat()
                 if (particle.shape == ParticleShape.CIRCLE) {
-                    builder.addOval(Rect.makeXYWH(x, y, w, h))
+                    builder.addOval(Rect.makeXYWH(x, y, particle.width.toFloat(), particle.height.toFloat()))
                 } else {
-                    builder.addRect(Rect.makeXYWH(x, y, w, h))
+                    builder.addRect(Rect.makeXYWH(x, y, particle.width.toFloat(), particle.height.toFloat()))
                 }
             }
             val batchPath = builder.detach()
@@ -434,137 +458,6 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     private fun hasVisibleActiveElements(elements: ArrayList<out GameElement>, viewPort: ViewPort): Boolean {
-        for (i in 0 until elements.size) {
-            val element = elements[i]
-            if (element.state != GameElementState.INACTIVE && element.cullingCheck(viewPort)) {
-                return true
-            }
-        }
-        return false
-    }
-
-    private fun drawMapElements(
-        elements: ArrayList<out GameElement>,
-        viewPort: ViewPort,
-        canvas: Canvas,
-        transformDirection: Boolean
-    ) {
-        for (i in 0 until elements.size) {
-            val element = elements[i]
-            if (element.state != GameElementState.INACTIVE && element.cullingCheck(viewPort)) {
-                val localX = element.x - viewPort.x
-                val localY = element.y - viewPort.y
-                val elementImage = when (element) {
-                    is Enemy -> enemyImageCache[element.type.name]
-                    is Item -> itemImageCache[element.type.name]
-                    else -> null
-                } ?: throw IllegalStateException("No image found for element")
-
-                val flip = transformDirection && element.nestedDirection() == Direction.LEFT
-                if (flip) {
-                    drawFlippedSprite(canvas, elementImage, element, localX, localY, mapElementPaint)
-                } else {
-                    drawSprite(canvas, elementImage, element, localX, localY, mapElementPaint)
-                }
-            }
-        }
-    }
-
-    private fun drawFlippedSprite(
-        canvas: Canvas,
-        image: Image,
-        element: GameElement,
-        localX: Int,
-        localY: Int,
-        paint: Paint
-    ) {
-        val flippedFrame = getOrCreateFlippedFrame(image, element)
-        val w = element.width.toFloat()
-        val h = element.height.toFloat()
-        val dstX = localX.toFloat()
-        val dstY = localY.toFloat()
-        canvas.drawImageRect(
-            image = flippedFrame,
-            srcLeft = 0f,
-            srcTop = 0f,
-            srcRight = w,
-            srcBottom = h,
-            dstLeft = dstX,
-            dstTop = dstY,
-            dstRight = dstX + w,
-            dstBottom = dstY + h,
-            samplingMode = SamplingMode.DEFAULT,
-            paint = paint,
-            strict = true
-        )
-    }
-
-    private fun getOrCreateFlippedFrame(image: Image, element: GameElement): Image {
-        val srcX = element.frameMetadata.cell.x
-        val srcY = element.frameMetadata.cell.y
-        val width = element.width
-        val height = element.height
-        val cacheKey = "${image.hashCode()}:$srcX:$srcY:$width:$height"
-        val cached = flippedFrameCache[cacheKey]
-        if (cached != null) {
-            return cached
-        }
-        val surface = Surface.makeRasterN32Premul(width, height)
-        val subsetCanvas = surface.canvas
-        subsetCanvas.clear(0x00000000)
-        subsetCanvas.save()
-        try {
-            subsetCanvas.translate(width.toFloat(), 0f)
-            subsetCanvas.scale(-1f, 1f)
-            subsetCanvas.drawImageRect(
-                image = image,
-                srcLeft = srcX.toFloat(),
-                srcTop = srcY.toFloat(),
-                srcRight = (srcX + width).toFloat(),
-                srcBottom = (srcY + height).toFloat(),
-                dstLeft = 0f,
-                dstTop = 0f,
-                dstRight = width.toFloat(),
-                dstBottom = height.toFloat(),
-                samplingMode = SamplingMode.DEFAULT,
-                paint = null,
-                strict = true
-            )
-        } finally {
-            subsetCanvas.restore()
-        }
-        val flippedFrame = surface.makeImageSnapshot()
-        flippedFrameCache[cacheKey] = flippedFrame
-        return flippedFrame
-    }
-
-    private fun drawSprite(
-        canvas: Canvas,
-        image: Image,
-        element: GameElement,
-        localX: Int,
-        localY: Int,
-        paint: Paint
-    ) {
-        val srcX = element.frameMetadata.cell.x.toFloat()
-        val srcY = element.frameMetadata.cell.y.toFloat()
-        val w = element.width.toFloat()
-        val h = element.height.toFloat()
-        val dstX = localX.toFloat()
-        val dstY = localY.toFloat()
-        canvas.drawImageRect(
-            image = image,
-            srcLeft = srcX,
-            srcTop = srcY,
-            srcRight = srcX + w,
-            srcBottom = srcY + h,
-            dstLeft = dstX,
-            dstTop = dstY,
-            dstRight = dstX + w,
-            dstBottom = dstY + h,
-            samplingMode = SamplingMode.DEFAULT,
-            paint = paint,
-            strict = true
-        )
+        return elements.any { it.state != GameElementState.INACTIVE && it.cullingCheck(viewPort) }
     }
 }
