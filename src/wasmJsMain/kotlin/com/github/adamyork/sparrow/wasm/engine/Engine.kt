@@ -27,12 +27,7 @@ interface Engine {
 
     fun manageEnemyAndItemCollision(player: Player, map: GameMap, viewPort: ViewPort)
 
-    fun draw(
-        map: GameMap,
-        viewPort: ViewPort,
-        player: Player,
-        timestamp: Double
-    ): DrawResult
+    fun draw(map: GameMap, viewPort: ViewPort, player: Player, timestamp: Double): DrawResult
 
     fun createDefaultPlayer(playerAsset: ImageAsset): Player
 

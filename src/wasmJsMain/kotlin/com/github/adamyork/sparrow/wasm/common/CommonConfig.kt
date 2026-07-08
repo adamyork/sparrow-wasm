@@ -11,9 +11,6 @@ import me.tatarka.inject.annotations.Provides
  */
 interface CommonConfig {
 
-    val audioQueue: AudioQueue
-    val statusProvider: StatusProvider
-
     @AppScope
     @Provides
     fun provideAudioQueue(impl: DefaultAudioQueue): AudioQueue = impl
@@ -21,4 +18,5 @@ interface CommonConfig {
     @AppScope
     @Provides
     fun provideStatusProvider(impl: DefaultStatusProvider): StatusProvider = impl
+
 }

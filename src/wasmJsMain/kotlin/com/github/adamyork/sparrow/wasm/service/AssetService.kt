@@ -26,9 +26,13 @@ interface AssetService {
 
     suspend fun loadMap(id: Int, listener: LoadingProgressListener): GameMap
 
+    suspend fun loadPlayer(): ImageAsset
+
     suspend fun loadItem(id: Int): ImageAsset
 
     suspend fun loadEnemy(id: Int): ImageAsset
+
+    suspend fun loadAudio(listener: LoadingProgressListener)
 
     fun getTotalEnemies(): Int
 
@@ -37,10 +41,6 @@ interface AssetService {
     fun getTotalItems(): Int
 
     fun getItemPosition(id: Int): ItemPositionAndType
-
-    suspend fun loadPlayer(): ImageAsset
-
-    suspend fun loadAudio(listener: LoadingProgressListener)
 
     fun getBackgroundAudio(): String
 

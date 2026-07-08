@@ -13,11 +13,6 @@ import me.tatarka.inject.annotations.Provides
  */
 interface EngineConfig {
 
-    val engine: Engine
-    val collision: Collision
-    val physics: Physics
-    val particles: Particles
-
     @AppScope
     @Provides
     fun provideEngine(impl: DefaultEngine): Engine = impl

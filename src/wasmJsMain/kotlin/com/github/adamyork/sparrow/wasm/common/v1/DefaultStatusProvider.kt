@@ -5,6 +5,10 @@ import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import me.tatarka.inject.annotations.Inject
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 @AppScope
 @Inject
 class DefaultStatusProvider(

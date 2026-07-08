@@ -40,6 +40,9 @@ class GameUiDrawLayer {
     private var collisionOffsetX: Float by mutableStateOf(0f)
     private var collisionOffsetY: Float by mutableStateOf(0f)
     private var foregroundBitmap: SkiaImage? by mutableStateOf(null)
+    private var nearFieldBitmap: ImageBitmap? by mutableStateOf(null)
+    private var nearFieldOffsetX: Float by mutableStateOf(0f)
+    private var nearFieldOffsetY: Float by mutableStateOf(0f)
 
     @Composable
     fun build(
@@ -51,6 +54,7 @@ class GameUiDrawLayer {
             LayerCanvas(bitmap = farGroundBitmap, offsetX = farGroundOffsetX, offsetY = farGroundOffsetY)
             LayerCanvas(midGroundBitmap, offsetX = midGroundOffsetX, offsetY = midGroundOffsetY)
             ForegroundLayerCanvas(image = foregroundBitmap)
+            LayerCanvas(nearFieldBitmap, offsetX = nearFieldOffsetX, offsetY = nearFieldOffsetY)
             LayerCanvas(collisionBitmap, offsetX = collisionOffsetX, offsetY = collisionOffsetY)
         }
 
@@ -75,7 +79,7 @@ class GameUiDrawLayer {
                     dstOffset = IntOffset(
                         (-offsetX * density).toInt(),
                         (-offsetY * density).toInt()
-                    ), // Scale offsets too!
+                    ),
                     dstSize = IntSize(scaledWidth, scaledHeight)
                 )
             }
@@ -89,7 +93,6 @@ class GameUiDrawLayer {
                 .clip(RectangleShape)
         ) {
             image?.let { foreground ->
-                // Foreground is already composited in viewport-local space by engine.
                 drawIntoCanvas { canvas ->
                     canvas.skiaCanvas.drawImageRect(
                         image = foreground,
@@ -123,6 +126,12 @@ class GameUiDrawLayer {
     fun drawForeground(image: SkiaImage) {
         foregroundBitmap?.close()
         foregroundBitmap = image
+    }
+
+    fun drawNearField(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {
+        nearFieldBitmap = image
+        nearFieldOffsetX = offsetX
+        nearFieldOffsetY = offsetY
     }
 
     fun drawCollision(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {

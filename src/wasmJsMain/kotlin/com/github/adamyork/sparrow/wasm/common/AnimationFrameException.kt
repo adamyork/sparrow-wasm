@@ -1,8 +1,5 @@
 package com.github.adamyork.sparrow.wasm.common
 
-/*
- * Copyright (c) 2026. Adam York
- */
 /**
  * Author: Adam York
  * Copyright (c) Adam York

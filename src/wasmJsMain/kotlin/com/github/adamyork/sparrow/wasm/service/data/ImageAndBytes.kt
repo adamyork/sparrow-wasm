@@ -10,14 +10,9 @@ data class ImageAndBytes(val bytes: ByteArray, val imageBitmap: ImageBitmap) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as ImageAndBytes
-
-        if (!bytes.contentEquals(other.bytes)) return false
-        if (imageBitmap != other.imageBitmap) return false
-
-        return true
+        return other is ImageAndBytes &&
+                bytes.contentEquals(other.bytes) &&
+                imageBitmap == other.imageBitmap
     }
 
     override fun hashCode(): Int {

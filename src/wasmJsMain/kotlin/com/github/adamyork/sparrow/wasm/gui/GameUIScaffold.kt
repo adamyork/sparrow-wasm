@@ -35,7 +35,6 @@ class GameUiScaffold {
                     modifier = Modifier
                         .semantics { contentDescription = "Application scaffold" }
                         .testTag("app-scaffold"),
-                    // Apply the theme background color to the scaffold
                     containerColor = MaterialTheme.colorScheme.background
                 ) { innerPadding ->
                     Box(
@@ -43,9 +42,9 @@ class GameUiScaffold {
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.background) // Explicit background
                             .semantics {
-                                contentDescription = "com.github.adamyork.sparrow.wasm.Main page layout container"
+                                contentDescription = "Main page layout container"
                             }
-                            .testTag("app-com.github.adamyork.sparrow.wasm.main-layout")
+                            .testTag("main-layout")
                             .padding(innerPadding),
                         contentAlignment = Alignment.TopCenter
                     ) {
@@ -55,9 +54,9 @@ class GameUiScaffold {
                                 .fillMaxWidth()
                                 .semantics {
                                     contentDescription =
-                                        "com.github.adamyork.sparrow.wasm.Main content max width container"
+                                        "Main content max width container"
                                 }
-                                .testTag("app-com.github.adamyork.sparrow.wasm.main-content-wrapper")
+                                .testTag("main-content-wrapper")
                         ) {
                             game.build()
                         }

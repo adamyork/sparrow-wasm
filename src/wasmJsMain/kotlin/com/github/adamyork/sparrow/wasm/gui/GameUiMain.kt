@@ -152,6 +152,13 @@ class GameUiMain(
                             frame.drawResult.midGroundOffsetY
                         )
                     }
+                    frame.drawResult.nearFieldBitmap?.let { image ->
+                        gameUiDrawLayer.drawCollision(
+                            image,
+                            frame.drawResult.nearFieldOffsetX,
+                            frame.drawResult.nearFieldOffsetY
+                        )
+                    }
                     frame.drawResult.collisionBitmap?.let { image ->
                         gameUiDrawLayer.drawCollision(
                             image,
@@ -184,9 +191,9 @@ class GameUiMain(
             modifier = Modifier
                 .fillMaxSize()
                 .semantics {
-                    contentDescription = "com.github.adamyork.sparrow.wasm.Main content area"
+                    contentDescription = "Main content area"
                 }
-                .testTag("compose-body-com.github.adamyork.sparrow.wasm.main")
+                .testTag("main")
                 .background(
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     shape = MaterialTheme.shapes.medium
@@ -196,8 +203,8 @@ class GameUiMain(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics { contentDescription = "com.github.adamyork.sparrow.wasm.Main content stack" }
-                    .testTag("compose-body-com.github.adamyork.sparrow.wasm.main-column")
+                    .semantics { contentDescription = "Main content stack" }
+                    .testTag("main-column")
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)

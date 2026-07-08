@@ -13,11 +13,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.Particle
  */
 interface Physics {
 
-    fun applyPlayerPhysics(
-        player: Player,
-        collisionBoundaries: CollisionBoundaries,
-        collision: Collision
-    )
+    fun applyPlayerPhysics(player: Player, collisionBoundaries: CollisionBoundaries, collision: Collision)
 
     fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort)
 

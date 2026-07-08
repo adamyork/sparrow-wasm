@@ -17,7 +17,6 @@ class DefaultScoreService : ScoreService {
 
     private var internalGameMapItem: ArrayList<Item> = ArrayList()
     private var cachedTotal: Int = 0
-
     override var gameMapItem: ArrayList<Item>
         get() = internalGameMapItem
         set(value) {

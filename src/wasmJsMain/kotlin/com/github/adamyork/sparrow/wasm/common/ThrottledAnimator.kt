@@ -3,6 +3,10 @@ package com.github.adamyork.sparrow.wasm.common
 
 import kotlinx.browser.window
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 interface ThrottledAnimator {
 
     val animationTargetFps: Double

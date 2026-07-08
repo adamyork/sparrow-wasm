@@ -32,7 +32,6 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
     private val labelLargeSize = 14.sp
     private val bodySmallSize = 12.sp
 
-    // --- Light Mode Palette Definitions ---
     private val lightBgColor = Color(0xFFF8FAFC)        // --bg-color
     private val lightCardBg = Color(0xFFFFFFFF)         // --card-bg
     private val lightTextMain = Color.Black              // --text-com.github.adamyork.sparrow.wasm.main
@@ -41,7 +40,6 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
     private val lightPrimaryHover = Color(0xFF6366F1)   // --primary-hover
     private val lightBorderColor = Color(0xFFE2E8F0)    // --border-color
 
-    // --- Dark Mode Palette Definitions ---
     private val darkBgColor = Color(0xFF0F172A)         // --bg-color
     private val darkCardBg = Color(0xFF1E293B)          // --card-bg
     private val darkTextMain = Color.Black               // --text-com.github.adamyork.sparrow.wasm.main
@@ -50,7 +48,6 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
     private val darkPrimaryHover = Color(0xFFA5B4FC)    // --primary-hover
     private val darkBorderColor = Color(0xFF334155)     // --border-color
 
-    // --- Core Design Token Mappings ---
     private val primaryColor
         @Composable
         get() = if (isSystemInDarkTheme()) darkPrimary else lightPrimary
@@ -72,14 +69,10 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
     private val borderColor
         @Composable
         get() = if (isSystemInDarkTheme()) darkBorderColor else lightBorderColor
-
-    // --- Custom Token Overrides ---
-    // CSS fallback: color-mix(in srgb, var(--primary) 30%, transparent)
     private val focusOutlineColor
         @Composable
         get() = primaryColor.copy(alpha = 0.30f)
 
-    // CSS fallback: opacity: 0.55;
     private val disabledOpacity = 0.55f
 
     @Composable
@@ -107,11 +100,9 @@ class DefaultSparrowColorScheme : SparrowColorScheme {
                 outline = borderColor
             )
         }
-
-        // Apply custom button styling by overriding the generated scheme
         return baseScheme.copy(
-            primary = buttonActive, // Maps button background to Primary
-            onPrimary = Color.Black,     // Matches CSS: color: black
+            primary = buttonActive,
+            onPrimary = Color.Black,
             secondaryContainer = buttonDisabledBg,
             onSecondaryContainer = buttonDisabledText,
             outlineVariant = buttonDisabledBorder,

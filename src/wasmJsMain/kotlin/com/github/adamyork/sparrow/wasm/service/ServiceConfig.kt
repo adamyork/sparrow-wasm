@@ -8,8 +8,6 @@ import com.github.adamyork.sparrow.wasm.service.v1.DefaultWavService
 import io.ktor.client.*
 import io.ktor.client.engine.js.*
 import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.http.*
 import me.tatarka.inject.annotations.Provides
 
 /**
@@ -17,12 +15,6 @@ import me.tatarka.inject.annotations.Provides
  * Copyright (c) Adam York
  */
 interface ServiceConfig {
-
-    val assetService: AssetService
-    val physicsSettingsService: PhysicsSettingsService
-    val scoreService: ScoreService
-    val wavService: WavService
-
 
     @AppScope
     @Provides

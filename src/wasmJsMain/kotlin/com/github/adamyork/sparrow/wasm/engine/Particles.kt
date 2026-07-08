@@ -18,11 +18,7 @@ interface Particles {
 
     fun applyDustParticles(player: Player, particles: ArrayList<Particle>)
 
-    fun applyProjectileParticle(
-        player: Player,
-        enemy: Enemy,
-        particles: ArrayList<Particle>
-    ): Boolean
+    fun applyProjectileParticle(player: Player, enemy: Enemy, particles: ArrayList<Particle>): Boolean
 
     fun applyMapItemReturnParticle(player: Player, mapItem: Item, particles: ArrayList<Particle>)
 

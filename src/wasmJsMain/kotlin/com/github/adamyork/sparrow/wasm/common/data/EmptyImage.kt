@@ -3,6 +3,10 @@ package com.github.adamyork.sparrow.wasm.common.data
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Image
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class EmptyImage private constructor() {
     companion object {
         fun createEmptyImage(): Image {

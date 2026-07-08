@@ -20,6 +20,9 @@ data class DrawResult(
     val collisionOffsetY: Float,
     val foregroundOffsetX: Float,
     val foregroundOffsetY: Float,
+    val nearFieldBitmap: ImageBitmap?,
+    val nearFieldOffsetX: Float,
+    val nearFieldOffsetY: Float,
 ) {
     companion object {
         val EMPTY_DRAW_RESULT = DrawResult(
@@ -33,6 +36,9 @@ data class DrawResult(
             null,
             0f,
             0f,
+            0f,
+            0f,
+            null,
             0f,
             0f
         )

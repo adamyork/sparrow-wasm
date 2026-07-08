@@ -36,31 +36,24 @@ import org.w3c.files.Blob
 @Inject
 class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
 
-    val mapAssetMap: HashMap<Int, ImageAsset> = HashMap()
-
-    private val logger = KotlinLogging.logger {}
-
-    override lateinit var gameConfig: GameConfig
-    override lateinit var applicationYamlFile: String
     override var backgroundMusicBytesMap: HashMap<Int, ByteArray> = HashMap()
 
+    override lateinit var applicationYamlFile: String
+    override lateinit var gameConfig: GameConfig
+
+    private val logger = KotlinLogging.logger {}
+    private val mapAssetMap: HashMap<Int, ImageAsset> = HashMap()
     private var enemyInfoMap: HashMap<Int, MapElementYamlEntry> = HashMap()
     private var itemInfoMap: HashMap<Int, MapElementYamlEntry> = HashMap()
-
     private var audioMap: HashMap<Sounds, String> = HashMap()
+
     private lateinit var backgroundAudio: String
 
     private val colorMap = mapOf(
-        "green" to Color.Green,
-        "white" to Color.White,
-        "blue" to Color.Blue,
-        "darkgray" to Color.DarkGray,
-        "red" to Color.Red,
-        "gray" to Color.Gray,
-        "lightgray" to Color.LightGray,
-        "yellow" to Color.Yellow,
-        "magenta" to Color.Magenta,
-        "black" to Color.Black
+        "green" to Color.Green, "white" to Color.White, "blue" to Color.Blue,
+        "darkgray" to Color.DarkGray, "red" to Color.Red, "gray" to Color.Gray,
+        "lightgray" to Color.LightGray, "yellow" to Color.Yellow,
+        "magenta" to Color.Magenta, "black" to Color.Black
     )
 
     @OptIn(ExperimentalWasmJsInterop::class)
@@ -138,6 +131,14 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
         )
     }
 
+    override suspend fun loadPlayer(): ImageAsset {
+        return fetchImageAndBytes(
+            gameConfig.player.asset.path,
+            gameConfig.player.width,
+            gameConfig.player.height
+        )
+    }
+
     override suspend fun loadItem(id: Int): ImageAsset {
         val entry = itemInfoMap[id] ?: throw AssetServiceReferenceException("Item ID $id not found")
         return fetchImageAndBytes(entry.path, entry.width, entry.height)
@@ -146,32 +147,6 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
     override suspend fun loadEnemy(id: Int): ImageAsset {
         val entry = enemyInfoMap[id] ?: throw AssetServiceReferenceException("Enemy ID $id not found")
         return fetchImageAndBytes(entry.path, entry.width, entry.height)
-    }
-
-    override fun getTotalEnemies(): Int {
-        return gameConfig.map.enemy.positions.size
-    }
-
-    override fun getEnemyPosition(id: Int): ItemPositionAndType {
-        val enemy = enemyInfoMap[id] ?: throw AssetServiceReferenceException("no enemy found at $id")
-        return ItemPositionAndType(enemy.x, enemy.y, enemy.type)
-    }
-
-    override fun getTotalItems(): Int {
-        return gameConfig.map.item.positions.size
-    }
-
-    override fun getItemPosition(id: Int): ItemPositionAndType {
-        val item = itemInfoMap[id] ?: throw AssetServiceReferenceException("no item found at $id")
-        return ItemPositionAndType(item.x, item.y, item.type)
-    }
-
-    override suspend fun loadPlayer(): ImageAsset {
-        return fetchImageAndBytes(
-            gameConfig.player.asset.path,
-            gameConfig.player.width,
-            gameConfig.player.height
-        )
     }
 
     @OptIn(ExperimentalWasmJsInterop::class)
@@ -201,6 +176,22 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
         backgroundAudio = URL.createObjectURL(deferredBackground.await())
     }
 
+    override fun getTotalEnemies(): Int = gameConfig.map.enemy.positions.size
+
+    override fun getEnemyPosition(id: Int): ItemPositionAndType {
+        val enemy = enemyInfoMap[id] ?: throw AssetServiceReferenceException("no enemy found at $id")
+        return ItemPositionAndType(enemy.x, enemy.y, enemy.type)
+    }
+
+    override fun getTotalItems(): Int = gameConfig.map.item.positions.size
+
+    override fun getItemPosition(id: Int): ItemPositionAndType {
+        val item = itemInfoMap[id] ?: throw AssetServiceReferenceException("no item found at $id")
+        return ItemPositionAndType(item.x, item.y, item.type)
+    }
+
+    override fun getBackgroundAudio(): String = backgroundAudio
+
     override fun getAudioPath(sound: Sounds): String {
         return audioMap[sound] ?: throw AssetServiceReferenceException("no audio path for for key $sound")
     }
@@ -226,13 +217,7 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
         }
     }
 
-    override fun getBackgroundAudio(): String {
-        return backgroundAudio
-    }
-
-    override fun showCollisionMap(): Boolean {
-        return gameConfig.map.collision.visible
-    }
+    override fun showCollisionMap(): Boolean = gameConfig.map.collision.visible
 
     private fun stringToColor(stringColor: String) =
         colorMap[stringColor.lowercase()] ?: throw AssetServiceReferenceException("unknown color provided $stringColor")
@@ -249,5 +234,4 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
             skiaImage.close()
         }
     }
-
 }

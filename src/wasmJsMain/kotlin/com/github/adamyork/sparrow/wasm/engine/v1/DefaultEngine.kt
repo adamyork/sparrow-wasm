@@ -243,6 +243,9 @@ class DefaultEngine @AppScope @Inject constructor(
             collisionBitmap = if (assetService.showCollisionMap()) map.collisionAsset.imageBitmap else null,
             collisionOffsetX = viewPort.x.toFloat(),
             collisionOffsetY = viewPort.y.toFloat(),
+            nearFieldBitmap = map.nearFieldAsset.imageAndBytes.imageBitmap,
+            nearFieldOffsetX = viewPort.x.toFloat(),
+            nearFieldOffsetY = viewPort.y.toFloat()
         )
     }
 
