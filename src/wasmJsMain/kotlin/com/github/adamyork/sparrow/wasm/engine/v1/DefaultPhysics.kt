@@ -25,7 +25,9 @@ import kotlin.math.*
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class DefaultPhysics @AppScope @Inject constructor(
+@AppScope
+@Inject
+class DefaultPhysics(
     private val statusProviderFactory: () -> DefaultStatusProvider,
     val physicsSettingsService: PhysicsSettingsService
 ) : Physics {
@@ -146,36 +148,24 @@ class DefaultPhysics @AppScope @Inject constructor(
         for (i in mapParticles.indices.reversed()) {
             val p = mapParticles[i]
             if (p.type == ParticleType.COLLISION) {
-                val nextFrame = p.frame + (1.0 * dt * speed).toInt().coerceAtLeast(1)
-                var nextRadius = p.radius
-                var positionX = p.x.toDouble()
-                var positionY = p.y.toDouble()
+                p.frame += (1.0 * dt * speed).toInt().coerceAtLeast(1)
                 if (p.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
-                    nextRadius =
+                    p.radius =
                         (p.radius + (physicsSettingsService.collisionParticleSizeMultiplier * dt * speed)).toInt()
                     val pos = getCollisionParticlePosition(
-                        nextRadius.toFloat(),
+                        p.radius.toFloat(),
                         p.id.toFloat(),
                         p.originX,
                         p.originY
                     )
-                    positionX = pos.first.toDouble()
-                    positionY = pos.second.toDouble()
-                } else {
-                    if (p.frame <= p.lifetime) {
-                        positionY += (physicsSettingsService.gravity * dt * speed)
-                    }
+                    p.x = pos.first.toInt() + p.xJitter
+                    p.y = pos.second.toInt() + p.yJitter
+                } else if (p.frame <= p.lifetime) {
+                    p.y += (physicsSettingsService.gravity * dt * speed).toInt()
                 }
-                val updated = p.copy(
-                    x = positionX.toInt() + p.xJitter,
-                    y = positionY.toInt() + p.yJitter,
-                    frame = nextFrame,
-                    radius = nextRadius
-                )
-                if (!updated.isActiveVisibleCollisionParticle(viewPort)) {
+
+                if (!p.isActiveVisibleCollisionParticle(viewPort)) {
                     mapParticles.removeAt(i)
-                } else {
-                    mapParticles[i] = updated
                 }
             }
         }
@@ -190,12 +180,10 @@ class DefaultPhysics @AppScope @Inject constructor(
                 if (p.frame >= p.lifetime) {
                     mapParticles.removeAt(i)
                 } else {
-                    val growth = 1.0 * dt * speed
-                    mapParticles[i] = p.copy(
-                        width = (p.width + growth).toInt().coerceAtMost(40),
-                        height = (p.height + growth).toInt().coerceAtMost(40),
-                        frame = p.frame + 1
-                    )
+                    val growth = (1.0 * dt * speed).toInt()
+                    p.width = (p.width + growth).coerceAtMost(40)
+                    p.height = (p.height + growth).coerceAtMost(40)
+                    p.frame += 1
                 }
             }
         }
@@ -218,18 +206,15 @@ class DefaultPhysics @AppScope @Inject constructor(
                 } else {
                     Pair(1.0, 0.0)
                 }
-                val nextX = p.x + (unitVector.first * speed)
-                val nextY = p.y + (unitVector.second * speed)
-                val updated = p.copy(x = nextX.roundToInt(), y = nextY.roundToInt(), frame = p.frame + 1)
-                if (!isParticleInViewPort(updated, viewPort)) {
-                    mapParticles.removeAt(i)
-                } else {
-                    mapParticles[i] = updated
-                }
-            } else {
-                if (p.frame > p.lifetime) {
+                p.x += (unitVector.first * speed).roundToInt()
+                p.y += (unitVector.second * speed).roundToInt()
+                p.frame += 1
+
+                if (!isParticleInViewPort(p, viewPort)) {
                     mapParticles.removeAt(i)
                 }
+            } else if (p.frame > p.lifetime) {
+                mapParticles.removeAt(i)
             }
         }
     }
@@ -250,28 +235,21 @@ class DefaultPhysics @AppScope @Inject constructor(
         for (i in mapParticles.indices.reversed()) {
             val p = mapParticles[i]
             if (p.type == ParticleType.MAP_ITEM_RETURN) {
-                val nextFrame = p.frame + 1
+                p.frame += 1
                 val localCoords = viewPort.globalToLocal(p.originX, p.originY)
                 val dx = localCoords.first - p.x.toDouble()
                 val dy = localCoords.second - p.y.toDouble()
                 val distance = sqrt(dx * dx + dy * dy)
-                if (distance < physicsSettingsService.mapItemReturnParticleMinTravelDist || nextFrame >= p.lifetime) {
+                if (distance < physicsSettingsService.mapItemReturnParticleMinTravelDist || p.frame >= p.lifetime) {
                     mapParticles.removeAt(i)
                 } else {
                     val moveStep = speed * dt
                     val ratio = moveStep / distance
-                    val nextX = p.x + (dx * ratio)
-                    val nextY = p.y + (dy * ratio)
-                    mapParticles[i] = p.copy(
-                        x = nextX.toInt(),
-                        y = nextY.toInt(),
-                        frame = nextFrame
-                    )
+                    p.x += (dx * ratio).toInt()
+                    p.y += (dy * ratio).toInt()
                 }
-            } else {
-                if (p.frame > p.lifetime) {
-                    mapParticles.removeAt(i)
-                }
+            } else if (p.frame > p.lifetime) {
+                mapParticles.removeAt(i)
             }
         }
     }

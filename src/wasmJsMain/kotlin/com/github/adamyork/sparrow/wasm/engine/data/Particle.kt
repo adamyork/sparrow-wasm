@@ -8,20 +8,20 @@ import com.github.adamyork.sparrow.wasm.common.data.ViewPort
  * Author: Adam York
  * Copyright (c) Adam York
  */
-data class Particle(
+class Particle(
     val id: Int,
-    val x: Int,
-    val y: Int,
+    var x: Int,
+    var y: Int,
     val originX: Int,
     val originY: Int,
-    val width: Int,
-    val height: Int,
+    var width: Int,
+    var height: Int,
     val type: ParticleType,
-    val frame: Int,
+    var frame: Int,
     val lifetime: Int,
     val xJitter: Int,
     val yJitter: Int,
-    val radius: Int,
+    var radius: Int,
     val color: Color,
     val shape: ParticleShape
 ) {

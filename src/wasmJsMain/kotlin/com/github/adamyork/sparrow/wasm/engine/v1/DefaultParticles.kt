@@ -154,27 +154,34 @@ class DefaultParticles : Particles {
     override fun populateColorMap(assetService: AssetService) {
         colorMap = mapOf(
             ParticleType.DUST to Color(
-                assetService.gameConfig.particle.player.movement.color.r.toFloat(),
-                assetService.gameConfig.particle.player.movement.color.g.toFloat(),
-                assetService.gameConfig.particle.player.movement.color.b.toFloat(),
-                assetService.gameConfig.particle.player.movement.color.a.toFloat()
+                assetService.gameConfig.particle.player.movement.color.r.toFloat() / 255f,
+                assetService.gameConfig.particle.player.movement.color.g.toFloat() / 255f,
+                assetService.gameConfig.particle.player.movement.color.b.toFloat() / 255f,
+                assetService.gameConfig.particle.player.movement.color.a.toFloat() / 255f
             ),
             ParticleType.COLLISION to Color(
-                assetService.gameConfig.particle.player.collision.color.r.toFloat(),
-                assetService.gameConfig.particle.player.collision.color.g.toFloat(),
-                assetService.gameConfig.particle.player.collision.color.b.toFloat(),
-                assetService.gameConfig.particle.player.collision.color.a.toFloat()
+                assetService.gameConfig.particle.player.collision.color.r.toFloat() / 255f,
+                assetService.gameConfig.particle.player.collision.color.g.toFloat() / 255f,
+                assetService.gameConfig.particle.player.collision.color.b.toFloat() / 255f,
+                assetService.gameConfig.particle.player.collision.color.a.toFloat() / 255f
             ),
             ParticleType.PROJECTILE to Color(
-                assetService.gameConfig.particle.enemy.projectile.color.r.toFloat(),
-                assetService.gameConfig.particle.enemy.projectile.color.g.toFloat(),
-                assetService.gameConfig.particle.enemy.projectile.color.b.toFloat(),
-                assetService.gameConfig.particle.enemy.projectile.color.a.toFloat()
+                assetService.gameConfig.particle.enemy.projectile.color.r.toFloat() / 255f,
+                assetService.gameConfig.particle.enemy.projectile.color.g.toFloat() / 255f,
+                assetService.gameConfig.particle.enemy.projectile.color.b.toFloat() / 255f,
+                assetService.gameConfig.particle.enemy.projectile.color.a.toFloat() / 255f
             )
         )
     }
 
-    private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int =
-        particles.count { it.type == ParticleType.PROJECTILE }
+    private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int {
+        var count = 0
+        for (i in particles.indices) {
+            if (particles[i].type == ParticleType.PROJECTILE) {
+                count++
+            }
+        }
+        return count
+    }
 
 }
