@@ -123,4 +123,34 @@ class Player(
     override fun nestedDirection(): Direction {
         return this.direction
     }
+
+    fun getNextJumpState(
+        nextY: Int,
+        topBoundary: Int,
+        bottomBoundary: Int,
+        jumpDistance: Double
+    ): PlayerJumpingState {
+        val reachedCeiling = nextY <= topBoundary
+        val reachedJumpApex = jumping == PlayerJumpingState.RISING && nextY <= (bottomBoundary - jumpDistance)
+        val hitGround = nextY >= bottomBoundary
+        val isDescending = nextY > y
+        if (hitGround) return PlayerJumpingState.GROUNDED
+        if (reachedCeiling || reachedJumpApex) return PlayerJumpingState.HEIGHT_REACHED
+        return when (jumping) {
+            PlayerJumpingState.INITIAL -> PlayerJumpingState.RISING
+            PlayerJumpingState.HEIGHT_REACHED,
+            PlayerJumpingState.GROUNDED,
+            PlayerJumpingState.FALLING -> if (isDescending) PlayerJumpingState.FALLING else jumping
+            PlayerJumpingState.RISING -> PlayerJumpingState.RISING
+        }
+    }
+
+    fun getNextCollidingState(velocityX: Double, nextImmunityTicks: Int): GameElementCollisionState {
+        val isCurrentlyColliding = colliding == GameElementCollisionState.COLLIDING
+        return if (isCurrentlyColliding && velocityX == 0.0 && nextImmunityTicks <= 0) {
+            GameElementCollisionState.FREE
+        } else {
+            colliding
+        }
+    }
 }

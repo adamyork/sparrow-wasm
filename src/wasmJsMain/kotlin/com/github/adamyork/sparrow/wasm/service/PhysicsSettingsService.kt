@@ -16,5 +16,12 @@ interface PhysicsSettingsService {
     var xAccelerationRate: Double
     var xDeaccelerationRate: Double
     var projectileSpeed: Double
-
+    var collisionVelocityDecay: Double
+    var minActiveVelocity: Double
+    var collisionKnockbackStrength: Int
+    var collisionParticleSpeedCoefficient: Double
+    var collisionParticleSizeMultiplier: Int
+    var mapItemReturnParticleMinTravelDist: Double
+    var mapItemReturnParticleSpeed: Double
+    var dustParticleSpeedCoefficient: Double
 }

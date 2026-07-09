@@ -27,7 +27,6 @@ class DefaultParticles : Particles {
         private const val MAX_ACTIVE_PROJECTILES: Int = 1
         private const val COLLISION_PARTICLE_COUNT: Int = 360
         private const val PROJECTILE_SIZE: Int = 24
-        private const val MAP_ITEM_RETURN_SIZE: Int = 32
         private const val BASE_DIAMETER_MULTIPLIER = 3
         private const val BASE_DIAMETER_MULTIPLIER_BUFFER = 6
         private const val DUST_Y_OFFSET = 10

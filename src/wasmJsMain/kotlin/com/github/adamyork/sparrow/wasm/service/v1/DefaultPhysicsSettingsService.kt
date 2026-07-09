@@ -22,5 +22,13 @@ class DefaultPhysicsSettingsService : PhysicsSettingsService {
     override var xAccelerationRate: Double = 2.5
     override var xDeaccelerationRate: Double = 1.6
     override var projectileSpeed: Double = 10.0
+    override var collisionVelocityDecay: Double = 0.85
+    override var minActiveVelocity: Double = 0.5
+    override var collisionKnockbackStrength: Int = 15
+    override var collisionParticleSpeedCoefficient: Double = .25
+    override var collisionParticleSizeMultiplier: Int = 10
+    override var mapItemReturnParticleMinTravelDist: Double = 5.0
+    override var mapItemReturnParticleSpeed: Double = 30.0
+    override var dustParticleSpeedCoefficient: Double = .25
 
 }

@@ -15,6 +15,7 @@ import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
+import com.github.adamyork.sparrow.wasm.engine.data.PlayerPhysicsResult
 import com.github.adamyork.sparrow.wasm.service.PhysicsSettingsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
@@ -41,26 +42,26 @@ class DefaultPhysics @AppScope @Inject constructor(
     ) {
         val deltaTime = statusProvider.getDeltaTimeCoefficient()
         val isColliding = player.colliding == GameElementCollisionState.COLLIDING
-        var velocityX = if (isColliding) {
-            player.vx * 0.85.pow(deltaTime)
-        } else {
-            when (player.moving) {
-                PlayerMovingState.MOVING -> {
-                    val directionModifier = if (player.direction == Direction.LEFT) -1.0 else 1.0
-                    val acceleration = physicsSettingsService.xAccelerationRate * deltaTime * directionModifier
-                    (player.vx + acceleration).coerceIn(
-                        -physicsSettingsService.maxXVelocity,
-                        physicsSettingsService.maxXVelocity
-                    )
-                }
+        val nextImmunityTicks = (player.immunityTicks - 1).coerceAtLeast(0)
+        val physicsResult = PlayerPhysicsResult()
+        applyVerticalPhysics(player, collisionBoundaries, deltaTime, collision, physicsResult)
+        applyHorizontalPhysics(player, collisionBoundaries, deltaTime, isColliding, physicsResult)
+        player.x = physicsResult.nextX
+        player.vx = physicsResult.velocityX
+        player.y = physicsResult.nextY
+        player.vy = physicsResult.velocityY
+        player.jumping = physicsResult.nextJumping
+        player.immunityTicks = nextImmunityTicks
+        player.colliding = player.getNextCollidingState(physicsResult.velocityX, nextImmunityTicks)
+    }
 
-                else -> {
-                    val frictionDecay = physicsSettingsService.friction.coerceIn(0.0, 1.0).pow(deltaTime)
-                    player.vx * frictionDecay
-                }
-            }
-        }
-        if (abs(velocityX) < 0.5) velocityX = 0.0
+    private fun applyVerticalPhysics(
+        player: Player,
+        collisionBoundaries: CollisionBoundaries,
+        deltaTime: Double,
+        collision: Collision,
+        physicsResult: PlayerPhysicsResult
+    ) {
         val initialJumpVelocity = min(physicsSettingsService.jumpDistance / 8.0, physicsSettingsService.maxYVelocity)
         val accelerationAdjustment = physicsSettingsService.yVelocityCoefficient * player.vy * deltaTime
         val boundedAndAdjustedVelocityY =
@@ -73,35 +74,46 @@ class DefaultPhysics @AppScope @Inject constructor(
         val gravityEffect = physicsSettingsService.gravity * deltaTime
         val nextY = (player.y + gravityEffect - (velocityY * deltaTime)).roundToInt()
             .coerceIn(collisionBoundaries.top, collisionBoundaries.bottom)
-        val reachedCeiling = nextY <= collisionBoundaries.top
-        val reachedJumpApex =
-            player.jumping == PlayerJumpingState.RISING && nextY <= (collisionBoundaries.bottom - physicsSettingsService.jumpDistance)
-        val hitGround = nextY >= collisionBoundaries.bottom
-        val nextJumping = when {
-            hitGround -> PlayerJumpingState.GROUNDED
-            reachedCeiling || reachedJumpApex -> PlayerJumpingState.HEIGHT_REACHED
-            player.jumping == PlayerJumpingState.INITIAL -> PlayerJumpingState.RISING
-            else -> player.jumping
-        }
+        val nextJumping = player.getNextJumpState(
+            nextY = nextY,
+            topBoundary = collisionBoundaries.top,
+            bottomBoundary = collisionBoundaries.bottom,
+            jumpDistance = physicsSettingsService.jumpDistance
+        )
+        physicsResult.nextY = nextY
+        physicsResult.nextJumping = nextJumping
+        physicsResult.velocityY = if (nextJumping == PlayerJumpingState.GROUNDED) 0.0 else velocityY
         if (player.y != nextY) {
             player.y = nextY
             collision.updateCollisionXBoundaries(player, collisionBoundaries)
         }
-        val safeLeft = min(collisionBoundaries.left, collisionBoundaries.right)
-        val safeRight = max(collisionBoundaries.left, collisionBoundaries.right)
-        val minBound = max(0, safeLeft)
+    }
+
+    private fun applyHorizontalPhysics(
+        player: Player,
+        collisionBoundaries: CollisionBoundaries,
+        deltaTime: Double,
+        isColliding: Boolean,
+        physicsResult: PlayerPhysicsResult
+    ) {
+        val targetVelocity = when {
+            isColliding -> player.vx * physicsSettingsService.collisionVelocityDecay.pow(deltaTime)
+            player.moving == PlayerMovingState.MOVING -> {
+                val directionModifier = if (player.direction == Direction.LEFT) -1.0 else 1.0
+                val acceleration = physicsSettingsService.xAccelerationRate * deltaTime * directionModifier
+                (player.vx + acceleration).coerceIn(
+                    -physicsSettingsService.maxXVelocity,
+                    physicsSettingsService.maxXVelocity
+                )
+            }
+
+            else -> player.vx * physicsSettingsService.friction.coerceIn(0.0, 1.0).pow(deltaTime)
+        }
+        val velocityX = if (abs(targetVelocity) < physicsSettingsService.minActiveVelocity) 0.0 else targetVelocity
         val deltaX = velocityX * physicsSettingsService.xMovementDistance * deltaTime
-        val nextX = (player.x + deltaX).roundToInt().coerceIn(minBound, safeRight)
-        val nextImmunityTicks = (player.immunityTicks - 1).coerceAtLeast(0)
-        player.x = nextX
-        player.vx = velocityX
-        player.y = nextY
-        player.vy = if (nextJumping == PlayerJumpingState.GROUNDED) 0.0 else velocityY
-        player.jumping = nextJumping
-        player.immunityTicks = nextImmunityTicks
-        player.colliding = if (isColliding && velocityX == 0.0 && nextImmunityTicks <= 0)
-            GameElementCollisionState.FREE
-        else player.colliding
+        val nextX = (player.x + deltaX).roundToInt().coerceIn(collisionBoundaries.minX, collisionBoundaries.maxX)
+        physicsResult.nextX = nextX
+        physicsResult.velocityX = velocityX
     }
 
     override fun applyPlayerCollisionPhysics(player: Player, rect: Rect?, viewPort: ViewPort) {
@@ -109,7 +121,7 @@ class DefaultPhysics @AppScope @Inject constructor(
         val playerCenterX = player.x + (player.width / 2)
         val enemyCenterX = enemyRect.left + (enemyRect.width / 2)
         val knockbackDirection = if (playerCenterX < enemyCenterX) -1.0 else 1.0
-        val knockbackStrength = 15.0
+        val knockbackStrength = physicsSettingsService.collisionKnockbackStrength
         val projectedVx = knockbackStrength * knockbackDirection
         val projectedX = (player.x + projectedVx).toInt()
         val effectiveWidthMultiplier = if (player.direction == Direction.LEFT) 2 else 1
@@ -130,16 +142,17 @@ class DefaultPhysics @AppScope @Inject constructor(
         viewPort: ViewPort
     ) {
         val dt = statusProvider.getDeltaTimeCoefficient()
-        val speedFactor = 0.25
+        val speed = physicsSettingsService.collisionParticleSpeedCoefficient
         for (i in mapParticles.indices.reversed()) {
             val p = mapParticles[i]
             if (p.type == ParticleType.COLLISION) {
-                val nextFrame = p.frame + (1.0 * dt * speedFactor).toInt().coerceAtLeast(1)
+                val nextFrame = p.frame + (1.0 * dt * speed).toInt().coerceAtLeast(1)
                 var nextRadius = p.radius
                 var positionX = p.x.toDouble()
                 var positionY = p.y.toDouble()
                 if (p.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
-                    nextRadius = (p.radius + (10 * dt * speedFactor)).toInt()
+                    nextRadius =
+                        (p.radius + (physicsSettingsService.collisionParticleSizeMultiplier * dt * speed)).toInt()
                     val pos = getCollisionParticlePosition(
                         nextRadius.toFloat(),
                         p.id.toFloat(),
@@ -150,7 +163,7 @@ class DefaultPhysics @AppScope @Inject constructor(
                     positionY = pos.second.toDouble()
                 } else {
                     if (p.frame <= p.lifetime) {
-                        positionY += (physicsSettingsService.gravity * dt * speedFactor)
+                        positionY += (physicsSettingsService.gravity * dt * speed)
                     }
                 }
                 val updated = p.copy(
@@ -170,13 +183,14 @@ class DefaultPhysics @AppScope @Inject constructor(
 
     override fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>) {
         val dt = statusProvider.getDeltaTimeCoefficient()
+        val speed = physicsSettingsService.dustParticleSpeedCoefficient
         for (i in mapParticles.size - 1 downTo 0) {
             val p = mapParticles[i]
             if (p.type == ParticleType.DUST) {
                 if (p.frame >= p.lifetime) {
                     mapParticles.removeAt(i)
                 } else {
-                    val growth = 1.0 * dt
+                    val growth = 1.0 * dt * speed
                     mapParticles[i] = p.copy(
                         width = (p.width + growth).toInt().coerceAtMost(40),
                         height = (p.height + growth).toInt().coerceAtMost(40),
@@ -232,7 +246,7 @@ class DefaultPhysics @AppScope @Inject constructor(
 
     override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort) {
         val dt = statusProvider.getDeltaTimeCoefficient()
-        val speed = 30.0
+        val speed = physicsSettingsService.mapItemReturnParticleSpeed
         for (i in mapParticles.indices.reversed()) {
             val p = mapParticles[i]
             if (p.type == ParticleType.MAP_ITEM_RETURN) {
@@ -241,7 +255,7 @@ class DefaultPhysics @AppScope @Inject constructor(
                 val dx = localCoords.first - p.x.toDouble()
                 val dy = localCoords.second - p.y.toDouble()
                 val distance = sqrt(dx * dx + dy * dy)
-                if (distance < 5.0 || nextFrame >= p.lifetime) {
+                if (distance < physicsSettingsService.mapItemReturnParticleMinTravelDist || nextFrame >= p.lifetime) {
                     mapParticles.removeAt(i)
                 } else {
                     val moveStep = speed * dt

@@ -192,13 +192,7 @@ class DefaultCollision(
                 if (!isCollisionAnimating) {
                     logger.info { "collision adding particles" }
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
-                    particles.applyCollisionParticles(enemy.x, enemy.y, managedMapParticles)
-                    if (scoreService.getTotal() != scoreService.getRemaining()) {
-                        val firstMapItem =
-                            gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == GameElementState.INACTIVE }
-                                ?: throw IllegalStateException("needs to be at least one map item")
-                        particles.applyMapItemReturnParticle(player, firstMapItem, managedMapParticles)
-                    }
+                    applyCollisionAndMapItemReturnParticles(particles, player, managedMapParticles, gameMap)
                 }
                 playerIsColliding = true
             }
@@ -257,17 +251,21 @@ class DefaultCollision(
         }
         val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(particleList, viewPort)
         if (playerIsColliding && !isCollisionAnimating) {
-            particles.applyCollisionParticles(player.x, player.y, particleList)
-            if (scoreService.getTotal() != scoreService.getRemaining()) {
-                val firstMapItem =
-                    gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == GameElementState.INACTIVE }
-                        ?: throw IllegalStateException("needs to be at least one map item")
-                particles.applyMapItemReturnParticle(player, firstMapItem, particleList)
-            }
+            applyCollisionAndMapItemReturnParticles(particles, player, particleList, gameMap)
         }
         val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())
         if (playerIsColliding && adjustedTargetRect != null) {
             physics.applyPlayerCollisionPhysics(player, adjustedTargetRect, viewPort)
+        }
+    }
+
+    private fun applyCollisionAndMapItemReturnParticles(particles:Particles, player:Player, particleList:ArrayList<Particle>, gameMap:GameMap) {
+        particles.applyCollisionParticles(player.x, player.y, particleList)
+        if (scoreService.getTotal() != scoreService.getRemaining()) {
+            val firstMapItem =
+                gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == GameElementState.INACTIVE }
+                    ?: throw IllegalStateException("needs to be at least one map item")
+            particles.applyMapItemReturnParticle(player, firstMapItem, particleList)
         }
     }
 

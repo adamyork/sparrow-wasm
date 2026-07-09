@@ -2,6 +2,7 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.BlockerEnemy
@@ -17,7 +18,6 @@ import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
-import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
 import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
@@ -39,7 +39,7 @@ class DefaultEngine @AppScope @Inject constructor(
     private val physics: Physics,
     private val collision: Collision,
     private val particles: Particles,
-    private val audioQueue: DefaultAudioQueue,
+    private val audioQueue: AudioQueue,
     private val scoreService: ScoreService,
     private val assetService: AssetService,
     private val statusProvider: StatusProvider

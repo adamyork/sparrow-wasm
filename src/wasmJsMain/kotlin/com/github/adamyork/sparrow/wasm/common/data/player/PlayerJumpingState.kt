@@ -9,6 +9,5 @@ enum class PlayerJumpingState {
     INITIAL,
     RISING,
     HEIGHT_REACHED,
-    //TODO this state should not be dead
     FALLING
 }

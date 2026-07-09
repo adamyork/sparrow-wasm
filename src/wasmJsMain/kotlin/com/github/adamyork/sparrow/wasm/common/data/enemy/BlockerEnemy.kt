@@ -68,12 +68,16 @@ class BlockerEnemy(
         movementCarryX = scaledMovement - movementStep
 
         if (movementStep <= 0) {
-            return if (enemyPosition.direction == Direction.LEFT && enemyPosition.x <= leftBound) {
-                EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.RIGHT)
-            } else if (enemyPosition.direction == Direction.RIGHT && enemyPosition.x >= rightBound) {
-                EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.LEFT)
-            } else {
-                EnemyPosition(enemyPosition.x, enemyPosition.y, enemyPosition.direction)
+            return when (enemyPosition.direction) {
+                Direction.LEFT if enemyPosition.x <= leftBound -> {
+                    EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.RIGHT)
+                }
+                Direction.RIGHT if enemyPosition.x >= rightBound -> {
+                    EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.LEFT)
+                }
+                else -> {
+                    EnemyPosition(enemyPosition.x, enemyPosition.y, enemyPosition.direction)
+                }
             }
         }
 

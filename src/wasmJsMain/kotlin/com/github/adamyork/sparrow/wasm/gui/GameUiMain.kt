@@ -153,7 +153,7 @@ class GameUiMain(
                         )
                     }
                     frame.drawResult.nearFieldBitmap?.let { image ->
-                        gameUiDrawLayer.drawCollision(
+                        gameUiDrawLayer.drawNearField(
                             image,
                             frame.drawResult.nearFieldOffsetX,
                             frame.drawResult.nearFieldOffsetY
