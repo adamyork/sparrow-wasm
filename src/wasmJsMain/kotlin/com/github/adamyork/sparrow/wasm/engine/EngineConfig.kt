@@ -1,6 +1,8 @@
 package com.github.adamyork.sparrow.wasm.engine
 
 import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.wasm.common.data.enemy.DefaultMapElementFactory
+import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultCollision
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultEngine
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultParticles
@@ -28,5 +30,9 @@ interface EngineConfig {
     @AppScope
     @Provides
     fun provideParticles(impl: DefaultParticles): Particles = impl
+
+    @AppScope
+    @Provides
+    fun provideMapElementFactory(impl: DefaultMapElementFactory): MapElementFactory = impl
 
 }

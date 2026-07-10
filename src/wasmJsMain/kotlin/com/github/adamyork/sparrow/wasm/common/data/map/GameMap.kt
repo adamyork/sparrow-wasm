@@ -1,25 +1,14 @@
 package com.github.adamyork.sparrow.wasm.common.data.map
 
-import com.github.adamyork.sparrow.wasm.common.data.Cell
-import com.github.adamyork.sparrow.wasm.common.data.Direction
-import com.github.adamyork.sparrow.wasm.common.data.FrameMetadata
-import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
-import com.github.adamyork.sparrow.wasm.common.data.GameElementState
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
-import com.github.adamyork.sparrow.wasm.common.data.enemy.BlockerEnemy
 import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
-import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
-import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyPosition
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
-import com.github.adamyork.sparrow.wasm.common.data.enemy.RunnerEnemy
-import com.github.adamyork.sparrow.wasm.common.data.enemy.ShooterEnemy
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
-import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
+import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 
 /**
@@ -27,7 +16,7 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
  * Copyright (c) Adam York
  */
 
- class GameMap(
+class GameMap(
     var state: GameMapState,
     val farGroundAsset: ImageAsset,
     val midGroundAsset: ImageAsset,
@@ -37,7 +26,8 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
     val height: Int,
     var items: ArrayList<Item>,
     var enemies: ArrayList<Enemy>,
-    var particles: ArrayList<Particle>
+    var particles: ArrayList<Particle>,
+    val mapElementFactory: MapElementFactory
 ) {
 
     companion object {
@@ -64,121 +54,43 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
     fun generateMapItems(collectibleItemAsset: ImageAsset, finishItemAsset: ImageAsset, assetService: AssetService) {
         val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
         for (i in 0..<assetService.getTotalItems()) {
-            val itemType = ItemType.from(assetService.getItemPosition(i).type)
-            if (itemType == ItemType.FINISH) {
-                items.add(
-                    FinishItem(
-                        finishItemAsset.width,
-                        finishItemAsset.height,
-                        assetService.getItemPosition(i).x,
-                        assetService.getItemPosition(i).y,
-                        ItemType.FINISH,
-                        GameElementState.INACTIVE,
-                        finishItemAsset.imageAndBytes,
-                        FrameMetadata(1, Cell(1, 1, width, height)),
-                        i,
-                        animationFps
-                    )
+            val position = assetService.getItemPosition(i)
+            val itemType = ItemType.from(position.type)
+            val targetImageAsset = if (itemType == ItemType.FINISH) finishItemAsset else collectibleItemAsset
+            items.add(
+                mapElementFactory.createCollectibleItem(
+                    targetImageAsset,
+                    position,
+                    itemType,
+                    targetImageAsset.width,
+                    targetImageAsset.height,
+                    i,
+                    animationFps
                 )
-            } else {
-                items.add(
-                    CollectibleItem(
-                        collectibleItemAsset.width,
-                        collectibleItemAsset.height,
-                        assetService.getItemPosition(i).x,
-                        assetService.getItemPosition(i).y,
-                        ItemType.COLLECTABLE,
-                        GameElementState.ACTIVE,
-                        collectibleItemAsset.imageAndBytes,
-                        FrameMetadata(1, Cell(1, 1, width, height)),
-                        i,
-                        animationFps
-                    )
-                )
-            }
+            )
         }
     }
 
     fun generateMapEnemies(blockerEnemyAsset: ImageAsset, shooterEnemyAsset: ImageAsset, assetService: AssetService) {
         val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
         for (i in 0..<assetService.getTotalEnemies()) {
-            val itemType = EnemyType.from(assetService.getEnemyPosition(i).type)
-            when (itemType) {
-                EnemyType.BLOCKER -> {
-                    enemies.add(
-                        BlockerEnemy(
-                            assetService.getEnemyPosition(i).x,
-                            assetService.getEnemyPosition(i).y,
-                            blockerEnemyAsset.width,
-                            blockerEnemyAsset.height,
-                            GameElementState.ACTIVE,
-                            FrameMetadata(1, Cell(1, 1, width, height)),
-                            blockerEnemyAsset.imageAndBytes,
-                            EnemyType.BLOCKER,
-                            assetService.getEnemyPosition(i).x,
-                            assetService.getEnemyPosition(i).y,
-                            EnemyPosition(
-                                assetService.getEnemyPosition(i).x,
-                                assetService.getEnemyPosition(i).y,
-                                Direction.LEFT
-                            ),
-                            GameElementCollisionState.FREE,
-                            EnemyInteractionState.ISOLATED,
-                            animationFps
-                        )
-                    )
-                }
-
-                EnemyType.SHOOTER -> {
-                    enemies.add(
-                        ShooterEnemy(
-                            assetService.getEnemyPosition(i).x,
-                            assetService.getEnemyPosition(i).y,
-                            shooterEnemyAsset.width,
-                            shooterEnemyAsset.height,
-                            GameElementState.ACTIVE,
-                            FrameMetadata(1, Cell(1, 1, width, height)),
-                            shooterEnemyAsset.imageAndBytes,
-                            EnemyType.SHOOTER,
-                            assetService.getEnemyPosition(i).x,
-                            assetService.getEnemyPosition(i).y,
-                            EnemyPosition(
-                                assetService.getEnemyPosition(i).x,
-                                assetService.getEnemyPosition(i).y,
-                                Direction.LEFT
-                            ),
-                            GameElementCollisionState.FREE,
-                            EnemyInteractionState.ISOLATED,
-                            animationFps
-                        )
-                    )
-                }
-
-                else -> {
-                    enemies.add(
-                        RunnerEnemy(
-                            assetService.getEnemyPosition(i).x,
-                            assetService.getEnemyPosition(i).y,
-                            shooterEnemyAsset.width,
-                            shooterEnemyAsset.height,
-                            GameElementState.INACTIVE,
-                            FrameMetadata(1, Cell(1, 1, width, height)),
-                            shooterEnemyAsset.imageAndBytes,
-                            EnemyType.RUNNER,
-                            assetService.getEnemyPosition(i).x,
-                            assetService.getEnemyPosition(i).y,
-                            EnemyPosition(
-                                assetService.getEnemyPosition(i).x,
-                                assetService.getEnemyPosition(i).y,
-                                Direction.LEFT
-                            ),
-                            GameElementCollisionState.FREE,
-                            EnemyInteractionState.ISOLATED,
-                            animationFps
-                        )
-                    )
-                }
+            val enemyType = EnemyType.from(assetService.getEnemyPosition(i).type)
+            val position = assetService.getEnemyPosition(i)
+            val targetImageAsset = if (enemyType == EnemyType.BLOCKER) {
+                blockerEnemyAsset
+            } else {
+                shooterEnemyAsset
             }
+            enemies.add(
+                mapElementFactory.createEnemy(
+                    targetImageAsset,
+                    position,
+                    enemyType,
+                    targetImageAsset.width,
+                    targetImageAsset.height,
+                    animationFps
+                )
+            )
         }
     }
 

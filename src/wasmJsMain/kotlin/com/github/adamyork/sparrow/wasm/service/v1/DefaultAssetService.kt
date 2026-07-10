@@ -7,6 +7,7 @@ import com.charleskorn.kaml.Yaml
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.GameConfig
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
+import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.service.AssetService
@@ -34,7 +35,10 @@ import org.w3c.files.Blob
  */
 @AppScope
 @Inject
-class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
+class DefaultAssetService(
+    private val httpClient: HttpClient,
+    private val mapElementFactory: MapElementFactory
+) : AssetService {
 
     override var backgroundMusicBytesMap: HashMap<Int, ByteArray> = HashMap()
 
@@ -127,7 +131,8 @@ class DefaultAssetService(private val httpClient: HttpClient) : AssetService {
             assets[3].imageAndBytes.imageBitmap.height,
             ArrayList(),
             ArrayList(),
-            ArrayList()
+            ArrayList(),
+            mapElementFactory
         )
     }
 

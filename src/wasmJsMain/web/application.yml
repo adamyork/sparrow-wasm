@@ -80,7 +80,7 @@ map:
       text: "Collect all the greenies!"
       color: "black"
     finish:
-      text: "Find the finish flag!"
+      text: "Find the golden greenie!"
       color: "red"
     complete:
       text: "You won!"

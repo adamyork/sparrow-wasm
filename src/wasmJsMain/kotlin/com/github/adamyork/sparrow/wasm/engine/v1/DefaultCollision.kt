@@ -7,7 +7,6 @@ import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
 import com.github.adamyork.sparrow.wasm.common.data.enemy.ShooterEnemy
-import com.github.adamyork.sparrow.wasm.common.data.item.FinishItem
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
@@ -145,15 +144,11 @@ class DefaultCollision(
             if (item.state == GameElementState.ACTIVE && playerRect.overlaps(item.toRect())) {
                 if (item.type == ItemType.FINISH) {
                     newGameState = GameMapState.COMPLETED
-                    val finishItem = item as FinishItem
-                    finishItem.state = GameElementState.INACTIVE
-                    items[i] = finishItem
-                } else {
-                    audioQueue.queue.add(Sounds.ITEM_COLLECT)
-                    item.state = GameElementState.DEACTIVATING
-                    item.frameMetadata = item.getFirstDeactivatingFrame()
-                    items[i] = item
                 }
+                audioQueue.queue.add(Sounds.ITEM_COLLECT)
+                item.state = GameElementState.DEACTIVATING
+                item.frameMetadata = item.getFirstDeactivatingFrame()
+                items[i] = item
             }
         }
         if (newGameState != gameMap.state) {
