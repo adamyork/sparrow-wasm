@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -59,6 +61,7 @@ class GameUiMain(
         var hasStarted by remember { mutableStateOf(false) }
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
         var splashImage by remember { mutableStateOf<ImageBitmap?>(null) }
+        val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
 
         val allTasksCompleted = controller.allTasksCompleted()
 
@@ -190,9 +193,7 @@ class GameUiMain(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .semantics {
-                    contentDescription = "Main content area"
-                }
+                .semantics { contentDescription = "Main content area" }
                 .testTag("main")
                 .background(
                     color = MaterialTheme.colorScheme.surfaceContainer,
@@ -200,6 +201,30 @@ class GameUiMain(
                 ),
             contentAlignment = Alignment.TopCenter
         ) {
+            if (isRunning && isTouchDevice) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight().pointerInput(Unit) {
+                        detectTapGestures(onPress = {
+                            controller.applyInput(ControlType.START, ControlAction.LEFT)
+                            tryAwaitRelease()
+                            controller.applyInput(ControlType.STOP, ControlAction.LEFT)
+                        })
+                    })
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight().pointerInput(Unit) {
+                        detectTapGestures(onPress = {
+                            controller.applyInput(ControlType.START, ControlAction.JUMP)
+                        })
+                    })
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight().pointerInput(Unit) {
+                        detectTapGestures(onPress = {
+                            controller.applyInput(ControlType.START, ControlAction.RIGHT)
+                            tryAwaitRelease()
+                            controller.applyInput(ControlType.STOP, ControlAction.RIGHT)
+                        })
+                    })
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -361,4 +386,3 @@ class GameUiMain(
         }
     }
 }
-
