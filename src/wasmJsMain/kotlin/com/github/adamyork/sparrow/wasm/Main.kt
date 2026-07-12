@@ -17,9 +17,11 @@ private val logger = KotlinLogging.logger {}
 fun main() {
     LogConfig.initialize(minimumLevel = Level.INFO)
     logger.info { "app started" }
+    val viewport = getVisualViewport()
+    val visibleHeight = viewport.height
     val screenDimensions = ScreenDimensions.fromScreenResolution(
         window.innerWidth,
-        window.innerHeight
+        visibleHeight.toInt()
     )
     logger.info { "screen dimensions: $screenDimensions" }
     document.getElementById("loading-screen")?.let {
