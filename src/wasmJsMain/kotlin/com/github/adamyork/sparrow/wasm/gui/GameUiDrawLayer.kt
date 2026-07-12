@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.github.adamyork.sparrow.wasm.gui.data.LocalScreenDimensions
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.Rect
 import org.jetbrains.skia.SamplingMode
@@ -49,8 +50,8 @@ class GameUiDrawLayer {
         isRunning: Boolean,
         onFpsLabelChanged: (String) -> Unit = {}
     ) {
-        Box(modifier = Modifier.size(width = 1024.dp, height = 768.dp)) {
-            LayerCanvas(bitmap = splashImageBitmap)
+        Box(modifier = Modifier.size(width = LocalScreenDimensions.current.width.dp, height = LocalScreenDimensions.current.height.dp)) {
+            LayerCanvas(bitmap = splashImageBitmap, isSplash = true)
             LayerCanvas(bitmap = farGroundBitmap, offsetX = farGroundOffsetX, offsetY = farGroundOffsetY)
             LayerCanvas(midGroundBitmap, offsetX = midGroundOffsetX, offsetY = midGroundOffsetY)
             ForegroundLayerCanvas(image = foregroundBitmap)
@@ -64,24 +65,35 @@ class GameUiDrawLayer {
     }
 
     @Composable
-    private fun LayerCanvas(bitmap: ImageBitmap?, offsetX: Float = 0f, offsetY: Float = 0f) {
+    private fun LayerCanvas(bitmap: ImageBitmap?, offsetX: Float = 0f, offsetY: Float = 0f, isSplash: Boolean = false) {
+        val screenDims = LocalScreenDimensions.current
         Canvas(
             modifier = Modifier.fillMaxSize()
                 .clip(RectangleShape)
         ) {
             bitmap?.let { image ->
-                val scaledWidth = (image.width * density).toInt()
-                val scaledHeight = (image.height * density).toInt()
-                drawImage(
-                    image = image,
-                    srcOffset = IntOffset.Zero,
-                    srcSize = IntSize(image.width, image.height),
-                    dstOffset = IntOffset(
-                        (-offsetX * density).toInt(),
-                        (-offsetY * density).toInt()
-                    ),
-                    dstSize = IntSize(scaledWidth, scaledHeight)
-                )
+                if (isSplash) {
+                    drawImage(
+                        image = image,
+                        srcOffset = IntOffset.Zero,
+                        srcSize = IntSize(image.width, image.height),
+                        dstOffset = IntOffset.Zero,
+                        dstSize = IntSize((screenDims.width * density).toInt(), (screenDims.height * density).toInt())
+                    )
+                } else {
+                    val scaledWidth = (image.width * density).toInt()
+                    val scaledHeight = (image.height * density).toInt()
+                    drawImage(
+                        image = image,
+                        srcOffset = IntOffset.Zero,
+                        srcSize = IntSize(image.width, image.height),
+                        dstOffset = IntOffset(
+                            (-offsetX * density).toInt(),
+                            (-offsetY * density).toInt()
+                        ),
+                        dstSize = IntSize(scaledWidth, scaledHeight)
+                    )
+                }
             }
         }
     }
@@ -97,7 +109,7 @@ class GameUiDrawLayer {
                     canvas.skiaCanvas.drawImageRect(
                         image = foreground,
                         src = Rect.makeXYWH(0f, 0f, foreground.width.toFloat(), foreground.height.toFloat()),
-                        dst = Rect.makeXYWH(0f, 0f, size.width, size.height),
+                        dst = Rect.makeXYWH(0f, 0f, foreground.width.toFloat() * density, foreground.height.toFloat() * density),
                         samplingMode = SamplingMode.LINEAR,
                         paint = foregroundPaint,
                         strict = true

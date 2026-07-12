@@ -12,6 +12,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
 import com.github.adamyork.sparrow.wasm.gui.data.GameStateElements
 import com.github.adamyork.sparrow.wasm.gui.data.GeneralUiState
 import com.github.adamyork.sparrow.wasm.gui.data.ScoreUiState
+import com.github.adamyork.sparrow.wasm.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
 import com.github.adamyork.sparrow.wasm.service.WavService
@@ -43,11 +44,11 @@ class GameUiController(
     private val stateElements: GameStateElements
         get() = gameStateElements ?: throw IllegalStateException("Game not initialized")
     private var isInitialized: Boolean = false
-
+    private var screenDimensions: ScreenDimensions? = null
     val loadingTasks: List<LoadingTask>
         get() = viewModel.loadingTasks
 
-    suspend fun initializeGame(): ImageBitmap? {
+    suspend fun initializeGame(screenDimensions: ScreenDimensions): ImageBitmap? {
         return runCatching {
             logger.info { "initializing" }
             assetService.initialize(this)
@@ -72,7 +73,8 @@ class GameUiController(
                     }
                 }.awaitAll().toMap()
             }
-            val viewPort = createInitialViewPort()
+            val viewPort = createInitialViewPort(screenDimensions)
+            this.screenDimensions = screenDimensions
             val gameMap = loadedAssets.getValue("map") as GameMap
             val playerAsset = loadedAssets.getValue("player") as ImageAsset
             val collectibleAsset = loadedAssets.getValue("collectible item") as ImageAsset
@@ -200,18 +202,20 @@ class GameUiController(
             stateElements.mapEnemyShooterAsset,
             assetService
         )
-        stateElements.viewPort = createInitialViewPort()
+        stateElements.viewPort = createInitialViewPort(screenDimensions!!)
         scoreService.gameMapItem = stateElements.gameMap.items
         statusProvider.reset()
     }
 
-    private fun createInitialViewPort(): ViewPort = ViewPort(
-        assetService.gameConfig.viewport.x,
-        assetService.gameConfig.viewport.y,
-        0,
-        0,
-        assetService.gameConfig.viewport.width,
-        assetService.gameConfig.viewport.height
-    )
+    private fun createInitialViewPort(screenDimensions: ScreenDimensions): ViewPort {
+        return ViewPort(
+            assetService.gameConfig.viewport.x,
+            assetService.gameConfig.viewport.y,
+            0,
+            0,
+            screenDimensions.width,
+            screenDimensions.height
+        )
+    }
 }
 

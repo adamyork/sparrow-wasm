@@ -11,6 +11,7 @@ class CollisionBoundaries(var left: Int, var right: Int, var top: Int, var botto
 
     val minX: Int get() = min(left, right)
     val maxX: Int get() = max(left, right)
+    //TODO these should probably be used
     val minY: Int get() = min(top, bottom)
     val maxY: Int get() = max(top, bottom)
 

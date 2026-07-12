@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
+import com.github.adamyork.sparrow.wasm.gui.data.LocalScreenDimensions
 import kotlinx.browser.window
 import kotlinx.coroutines.awaitCancellation
 import org.w3c.dom.events.Event
@@ -51,6 +52,7 @@ class GameUiMain(
 
     @Composable
     fun build() {
+        val screenDimensions = LocalScreenDimensions.current
         val gameUiDrawLayer = remember { GameUiDrawLayer() }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
         var gameStatusLabel by remember { mutableStateOf("Press Start To Begin") }
@@ -88,7 +90,7 @@ class GameUiMain(
         }
 
         LaunchedEffect(Unit) {
-            splashImage = controller.initializeGame()
+            splashImage = controller.initializeGame(screenDimensions)
             val scoreLabels = controller.getScoreLabels()
             scoreLabel = scoreLabels.scoreLabel
             totalLabel = scoreLabels.totalLabel
@@ -227,15 +229,16 @@ class GameUiMain(
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .semantics { contentDescription = "Main content stack" }
                     .testTag("main-column")
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Box(
                     modifier = Modifier
+                        .weight(1f)
                         .wrapContentSize()
                         .semantics { contentDescription = "canvas-with-fps-overlay" }
                         .testTag("canvas-with-fps-overlay")
@@ -307,6 +310,20 @@ class GameUiMain(
                                 .testTag("fps-label")
                         )
 
+                        Text(
+                            text = "Screen: ${screenDimensions.width}x${screenDimensions.height}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = textMainColor,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                                .padding(top = 36.dp)
+                                .background(overlayBg, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .semantics { contentDescription = "Screen dimensions label" }
+                                .testTag("screen-dimensions-label")
+                        )
+
                         Column(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -333,6 +350,7 @@ class GameUiMain(
                     modifier = Modifier
                         .semantics { contentDescription = "start-pause-button-row" }
                         .testTag("start-pause-button-row")
+                        .align(Alignment.CenterHorizontally)
                 ) {
 
                     val focusManager = LocalFocusManager.current
