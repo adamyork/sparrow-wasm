@@ -195,6 +195,7 @@ class GameUiMain(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .semantics { contentDescription = "Main content area" }
                 .testTag("main")
                 .background(
