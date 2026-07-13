@@ -75,7 +75,7 @@ class DefaultPhysics(
         }
         val gravityEffect = physicsSettingsService.gravity * deltaTime
         val nextY = (player.y + gravityEffect - (velocityY * deltaTime)).roundToInt()
-            .coerceIn(collisionBoundaries.top, collisionBoundaries.bottom)
+            .coerceIn(collisionBoundaries.minY, collisionBoundaries.maxY)
         val nextJumping = player.getNextJumpState(
             nextY = nextY,
             topBoundary = collisionBoundaries.top,

@@ -1,11 +1,11 @@
 @file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
 
 plugins {
-    id("org.jetbrains.kotlin.multiplatform") version "2.3.20"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
-    id("com.google.devtools.ksp") version "2.3.9"
-    id("org.jetbrains.compose") version "1.11.1"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.20"
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.compose)
+    alias(libs.plugins.compose.compiler)
 }
 
 group = "com.github.adamyork"
@@ -24,7 +24,9 @@ kotlin {
             commonWebpackConfig {
                 devServer = (devServer
                     ?: org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig.DevServer()).apply {
-                    static(project.file("build/dist/wasmJs/productionExecutable").absolutePath)
+                    static(
+                        project.layout.buildDirectory.dir("dist/wasmJs/productionExecutable").get().asFile.absolutePath
+                    )
                 }
             }
         }
@@ -32,41 +34,42 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation("me.tatarka.inject:kotlin-inject-runtime:0.7.2")
-            implementation("io.github.reactivecircus.cache4k:cache4k:0.14.0")
-            implementation("io.github.oshai:kotlin-logging:8.0.4")
-            implementation("org.jetbrains.compose.runtime:runtime:1.11.1")
-            implementation("org.jetbrains.compose.foundation:foundation:1.11.1")
-            implementation("org.jetbrains.compose.ui:ui:1.11.1")
-            implementation("org.jetbrains.compose.material3:material3:1.9.0")
-            implementation("org.jetbrains.compose.components:components-resources:1.11.1")
-            implementation("org.jetbrains.compose.material:material-icons-core:1.7.3")
-            implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
-            implementation("io.ktor:ktor-client-js:3.0.1")
-            implementation("com.charleskorn.kaml:kaml:0.104.0")
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-            implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:2.8.4")
-            implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+            implementation(libs.kotlin.inject.runtime)
+            implementation(libs.cache4k)
+            implementation(libs.kotlin.logging)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.components.resources)
+            implementation(libs.compose.material.icons.core)
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.ktor.client.js)
+            implementation(libs.kaml)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.lifecycle.viewmodel)
+            implementation(libs.lifecycle.viewmodel.compose)
         }
 
         wasmJsMain.dependencies {
-            implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
+            implementation(libs.kotlinx.browser)
         }
     }
 }
 
+dependencies {
+    add("kspWasmJs", libs.kotlin.inject.compiler)
+}
+
+
 val prepareDevServer = tasks.register<Copy>("prepareDevServer") {
-    description = ""
-    from("src/wasmJsMain/web")
+    description = "Prepares static assets for the dev server."
+    from(project.file("src/wasmJsMain/web"))
     into(layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
 }
 
-tasks.matching { it.name.contains("wasmJsBrowserDevelopmentRun") }.configureEach {
+tasks.named("wasmJsBrowserDevelopmentRun").configure {
     dependsOn(prepareDevServer)
-}
-
-dependencies {
-    add("kspWasmJs", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
 }

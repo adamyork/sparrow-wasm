@@ -14,7 +14,7 @@ class DefaultPhysicsSettingsService : PhysicsSettingsService {
 
     override var maxXVelocity: Double = 6.25
     override var maxYVelocity: Double = 40.0
-    override var jumpDistance: Double = 220.0
+    override var jumpDistance: Double = 256.0
     override var gravity: Double = 8.25
     override var friction: Double = 0.82
     override var yVelocityCoefficient: Double = 0.25
