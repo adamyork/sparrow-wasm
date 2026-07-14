@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.github.adamyork.sparrow.wasm.gui.data.LocalScreenDimensions
+import com.github.adamyork.sparrow.wasm.gui.data.ScreenDimensions
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.Rect
 import org.jetbrains.skia.SamplingMode
@@ -24,7 +24,9 @@ import org.jetbrains.skia.Image as SkiaImage
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class GameUiDrawLayer {
+class GameUiDrawLayer(
+    private val screenDimensionsService: ScreenDimensionsService
+) {
 
     private val foregroundPaint = Paint().apply {
         isAntiAlias = true
@@ -50,13 +52,14 @@ class GameUiDrawLayer {
         isRunning: Boolean,
         onFpsLabelChanged: (String) -> Unit = {}
     ) {
-        Box(modifier = Modifier.size(width = LocalScreenDimensions.current.width.dp, height = LocalScreenDimensions.current.height.dp)) {
-            LayerCanvas(bitmap = splashImageBitmap, isSplash = true)
-            LayerCanvas(bitmap = farGroundBitmap, offsetX = farGroundOffsetX, offsetY = farGroundOffsetY)
-            LayerCanvas(midGroundBitmap, offsetX = midGroundOffsetX, offsetY = midGroundOffsetY)
+        val screenDimensions = remember { screenDimensionsService.getScreenDimensions() }
+        Box(modifier = Modifier.size(width = screenDimensions.width.dp, height = screenDimensions.height.dp)) {
+            LayerCanvas(bitmap = splashImageBitmap, screenDimensions = screenDimensions, isSplash = true)
+            LayerCanvas(bitmap = farGroundBitmap, screenDimensions = screenDimensions, offsetX = farGroundOffsetX, offsetY = farGroundOffsetY)
+            LayerCanvas(midGroundBitmap, screenDimensions = screenDimensions, offsetX = midGroundOffsetX, offsetY = midGroundOffsetY)
             ForegroundLayerCanvas(image = foregroundBitmap)
-            LayerCanvas(nearFieldBitmap, offsetX = nearFieldOffsetX, offsetY = nearFieldOffsetY)
-            LayerCanvas(collisionBitmap, offsetX = collisionOffsetX, offsetY = collisionOffsetY)
+            LayerCanvas(nearFieldBitmap, screenDimensions = screenDimensions, offsetX = nearFieldOffsetX, offsetY = nearFieldOffsetY)
+            LayerCanvas(collisionBitmap, screenDimensions = screenDimensions, offsetX = collisionOffsetX, offsetY = collisionOffsetY)
         }
 
         LaunchedEffect(isRunning) {
@@ -65,8 +68,13 @@ class GameUiDrawLayer {
     }
 
     @Composable
-    private fun LayerCanvas(bitmap: ImageBitmap?, offsetX: Float = 0f, offsetY: Float = 0f, isSplash: Boolean = false) {
-        val screenDims = LocalScreenDimensions.current
+    private fun LayerCanvas(
+        bitmap: ImageBitmap?,
+        screenDimensions: ScreenDimensions,
+        offsetX: Float = 0f,
+        offsetY: Float = 0f,
+        isSplash: Boolean = false
+    ) {
         Canvas(
             modifier = Modifier.fillMaxSize()
                 .clip(RectangleShape)
@@ -78,7 +86,7 @@ class GameUiDrawLayer {
                         srcOffset = IntOffset.Zero,
                         srcSize = IntSize(image.width, image.height),
                         dstOffset = IntOffset.Zero,
-                        dstSize = IntSize((screenDims.width * density).toInt(), (screenDims.height * density).toInt())
+                        dstSize = IntSize((screenDimensions.width * density).toInt(), (screenDimensions.height * density).toInt())
                     )
                 } else {
                     val scaledWidth = (image.width * density).toInt()
@@ -151,4 +159,23 @@ class GameUiDrawLayer {
         collisionOffsetX = offsetX
         collisionOffsetY = offsetY
     }
+
+    fun clearAllLayers() {
+        splashImageBitmap = null
+        farGroundBitmap = null
+        midGroundBitmap = null
+        collisionBitmap = null
+        nearFieldBitmap = null
+        farGroundOffsetX = 0f
+        farGroundOffsetY = 0f
+        midGroundOffsetX = 0f
+        midGroundOffsetY = 0f
+        collisionOffsetX = 0f
+        collisionOffsetY = 0f
+        nearFieldOffsetX = 0f
+        nearFieldOffsetY = 0f
+        foregroundBitmap?.close()
+        foregroundBitmap = null
+    }
+
 }

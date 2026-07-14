@@ -53,8 +53,8 @@ class GameMap(
 
     fun generateMapItems(collectibleItemAsset: ImageAsset, finishItemAsset: ImageAsset, assetService: AssetService) {
         val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
-        for (i in 0..<assetService.getTotalItems()) {
-            val position = assetService.getItemPosition(i)
+        for (itemIndex in 0..<assetService.getTotalItems()) {
+            val position = assetService.getItemPosition(itemIndex)
             val itemType = ItemType.from(position.type)
             val targetImageAsset = if (itemType == ItemType.FINISH) finishItemAsset else collectibleItemAsset
             items.add(
@@ -64,7 +64,7 @@ class GameMap(
                     itemType,
                     targetImageAsset.width,
                     targetImageAsset.height,
-                    i,
+                    itemIndex,
                     animationFps
                 )
             )
@@ -73,9 +73,9 @@ class GameMap(
 
     fun generateMapEnemies(blockerEnemyAsset: ImageAsset, shooterEnemyAsset: ImageAsset, assetService: AssetService) {
         val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
-        for (i in 0..<assetService.getTotalEnemies()) {
-            val enemyType = EnemyType.from(assetService.getEnemyPosition(i).type)
-            val position = assetService.getEnemyPosition(i)
+        for (enemyIndex in 0..<assetService.getTotalEnemies()) {
+            val enemyType = EnemyType.from(assetService.getEnemyPosition(enemyIndex).type)
+            val position = assetService.getEnemyPosition(enemyIndex)
             val targetImageAsset = if (enemyType == EnemyType.BLOCKER) {
                 blockerEnemyAsset
             } else {

@@ -176,8 +176,8 @@ class DefaultParticles : Particles {
 
     private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int {
         var count = 0
-        for (i in particles.indices) {
-            if (particles[i].type == ParticleType.PROJECTILE) {
+        for (particleIndex in particles.indices) {
+            if (particles[particleIndex].type == ParticleType.PROJECTILE) {
                 count++
             }
         }

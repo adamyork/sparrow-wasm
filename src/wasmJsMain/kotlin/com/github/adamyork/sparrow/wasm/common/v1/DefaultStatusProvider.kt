@@ -1,7 +1,11 @@
 package com.github.adamyork.sparrow.wasm.common.v1
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
+import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import me.tatarka.inject.annotations.Inject
 
@@ -20,8 +24,20 @@ class DefaultStatusProvider(
     }
 
 
-    override var running: Boolean = false
+    private var runningState by mutableStateOf(false)
+    override var running: Boolean
+        get() = runningState
+        set(value) {
+            runningState = value
+        }
+
     override var lastPaintTime: Double = 0.0
+    private var gameMapStateValue by mutableStateOf<GameMapState?>(null)
+    override var gameMapState: GameMapState?
+        get() = gameMapStateValue
+        set(value) {
+            gameMapStateValue = value
+        }
 
     private var fpsWindowStartTime: Double = 0.0
     private var fpsFrameCountInWindow: Int = 0
@@ -52,6 +68,7 @@ class DefaultStatusProvider(
 
     override fun reset() {
         lastPaintTime = 0.0
+        gameMapState = null
         fpsWindowStartTime = 0.0
         fpsFrameCountInWindow = 0
         lastObservedPaintTime = 0.0

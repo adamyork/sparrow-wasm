@@ -66,7 +66,7 @@ class DefaultAssetService(
         val response = window.fetch("application.yml").await()
         val buffer = response.arrayBuffer().await()
         val uint8Array = Int8Array(buffer)
-        val bytes = ByteArray(uint8Array.length) { i -> uint8Array[i] }
+        val bytes = ByteArray(uint8Array.length) { byteIndex -> uint8Array[byteIndex] }
         val yamlString = bytes.decodeToString()
         listener.onTaskCompleted("app_yaml")
         logger.info { "yaml loaded" }

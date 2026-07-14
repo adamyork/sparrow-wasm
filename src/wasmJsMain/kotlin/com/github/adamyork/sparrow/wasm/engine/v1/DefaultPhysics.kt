@@ -143,47 +143,47 @@ class DefaultPhysics(
         mapParticles: ArrayList<Particle>,
         viewPort: ViewPort
     ) {
-        val dt = statusProvider.getDeltaTimeCoefficient()
+        val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
         val speed = physicsSettingsService.collisionParticleSpeedCoefficient
-        for (i in mapParticles.indices.reversed()) {
-            val p = mapParticles[i]
-            if (p.type == ParticleType.COLLISION) {
-                p.frame += (1.0 * dt * speed).toInt().coerceAtLeast(1)
-                if (p.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
-                    p.radius =
-                        (p.radius + (physicsSettingsService.collisionParticleSizeMultiplier * dt * speed)).toInt()
+        for (particleIndex in mapParticles.indices.reversed()) {
+            val particle = mapParticles[particleIndex]
+            if (particle.type == ParticleType.COLLISION) {
+                particle.frame += (1.0 * deltaTimeCoefficient * speed).toInt().coerceAtLeast(1)
+                if (particle.radius < DefaultParticles.MAX_SQUARE_RADIAL_RADIUS) {
+                    particle.radius =
+                        (particle.radius + (physicsSettingsService.collisionParticleSizeMultiplier * deltaTimeCoefficient * speed)).toInt()
                     val pos = getCollisionParticlePosition(
-                        p.radius.toFloat(),
-                        p.id.toFloat(),
-                        p.originX,
-                        p.originY
+                        particle.radius.toFloat(),
+                        particle.id.toFloat(),
+                        particle.originX,
+                        particle.originY
                     )
-                    p.x = pos.first.toInt() + p.xJitter
-                    p.y = pos.second.toInt() + p.yJitter
-                } else if (p.frame <= p.lifetime) {
-                    p.y += (physicsSettingsService.gravity * dt * speed).toInt()
+                    particle.x = pos.first.toInt() + particle.xJitter
+                    particle.y = pos.second.toInt() + particle.yJitter
+                } else if (particle.frame <= particle.lifetime) {
+                    particle.y += (physicsSettingsService.gravity * deltaTimeCoefficient * speed).toInt()
                 }
 
-                if (!p.isActiveVisibleCollisionParticle(viewPort)) {
-                    mapParticles.removeAt(i)
+                if (!particle.isActiveVisibleCollisionParticle(viewPort)) {
+                    mapParticles.removeAt(particleIndex)
                 }
             }
         }
     }
 
     override fun applyDustParticlePhysics(mapParticles: ArrayList<Particle>) {
-        val dt = statusProvider.getDeltaTimeCoefficient()
+        val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
         val speed = physicsSettingsService.dustParticleSpeedCoefficient
-        for (i in mapParticles.size - 1 downTo 0) {
-            val p = mapParticles[i]
-            if (p.type == ParticleType.DUST) {
-                if (p.frame >= p.lifetime) {
-                    mapParticles.removeAt(i)
+        for (particleIndex in mapParticles.size - 1 downTo 0) {
+            val particle = mapParticles[particleIndex]
+            if (particle.type == ParticleType.DUST) {
+                if (particle.frame >= particle.lifetime) {
+                    mapParticles.removeAt(particleIndex)
                 } else {
-                    val growth = (1.0 * dt * speed).toInt()
-                    p.width = (p.width + growth).coerceAtMost(40)
-                    p.height = (p.height + growth).coerceAtMost(40)
-                    p.frame += 1
+                    val growth = (1.0 * deltaTimeCoefficient * speed).toInt()
+                    particle.width = (particle.width + growth).coerceAtMost(40)
+                    particle.height = (particle.height + growth).coerceAtMost(40)
+                    particle.frame += 1
                 }
             }
         }
@@ -193,28 +193,28 @@ class DefaultPhysics(
         mapParticles: ArrayList<Particle>,
         viewPort: ViewPort
     ) {
-        val dt = statusProvider.getDeltaTimeCoefficient()
-        val speed = physicsSettingsService.projectileSpeed * dt
-        for (i in mapParticles.indices.reversed()) {
-            val p = mapParticles[i]
-            if (p.type == ParticleType.PROJECTILE) {
-                val directionX = p.originX - p.xJitter
-                val directionY = p.originY - p.yJitter
+        val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
+        val speed = physicsSettingsService.projectileSpeed * deltaTimeCoefficient
+        for (particleIndex in mapParticles.indices.reversed()) {
+            val particle = mapParticles[particleIndex]
+            if (particle.type == ParticleType.PROJECTILE) {
+                val directionX = particle.originX - particle.xJitter
+                val directionY = particle.originY - particle.yJitter
                 val length = sqrt((directionX * directionX + directionY * directionY).toDouble())
                 val unitVector = if (length > 0.0) {
                     Pair(directionX / length, directionY / length)
                 } else {
                     Pair(1.0, 0.0)
                 }
-                p.x += (unitVector.first * speed).roundToInt()
-                p.y += (unitVector.second * speed).roundToInt()
-                p.frame += 1
+                particle.x += (unitVector.first * speed).roundToInt()
+                particle.y += (unitVector.second * speed).roundToInt()
+                particle.frame += 1
 
-                if (!isParticleInViewPort(p, viewPort)) {
-                    mapParticles.removeAt(i)
+                if (!isParticleInViewPort(particle, viewPort)) {
+                    mapParticles.removeAt(particleIndex)
                 }
-            } else if (p.frame > p.lifetime) {
-                mapParticles.removeAt(i)
+            } else if (particle.frame > particle.lifetime) {
+                mapParticles.removeAt(particleIndex)
             }
         }
     }
@@ -230,26 +230,26 @@ class DefaultPhysics(
     }
 
     override fun applyMapItemReturnParticlePhysics(mapParticles: ArrayList<Particle>, viewPort: ViewPort) {
-        val dt = statusProvider.getDeltaTimeCoefficient()
+        val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
         val speed = physicsSettingsService.mapItemReturnParticleSpeed
-        for (i in mapParticles.indices.reversed()) {
-            val p = mapParticles[i]
-            if (p.type == ParticleType.MAP_ITEM_RETURN) {
-                p.frame += 1
-                val localCoords = viewPort.globalToLocal(p.originX, p.originY)
-                val dx = localCoords.first - p.x.toDouble()
-                val dy = localCoords.second - p.y.toDouble()
+        for (particleIndex in mapParticles.indices.reversed()) {
+            val particle = mapParticles[particleIndex]
+            if (particle.type == ParticleType.MAP_ITEM_RETURN) {
+                particle.frame += 1
+                val localCoords = viewPort.globalToLocal(particle.originX, particle.originY)
+                val dx = localCoords.first - particle.x.toDouble()
+                val dy = localCoords.second - particle.y.toDouble()
                 val distance = sqrt(dx * dx + dy * dy)
-                if (distance < physicsSettingsService.mapItemReturnParticleMinTravelDist || p.frame >= p.lifetime) {
-                    mapParticles.removeAt(i)
+                if (distance < physicsSettingsService.mapItemReturnParticleMinTravelDist || particle.frame >= particle.lifetime) {
+                    mapParticles.removeAt(particleIndex)
                 } else {
-                    val moveStep = speed * dt
+                    val moveStep = speed * deltaTimeCoefficient
                     val ratio = moveStep / distance
-                    p.x += (dx * ratio).toInt()
-                    p.y += (dy * ratio).toInt()
+                    particle.x += (dx * ratio).toInt()
+                    particle.y += (dy * ratio).toInt()
                 }
-            } else if (p.frame > p.lifetime) {
-                mapParticles.removeAt(i)
+            } else if (particle.frame > particle.lifetime) {
+                mapParticles.removeAt(particleIndex)
             }
         }
     }

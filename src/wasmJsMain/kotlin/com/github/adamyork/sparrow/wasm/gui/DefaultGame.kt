@@ -22,7 +22,8 @@ class DefaultGame(
     private val particles: Particles,
     private val scoreService: ScoreService,
     private val statusProvider: StatusProvider,
-    private val wavService: WavService
+    private val wavService: WavService,
+    private val screenDimensionsService: ScreenDimensionsService
 ) : Game {
 
     private val controller = GameUiController(
@@ -31,12 +32,14 @@ class DefaultGame(
         particles = particles,
         scoreService = scoreService,
         statusProvider = statusProvider,
-        wavService = wavService
+        wavService = wavService,
+        screenDimensionsService = screenDimensionsService
     )
 
     private val screen = GameUiMain(
         controller = controller,
-        statusProvider = statusProvider
+        statusProvider = statusProvider,
+        screenDimensionsService = screenDimensionsService
     )
 
     @Composable

@@ -1,7 +1,5 @@
 package com.github.adamyork.sparrow.wasm.gui.data
 
-import androidx.compose.runtime.compositionLocalOf
-
 /**
  * Author: Adam York
  * Copyright (c) Adam York
@@ -22,6 +20,3 @@ data class ScreenDimensions(
     }
 }
 
-val LocalScreenDimensions = compositionLocalOf<ScreenDimensions> {
-    error("ScreenDimensions not provided")
-}

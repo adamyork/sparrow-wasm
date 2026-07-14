@@ -14,7 +14,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
-    // No extra versionCatalog block needed! Gradle finds it automatically now.
 }
 
 rootProject.name = "sparrow-wasm"

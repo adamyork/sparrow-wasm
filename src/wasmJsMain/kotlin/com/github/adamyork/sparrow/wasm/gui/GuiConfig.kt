@@ -11,6 +11,7 @@ interface GuiConfig {
 
     val game: Game
     val sparrowColorScheme: SparrowColorScheme
+    val screenDimensionsService: ScreenDimensionsService
 
     @AppScope
     @Provides
@@ -20,5 +21,9 @@ interface GuiConfig {
     @AppScope
     @Provides
     fun provideSparrowColorScheme(impl: DefaultSparrowColorScheme): SparrowColorScheme = impl
+
+    @AppScope
+    @Provides
+    fun provideScreenDimensionsService(impl: DefaultScreenDimensionsService): ScreenDimensionsService = impl
 
 }

@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
-import com.github.adamyork.sparrow.wasm.gui.data.LocalScreenDimensions
+import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import kotlinx.browser.window
 import kotlinx.coroutines.awaitCancellation
 import org.w3c.dom.events.Event
@@ -38,7 +38,8 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 class GameUiMain(
     private val controller: GameUiController,
-    private val statusProvider: StatusProvider
+    private val statusProvider: StatusProvider,
+    private val screenDimensionsService: ScreenDimensionsService
 ) {
 
     private fun shouldEnableStart(
@@ -52,21 +53,18 @@ class GameUiMain(
 
     @Composable
     fun build() {
-        val screenDimensions = LocalScreenDimensions.current
-        val gameUiDrawLayer = remember { GameUiDrawLayer() }
+        val screenDimensions = remember { screenDimensionsService.getScreenDimensions() }
+        val gameUiDrawLayer = remember { GameUiDrawLayer(screenDimensionsService) }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
         var gameStatusLabel by remember { mutableStateOf("Press Start To Begin") }
         var scoreLabel by remember { mutableStateOf("Score: --") }
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
-        var isRunning by remember { mutableStateOf(false) }
-        var hasStarted by remember { mutableStateOf(false) }
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
         var splashImage by remember { mutableStateOf<ImageBitmap?>(null) }
         val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
 
         val allTasksCompleted = controller.allTasksCompleted()
-
         val colorScheme = MaterialTheme.colorScheme
         val overlayBg = colorScheme.inverseSurface
         val disabledButtonColors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -75,7 +73,7 @@ class GameUiMain(
         )
         val textMainColor = colorScheme.onSurface
         val isStartEnabled = shouldEnableStart(
-            isRunning = isRunning,
+            isRunning = statusProvider.running,
             allTasksCompleted = allTasksCompleted,
             splashImage = splashImage,
             isLoadingChecklistVisible = isLoadingChecklistVisible
@@ -90,7 +88,7 @@ class GameUiMain(
         }
 
         LaunchedEffect(Unit) {
-            splashImage = controller.initializeGame(screenDimensions)
+            splashImage = controller.initializeGame()
             val scoreLabels = controller.getScoreLabels()
             scoreLabel = scoreLabels.scoreLabel
             totalLabel = scoreLabels.totalLabel
@@ -108,7 +106,7 @@ class GameUiMain(
             }
 
             val keyDownListener: (Event) -> Unit = { event ->
-                if (isRunning && event is KeyboardEvent) {
+                if (statusProvider.running && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -118,7 +116,7 @@ class GameUiMain(
             }
 
             val keyUpListener: (Event) -> Unit = { event ->
-                if (isRunning && event is KeyboardEvent) {
+                if (statusProvider.running && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -137,8 +135,8 @@ class GameUiMain(
             }
         }
 
-        LaunchedEffect(isRunning) {
-            if (isRunning) {
+        LaunchedEffect(statusProvider.running) {
+            if (statusProvider.running) {
                 var frameId: Int
                 fun loop(timestamp: Double) {
                     statusProvider.setCurrentFrameTime(timestamp)
@@ -179,11 +177,14 @@ class GameUiMain(
                     totalLabel = frame.totalLabel
                     remainingLabel = frame.remainingLabel
                     gameStatusLabel = frame.gameStatusLabel
-                    frameId = window.requestAnimationFrame { ts -> loop(ts) }
+                    if (frame.completionTransitionRequested) {
+                        gameUiDrawLayer.clearAllLayers()
+                        splashImage?.let { gameUiDrawLayer.drawSplash(it) }
+                        return
+                    }
+                    frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
                 }
-
-                frameId = window.requestAnimationFrame { ts -> loop(ts) }
-
+                frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
                 try {
                     awaitCancellation()
                 } finally {
@@ -204,7 +205,7 @@ class GameUiMain(
                 ),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (isRunning && isTouchDevice) {
+            if (statusProvider.running && isTouchDevice) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f).fillMaxHeight().pointerInput(Unit) {
                         detectTapGestures(onPress = {
@@ -245,12 +246,12 @@ class GameUiMain(
                         .testTag("canvas-with-fps-overlay")
                 ) {
                     gameUiDrawLayer.build(
-                        isRunning = isRunning,
+                        isRunning = statusProvider.running,
                         onFpsLabelChanged = { nextLabel ->
                             fpsLabel = nextLabel
                         }
                     )
-                    if (hasStarted) {
+                    if (statusProvider.gameMapState != GameMapState.COMPLETED) {
                         Text(
                             text = gameStatusLabel,
                             style = MaterialTheme.typography.labelLarge,
@@ -297,7 +298,7 @@ class GameUiMain(
                         }
                     }
 
-                    if (hasStarted) {
+                    if (statusProvider.gameMapState != GameMapState.COMPLETED) {
                         Text(
                             text = fpsLabel,
                             style = MaterialTheme.typography.labelLarge,
@@ -358,8 +359,6 @@ class GameUiMain(
 
                     Button(
                         onClick = {
-                            hasStarted = true
-                            isRunning = true
                             controller.start()
                             focusManager.clearFocus()
                         },
@@ -374,11 +373,10 @@ class GameUiMain(
 
                     Button(
                         onClick = {
-                            isRunning = false
                             controller.pause()
                             focusManager.clearFocus()
                         },
-                        enabled = isRunning,
+                        enabled = statusProvider.running,
                         colors = disabledButtonColors,
                         modifier = Modifier
                             .semantics { contentDescription = "pause-button" }
@@ -392,7 +390,7 @@ class GameUiMain(
                             controller.reset()
                             focusManager.clearFocus()
                         },
-                        enabled = isRunning,
+                        enabled = statusProvider.running,
                         colors = disabledButtonColors,
                         modifier = Modifier
                             .semantics { contentDescription = "reset-button" }

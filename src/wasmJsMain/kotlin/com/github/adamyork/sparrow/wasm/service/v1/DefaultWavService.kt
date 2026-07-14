@@ -44,9 +44,10 @@ class DefaultWavService(
         runCatching {
             audioTag.play()
             audioQueue.queue.removeFirstOrNull()
-        }.onFailure { e ->
-            logger.error(e) { "Failed to play sound: $nextSound" }
         }
+            .onFailure { error ->
+                logger.error(error) { "Failed to play sound: $nextSound" }
+            }
     }
 
     @OptIn(ExperimentalWasmJsInterop::class)

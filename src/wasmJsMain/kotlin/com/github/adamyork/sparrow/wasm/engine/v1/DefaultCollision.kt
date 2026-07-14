@@ -139,8 +139,8 @@ class DefaultCollision(
         val items = gameMap.items
         val playerRect = player.toRect()
         var newGameState = gameMap.state
-        for (i in items.indices) {
-            val item = items[i]
+        for (itemIndex in items.indices) {
+            val item = items[itemIndex]
             if (item.state == GameElementState.ACTIVE && playerRect.overlaps(item.toRect())) {
                 if (item.type == ItemType.FINISH) {
                     newGameState = GameMapState.COMPLETED
@@ -148,7 +148,7 @@ class DefaultCollision(
                 audioQueue.queue.add(Sounds.ITEM_COLLECT)
                 item.state = GameElementState.DEACTIVATING
                 item.frameMetadata = item.getFirstDeactivatingFrame()
-                items[i] = item
+                items[itemIndex] = item
             }
         }
         if (newGameState != gameMap.state) {
@@ -171,8 +171,8 @@ class DefaultCollision(
         var minDistanceSquared = Int.MAX_VALUE
         val playerRect = player.toRect()
         val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(managedMapParticles, viewPort)
-        for (i in managedMapEnemies.indices) {
-            val enemy = managedMapEnemies[i]
+        for (enemyIndex in managedMapEnemies.indices) {
+            val enemy = managedMapEnemies[enemyIndex]
             val element = enemy as GameElement
             if (element.state == GameElementState.INACTIVE) continue
             val enemyRect = enemy.toRect()
@@ -213,7 +213,7 @@ class DefaultCollision(
             enemy.frameMetadata = metadata
             enemy.colliding = nextColliding
             enemy.interacting = nextInteracting
-            managedMapEnemies[i] = enemy
+            managedMapEnemies[enemyIndex] = enemy
         }
         if (playerIsColliding && closestEnemyRect != null) {
             physics.applyPlayerCollisionPhysics(player, closestEnemyRect, viewPort)
@@ -232,8 +232,8 @@ class DefaultCollision(
         var targetRect: Rect? = null
         val playerRect = player.toRect()
         val particleList = gameMap.particles
-        for (i in particleList.indices.reversed()) {
-            val particle = particleList[i]
+        for (particleIndex in particleList.indices.reversed()) {
+            val particle = particleList[particleIndex]
             if (canTakeCollisionDamage &&
                 particle.type == ParticleType.PROJECTILE &&
                 playerRect.overlaps(particle.toRect())
@@ -241,7 +241,7 @@ class DefaultCollision(
                 targetRect = particle.toRect()
                 audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                 playerIsColliding = true
-                particleList.removeAt(i)
+                particleList.removeAt(particleIndex)
             }
         }
         val isCollisionAnimating = Particle.hasActiveVisibleCollisionParticles(particleList, viewPort)
