@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -45,10 +44,9 @@ class GameUiMain(
     private fun shouldEnableStart(
         isRunning: Boolean,
         allTasksCompleted: Boolean,
-        splashImage: ImageBitmap?,
         isLoadingChecklistVisible: Boolean
     ): Boolean {
-        return !isRunning && allTasksCompleted && splashImage != null && !isLoadingChecklistVisible
+        return !isRunning && allTasksCompleted && !isLoadingChecklistVisible
     }
 
     @Composable
@@ -61,10 +59,9 @@ class GameUiMain(
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
-        var splashImage by remember { mutableStateOf<ImageBitmap?>(null) }
         val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
-
         val allTasksCompleted = controller.allTasksCompleted()
+        val splashImage = controller.gameStateElements.splashImage
         val colorScheme = MaterialTheme.colorScheme
         val overlayBg = colorScheme.inverseSurface
         val disabledButtonColors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -75,24 +72,23 @@ class GameUiMain(
         val isStartEnabled = shouldEnableStart(
             isRunning = statusProvider.running,
             allTasksCompleted = allTasksCompleted,
-            splashImage = splashImage,
             isLoadingChecklistVisible = isLoadingChecklistVisible
         )
 
         LaunchedEffect(allTasksCompleted, splashImage, isLoadingChecklistVisible) {
-            if (allTasksCompleted && splashImage != null && isLoadingChecklistVisible) {
+            if (allTasksCompleted && isLoadingChecklistVisible) {
                 kotlinx.coroutines.delay(1000.milliseconds)
                 isLoadingChecklistVisible = false
-                gameUiDrawLayer.drawSplash(splashImage!!)
+                gameUiDrawLayer.drawSplash(splashImage)
             }
         }
 
         LaunchedEffect(Unit) {
-            splashImage = controller.initializeGame()
-            val scoreLabels = controller.getScoreLabels()
-            scoreLabel = scoreLabels.scoreLabel
-            totalLabel = scoreLabels.totalLabel
-            remainingLabel = scoreLabels.remainingLabel
+            controller.initializeGame()
+            val stateElements = controller.gameStateElements
+            scoreLabel = stateElements.scoreLabel
+            totalLabel = stateElements.totalLabel
+            remainingLabel = stateElements.remainingLabel
         }
 
         LaunchedEffect(Unit) {
@@ -179,7 +175,7 @@ class GameUiMain(
                     gameStatusLabel = frame.gameStatusLabel
                     if (frame.completionTransitionRequested) {
                         gameUiDrawLayer.clearAllLayers()
-                        splashImage?.let { gameUiDrawLayer.drawSplash(it) }
+                        splashImage.let { gameUiDrawLayer.drawSplash(it) }
                         return
                     }
                     frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }

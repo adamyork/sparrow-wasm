@@ -7,14 +7,25 @@ import kotlinx.serialization.Serializable
  * Copyright (c) Adam York
  */
 @Serializable
-data class GameConfig(
+data class AppProperties(
     val engine: EngineConfig,
     val viewport: ViewportConfig,
     val player: PlayerConfig,
     val map: MapConfig,
     val particle: ParticleConfig,
-    val audio: AudioConfig
+    val audio: AudioConfig,
+    val global: GlobalConfig
 )
+
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
+@Serializable
+data class GlobalConfig(val splash: GlobalAssetConfig, val ending: GlobalAssetConfig)
+
+@Serializable
+data class GlobalAssetConfig(val asset: AssetDimensions)
 
 /**
  * Author: Adam York

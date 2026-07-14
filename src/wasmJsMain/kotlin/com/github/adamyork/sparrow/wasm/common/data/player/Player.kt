@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common.data.player
 
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
@@ -36,6 +37,26 @@ class Player(
         const val ANIMATION_JUMPING_FRAMES = 8
         const val ANIMATION_COLLISION_FRAMES = 8
         const val IMMUNITY_TICKS_ON_HIT = 120
+        val emptyPlayer: Player = Player(
+            x = 0,
+            y = 0,
+            width = 1,
+            height = 1,
+            state = GameElementState.INACTIVE,
+            frameMetadata = FrameMetadata(1, Cell(1, 1, 1, 1)),
+            imageAndBytes = ImageAndBytes(byteArrayOf(), EmptyImage.createEmptyImage().toComposeImageBitmap()),
+            vx = 0.0,
+            vy = 0.0,
+            jumping = PlayerJumpingState.GROUNDED,
+            moving = PlayerMovingState.STATIONARY,
+            direction = Direction.RIGHT,
+            colliding = GameElementCollisionState.FREE,
+            immunityTicks = 0,
+            animationTargetFps = 12.0,
+            animationTickCounter = 0,
+            lastAnimationTickTimeMs = 0.0,
+            animationTickBufferMs = 0.0
+        )
     }
 
     private val animationFrameIntervalMs: Double
@@ -141,6 +162,7 @@ class Player(
             PlayerJumpingState.HEIGHT_REACHED,
             PlayerJumpingState.GROUNDED,
             PlayerJumpingState.FALLING -> if (isDescending) PlayerJumpingState.FALLING else jumping
+
             PlayerJumpingState.RISING -> PlayerJumpingState.RISING
         }
     }

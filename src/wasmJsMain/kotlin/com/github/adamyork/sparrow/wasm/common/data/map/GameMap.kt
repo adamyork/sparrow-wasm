@@ -1,6 +1,9 @@
 package com.github.adamyork.sparrow.wasm.common.data.map
 
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import com.github.adamyork.sparrow.wasm.common.data.EmptyImage
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
+import com.github.adamyork.sparrow.wasm.common.data.enemy.DefaultMapElementFactory
 import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
 import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
@@ -33,6 +36,35 @@ class GameMap(
     companion object {
         const val VIEWPORT_HORIZONTAL_FAR_PARALLAX_OFFSET: Int = 4
         const val VIEWPORT_HORIZONTAL_MID_PARALLAX_OFFSET: Int = 2
+        val emptyGameMap: GameMap = GameMap(
+            state = GameMapState.COLLECTING,
+            farGroundAsset = ImageAsset(
+                1,
+                1,
+                ImageAndBytes(byteArrayOf(), EmptyImage.createEmptyImage().toComposeImageBitmap())
+            ),
+            midGroundAsset = ImageAsset(
+                1,
+                1,
+                ImageAndBytes(byteArrayOf(), EmptyImage.createEmptyImage().toComposeImageBitmap())
+            ),
+            nearFieldAsset = ImageAsset(
+                1,
+                1,
+                ImageAndBytes(byteArrayOf(), EmptyImage.createEmptyImage().toComposeImageBitmap())
+            ),
+            collisionAsset = ImageAndBytes(
+                byteArrayOf(),
+                EmptyImage.createEmptyImage().toComposeImageBitmap()
+            ),
+            width = 1,
+            height = 1,
+            items = arrayListOf(),
+            enemies = arrayListOf(),
+            particles = arrayListOf(),
+            mapElementFactory = DefaultMapElementFactory()
+        )
+
     }
 
     fun getFarGroundX(viewPort: ViewPort): Int {
@@ -52,7 +84,7 @@ class GameMap(
     }
 
     fun generateMapItems(collectibleItemAsset: ImageAsset, finishItemAsset: ImageAsset, assetService: AssetService) {
-        val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
+        val animationFps = assetService.appProperties.engine.fps.animation.toDouble()
         for (itemIndex in 0..<assetService.getTotalItems()) {
             val position = assetService.getItemPosition(itemIndex)
             val itemType = ItemType.from(position.type)
@@ -72,7 +104,7 @@ class GameMap(
     }
 
     fun generateMapEnemies(blockerEnemyAsset: ImageAsset, shooterEnemyAsset: ImageAsset, assetService: AssetService) {
-        val animationFps = assetService.gameConfig.engine.fps.animation.toDouble()
+        val animationFps = assetService.appProperties.engine.fps.animation.toDouble()
         for (enemyIndex in 0..<assetService.getTotalEnemies()) {
             val enemyType = EnemyType.from(assetService.getEnemyPosition(enemyIndex).type)
             val position = assetService.getEnemyPosition(enemyIndex)

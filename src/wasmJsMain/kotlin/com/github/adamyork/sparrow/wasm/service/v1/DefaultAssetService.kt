@@ -4,8 +4,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.charleskorn.kaml.Yaml
+import com.github.adamyork.sparrow.wasm.AppProperties
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.GameConfig
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
@@ -43,7 +43,7 @@ class DefaultAssetService(
     override var backgroundMusicBytesMap: HashMap<Int, ByteArray> = HashMap()
 
     override lateinit var applicationYamlFile: String
-    override lateinit var gameConfig: GameConfig
+    override lateinit var appProperties: AppProperties
 
     private val logger = KotlinLogging.logger {}
     private val mapAssetMap: HashMap<Int, ImageAsset> = HashMap()
@@ -70,15 +70,15 @@ class DefaultAssetService(
         val yamlString = bytes.decodeToString()
         listener.onTaskCompleted("app_yaml")
         logger.info { "yaml loaded" }
-        gameConfig = Yaml.default.decodeFromString(GameConfig.serializer(), yamlString)
+        appProperties = Yaml.default.decodeFromString(AppProperties.serializer(), yamlString)
         logger.info { "game config created" }
-        enemyInfoMap = gameConfig.map.enemy.positions.mapIndexed { index, pos ->
-            val dim = gameConfig.map.enemy.asset[pos.ref]
+        enemyInfoMap = appProperties.map.enemy.positions.mapIndexed { index, pos ->
+            val dim = appProperties.map.enemy.asset[pos.ref]
                 ?: throw AssetServiceReferenceException("no enemy asset for ${pos.ref}")
             index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
         }.toMap(HashMap())
-        itemInfoMap = gameConfig.map.item.positions.mapIndexed { index, pos ->
-            val dim = gameConfig.map.item.asset[pos.ref]
+        itemInfoMap = appProperties.map.item.positions.mapIndexed { index, pos ->
+            val dim = appProperties.map.item.asset[pos.ref]
                 ?: throw AssetServiceReferenceException("no item asset for ${pos.ref}")
             index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
         }.toMap(HashMap())
@@ -99,17 +99,33 @@ class DefaultAssetService(
         }
     }
 
+    override suspend fun loadSplash(): ImageAsset {
+        return fetchImageAndBytes(
+            appProperties.global.splash.asset.path,
+            appProperties.global.splash.asset.width,
+            appProperties.global.splash.asset.height
+        )
+    }
+
+    override suspend fun loadEnding(): ImageAsset {
+        return fetchImageAndBytes(
+            appProperties.global.ending.asset.path,
+            appProperties.global.ending.asset.width,
+            appProperties.global.ending.asset.height
+        )
+    }
+
     override suspend fun loadMap(id: Int, listener: LoadingProgressListener): GameMap {
         logger.info { "loading map $id" }
         val mapPaths = listOf(
-            gameConfig.map.bg,
-            gameConfig.map.mg,
-            gameConfig.map.fg,
-            gameConfig.map.col
+            appProperties.map.bg,
+            appProperties.map.mg,
+            appProperties.map.fg,
+            appProperties.map.col
         )
         val assets = coroutineScope {
             val deferredAssets = mapPaths.map { path ->
-                path to async { fetchImageAndBytes(path, gameConfig.map.width, gameConfig.map.height) }
+                path to async { fetchImageAndBytes(path, appProperties.map.width, appProperties.map.height) }
             }
             deferredAssets.map { (path, deferredAsset) ->
                 val asset = deferredAsset.await()
@@ -138,9 +154,9 @@ class DefaultAssetService(
 
     override suspend fun loadPlayer(): ImageAsset {
         return fetchImageAndBytes(
-            gameConfig.player.asset.path,
-            gameConfig.player.width,
-            gameConfig.player.height
+            appProperties.player.asset.path,
+            appProperties.player.width,
+            appProperties.player.height
         )
     }
 
@@ -157,10 +173,10 @@ class DefaultAssetService(
     @OptIn(ExperimentalWasmJsInterop::class)
     override suspend fun loadAudio(listener: LoadingProgressListener) = coroutineScope {
         val audioPathMap = mapOf(
-            Sounds.JUMP to gameConfig.audio.player.jump,
-            Sounds.PLAYER_COLLISION to gameConfig.audio.player.collision,
-            Sounds.ENEMY_SHOOT to gameConfig.audio.enemy.shoot,
-            Sounds.ITEM_COLLECT to gameConfig.audio.item.collect
+            Sounds.JUMP to appProperties.audio.player.jump,
+            Sounds.PLAYER_COLLISION to appProperties.audio.player.collision,
+            Sounds.ENEMY_SHOOT to appProperties.audio.enemy.shoot,
+            Sounds.ITEM_COLLECT to appProperties.audio.item.collect
         )
 
         suspend fun fetchBlob(url: String): Blob {
@@ -171,24 +187,24 @@ class DefaultAssetService(
         val deferredAudios = audioPathMap.map { (key, path) ->
             key to async { fetchBlob(path) }
         }
-        val deferredBackground = async { fetchBlob(gameConfig.audio.background) }
+        val deferredBackground = async { fetchBlob(appProperties.audio.background) }
         deferredAudios.forEach { (key, deferred) ->
             val blob = deferred.await()
             audioMap[key] = URL.createObjectURL(blob)
             listener.onTaskCompleted(key.name)
         }
-        listener.onTaskCompleted(gameConfig.audio.background)
+        listener.onTaskCompleted(appProperties.audio.background)
         backgroundAudio = URL.createObjectURL(deferredBackground.await())
     }
 
-    override fun getTotalEnemies(): Int = gameConfig.map.enemy.positions.size
+    override fun getTotalEnemies(): Int = appProperties.map.enemy.positions.size
 
     override fun getEnemyPosition(id: Int): ItemPositionAndType {
         val enemy = enemyInfoMap[id] ?: throw AssetServiceReferenceException("no enemy found at $id")
         return ItemPositionAndType(enemy.x, enemy.y, enemy.type)
     }
 
-    override fun getTotalItems(): Int = gameConfig.map.item.positions.size
+    override fun getTotalItems(): Int = appProperties.map.item.positions.size
 
     override fun getItemPosition(id: Int): ItemPositionAndType {
         val item = itemInfoMap[id] ?: throw AssetServiceReferenceException("no item found at $id")
@@ -204,25 +220,25 @@ class DefaultAssetService(
     override fun getTextForGameState(gameMapState: GameMapState?): TextAsset {
         return when (gameMapState) {
             GameMapState.COLLECTING -> {
-                val color = stringToColor(gameConfig.map.directive.initial.color)
-                TextAsset(gameConfig.map.directive.initial.text, color)
+                val color = stringToColor(appProperties.map.directive.initial.color)
+                TextAsset(appProperties.map.directive.initial.text, color)
             }
 
             GameMapState.COMPLETING -> {
-                val color = stringToColor(gameConfig.map.directive.finish.color)
-                TextAsset(gameConfig.map.directive.finish.text, color)
+                val color = stringToColor(appProperties.map.directive.finish.color)
+                TextAsset(appProperties.map.directive.finish.text, color)
             }
 
             GameMapState.COMPLETED -> {
-                val color = stringToColor(gameConfig.map.directive.complete.color)
-                TextAsset(gameConfig.map.directive.complete.text, color)
+                val color = stringToColor(appProperties.map.directive.complete.color)
+                TextAsset(appProperties.map.directive.complete.text, color)
             }
 
             null -> TextAsset("Press Start To Begin", Color.Black)
         }
     }
 
-    override fun showCollisionMap(): Boolean = gameConfig.map.collision.visible
+    override fun showCollisionMap(): Boolean = appProperties.map.collision.visible
 
     private fun stringToColor(stringColor: String) =
         colorMap[stringColor.lowercase()] ?: throw AssetServiceReferenceException("unknown color provided $stringColor")

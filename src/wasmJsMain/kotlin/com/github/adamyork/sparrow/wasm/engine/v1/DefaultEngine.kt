@@ -251,8 +251,8 @@ class DefaultEngine @AppScope @Inject constructor(
 
     override fun createDefaultPlayer(playerAsset: ImageAsset): Player {
         return Player(
-            assetService.gameConfig.player.x,
-            assetService.gameConfig.player.y,
+            assetService.appProperties.player.x,
+            assetService.appProperties.player.y,
             playerAsset.width,
             playerAsset.height,
             GameElementState.ACTIVE,
@@ -265,7 +265,7 @@ class DefaultEngine @AppScope @Inject constructor(
             Direction.RIGHT,
             GameElementCollisionState.FREE,
             0,
-            assetService.gameConfig.engine.fps.animation.toDouble()
+            assetService.appProperties.engine.fps.animation.toDouble()
         )
     }
 

@@ -55,7 +55,7 @@ class DefaultStatusProvider(
     }
 
     override fun getDeltaTimeCoefficient(): Double {
-        val targetFps = assetService.gameConfig.engine.fps.target.toDouble()
+        val targetFps = assetService.appProperties.engine.fps.target.toDouble()
         val targetDeltaTimeMs = 1000.0 / targetFps
         if (lastPaintTime <= 0.0 || currentFrameTime <= 0.0) {
             return 1.0

@@ -14,6 +14,17 @@ player:
   height: 128
   x: 128
   y: 100
+global:
+    splash:
+        asset:
+            path: "https://sparrow-assets.pages.dev/splash.png"
+            width: 1024
+            height: 768
+    ending:
+        asset:
+            path: "https://sparrow-assets.pages.dev/ending.png"
+            width: 1024
+            height: 768
 map:
   width: 2048
   height: 1536

@@ -154,22 +154,22 @@ class DefaultParticles : Particles {
     override fun populateColorMap(assetService: AssetService) {
         colorMap = mapOf(
             ParticleType.DUST to Color(
-                assetService.gameConfig.particle.player.movement.color.r.toFloat() / 255f,
-                assetService.gameConfig.particle.player.movement.color.g.toFloat() / 255f,
-                assetService.gameConfig.particle.player.movement.color.b.toFloat() / 255f,
-                assetService.gameConfig.particle.player.movement.color.a.toFloat() / 255f
+                assetService.appProperties.particle.player.movement.color.r.toFloat() / 255f,
+                assetService.appProperties.particle.player.movement.color.g.toFloat() / 255f,
+                assetService.appProperties.particle.player.movement.color.b.toFloat() / 255f,
+                assetService.appProperties.particle.player.movement.color.a.toFloat() / 255f
             ),
             ParticleType.COLLISION to Color(
-                assetService.gameConfig.particle.player.collision.color.r.toFloat() / 255f,
-                assetService.gameConfig.particle.player.collision.color.g.toFloat() / 255f,
-                assetService.gameConfig.particle.player.collision.color.b.toFloat() / 255f,
-                assetService.gameConfig.particle.player.collision.color.a.toFloat() / 255f
+                assetService.appProperties.particle.player.collision.color.r.toFloat() / 255f,
+                assetService.appProperties.particle.player.collision.color.g.toFloat() / 255f,
+                assetService.appProperties.particle.player.collision.color.b.toFloat() / 255f,
+                assetService.appProperties.particle.player.collision.color.a.toFloat() / 255f
             ),
             ParticleType.PROJECTILE to Color(
-                assetService.gameConfig.particle.enemy.projectile.color.r.toFloat() / 255f,
-                assetService.gameConfig.particle.enemy.projectile.color.g.toFloat() / 255f,
-                assetService.gameConfig.particle.enemy.projectile.color.b.toFloat() / 255f,
-                assetService.gameConfig.particle.enemy.projectile.color.a.toFloat() / 255f
+                assetService.appProperties.particle.enemy.projectile.color.r.toFloat() / 255f,
+                assetService.appProperties.particle.enemy.projectile.color.g.toFloat() / 255f,
+                assetService.appProperties.particle.enemy.projectile.color.b.toFloat() / 255f,
+                assetService.appProperties.particle.enemy.projectile.color.a.toFloat() / 255f
             )
         )
     }
