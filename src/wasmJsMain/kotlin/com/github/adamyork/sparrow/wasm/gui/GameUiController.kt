@@ -3,6 +3,7 @@ package com.github.adamyork.sparrow.wasm.gui
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
+import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
@@ -40,15 +41,12 @@ class GameUiController(
 
     private val logger = KotlinLogging.logger {}
     private val viewModel = LoadingViewModel()
-    private var isInitialized: Boolean = false
 
     val gameStateElements: GameStateElements = GameStateElements.emptyGameStateElements
     val loadingTasks: List<LoadingTask>
         get() = viewModel.loadingTasks
 
     suspend fun initializeGame() {
-        //TODO manage labels on start up
-        //TODO Reset Game on ending not working
         runCatching {
             logger.info { "initializing" }
             val screenDimensions = screenDimensionsService.getScreenDimensions()
@@ -111,7 +109,7 @@ class GameUiController(
             scoreService.gameMapItem = gameMap.items
             refreshScoreLabels()
             statusProvider.gameMapState = gameMap.state
-            isInitialized = true
+            statusProvider.gameLifeCycleState = GameLifeCycleState.INITIALIZED
             logger.info { "splash loaded and game initialized" }
         }.onFailure { logger.error { "init failed $it" } }
     }
@@ -135,17 +133,21 @@ class GameUiController(
     fun allTasksCompleted(): Boolean = loadingTasks.all { it.isCompleted }
 
     fun start() {
-        statusProvider.running = true
+        if (statusProvider.gameMapState == GameMapState.COMPLETED) {
+            reset()
+        }
+        statusProvider.gameLifeCycleState = GameLifeCycleState.RUNNING
         wavService.playBackgroundAudio()
     }
 
     fun tick(timestamp: Double): GeneralUiState {
         val currentFps = statusProvider.getFps()
         val elements = gameStateElements
-        val maybeGameState = if (isInitialized) elements.gameMap.state else null
-        statusProvider.gameMapState = maybeGameState
-        val statusText = assetService.getTextForGameState(maybeGameState)
-        if (!statusProvider.running || !isInitialized) {
+        if (statusProvider.gameLifeCycleState != GameLifeCycleState.INITIALIZING) {
+            statusProvider.gameMapState = elements.gameMap.state
+        }
+        val statusText = assetService.getTextForGameState(statusProvider.gameMapState)
+        if (statusProvider.gameLifeCycleState != GameLifeCycleState.RUNNING || statusProvider.gameLifeCycleState == GameLifeCycleState.INITIALIZING) {
             return GeneralUiState(
                 drawResult = DrawResult.EMPTY_DRAW_RESULT,
                 fpsLabel = "FPS: ${currentFps.toInt()}",
@@ -154,7 +156,7 @@ class GameUiController(
                 scoreLabel = elements.scoreLabel,
                 totalLabel = elements.totalLabel,
                 remainingLabel = elements.remainingLabel,
-                gameMapState = maybeGameState,
+                gameMapState = statusProvider.gameMapState,
                 completionTransitionRequested = false
             )
         }
@@ -170,7 +172,7 @@ class GameUiController(
         wavService.playNext()
         val currentGameState = elements.gameMap.state
         statusProvider.gameMapState = currentGameState
-        if (currentGameState == GameMapState.COMPLETED && statusProvider.running) {
+        if (currentGameState == GameMapState.COMPLETED && statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING) {
             pause()
         }
         return GeneralUiState(
@@ -188,7 +190,7 @@ class GameUiController(
 
     fun applyInput(controlType: ControlType, controlAction: ControlAction) {
         val elements = gameStateElements
-        if (!isInitialized) return
+        if (statusProvider.gameLifeCycleState == GameLifeCycleState.INITIALIZING) return
         when (controlType) {
             ControlType.START -> {
                 engine.startInput(controlAction, elements.player)
@@ -201,13 +203,14 @@ class GameUiController(
     }
 
     fun pause() {
-        statusProvider.running = false
+        statusProvider.gameLifeCycleState = when {
+            statusProvider.gameMapState == GameMapState.COMPLETED -> GameLifeCycleState.COMPLETED
+            statusProvider.gameLifeCycleState != GameLifeCycleState.INITIALIZING -> GameLifeCycleState.PAUSED
+            else -> GameLifeCycleState.INITIALIZING
+        }
     }
 
     fun reset() {
-        if (!isInitialized) {
-            return
-        }
         logger.info { "reset game" }
         gameStateElements.player = engine.createDefaultPlayer(gameStateElements.playerAsset)
         gameStateElements.gameMap.reset(
@@ -222,9 +225,7 @@ class GameUiController(
         refreshScoreLabels()
         statusProvider.reset()
         statusProvider.gameMapState = gameStateElements.gameMap.state
-        if (!statusProvider.running) {
-            statusProvider.running = true
-        }
+        statusProvider.gameLifeCycleState = GameLifeCycleState.RUNNING
     }
 
     private fun createInitialViewPort(screenDimensions: ScreenDimensions): ViewPort {

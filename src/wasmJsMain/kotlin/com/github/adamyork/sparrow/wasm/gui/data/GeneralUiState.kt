@@ -16,6 +16,6 @@ data class GeneralUiState(
     val scoreLabel: String,
     val totalLabel: String,
     val remainingLabel: String,
-    val gameMapState: GameMapState?,
+    val gameMapState: GameMapState,
     val completionTransitionRequested: Boolean
 )

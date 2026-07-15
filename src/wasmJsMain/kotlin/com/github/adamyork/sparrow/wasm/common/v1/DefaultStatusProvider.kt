@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
+import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import me.tatarka.inject.annotations.Inject
@@ -23,21 +24,9 @@ class DefaultStatusProvider(
         const val FPS_SAMPLE_WINDOW_MS: Double = 1000.0
     }
 
-
-    private var runningState by mutableStateOf(false)
-    override var running: Boolean
-        get() = runningState
-        set(value) {
-            runningState = value
-        }
-
+    override var gameLifeCycleState by mutableStateOf(GameLifeCycleState.INITIALIZING)
+    override var gameMapState by mutableStateOf(GameMapState.COLLECTING)
     override var lastPaintTime: Double = 0.0
-    private var gameMapStateValue by mutableStateOf<GameMapState?>(null)
-    override var gameMapState: GameMapState?
-        get() = gameMapStateValue
-        set(value) {
-            gameMapStateValue = value
-        }
 
     private var fpsWindowStartTime: Double = 0.0
     private var fpsFrameCountInWindow: Int = 0
@@ -45,14 +34,6 @@ class DefaultStatusProvider(
     private var cachedFps: Double = 0.0
     private var excessTime: Double = 0.0
     private var currentFrameTime: Double = 0.0
-
-    override fun setCurrentFrameTime(timestamp: Double) {
-        this.currentFrameTime = timestamp
-    }
-
-    override fun getCurrentFrameTime(): Double {
-        return currentFrameTime
-    }
 
     override fun getDeltaTimeCoefficient(): Double {
         val targetFps = assetService.appProperties.engine.fps.target.toDouble()
@@ -63,18 +44,6 @@ class DefaultStatusProvider(
         val actualDeltaTimeMs = currentFrameTime - lastPaintTime
         val coefficient = actualDeltaTimeMs / targetDeltaTimeMs
         return coefficient.coerceIn(0.5, 2.0)
-    }
-
-
-    override fun reset() {
-        lastPaintTime = 0.0
-        gameMapState = null
-        fpsWindowStartTime = 0.0
-        fpsFrameCountInWindow = 0
-        lastObservedPaintTime = 0.0
-        cachedFps = 0.0
-        excessTime = 0.0
-        currentFrameTime = 0.0
     }
 
     override fun getFps(): Double {
@@ -102,4 +71,25 @@ class DefaultStatusProvider(
         }
         return cachedFps
     }
+
+    override fun setCurrentFrameTime(timestamp: Double) {
+        this.currentFrameTime = timestamp
+    }
+
+    override fun getCurrentFrameTime(): Double {
+        return currentFrameTime
+    }
+
+    override fun reset() {
+        lastPaintTime = 0.0
+        gameMapState = GameMapState.COLLECTING
+        gameLifeCycleState = GameLifeCycleState.INITIALIZED
+        fpsWindowStartTime = 0.0
+        fpsFrameCountInWindow = 0
+        lastObservedPaintTime = 0.0
+        cachedFps = 0.0
+        excessTime = 0.0
+        currentFrameTime = 0.0
+    }
+
 }

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.wasm.common.StatusProvider
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
+import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import kotlinx.browser.window
 import kotlinx.coroutines.awaitCancellation
@@ -41,14 +42,6 @@ class GameUiMain(
     private val screenDimensionsService: ScreenDimensionsService
 ) {
 
-    private fun shouldEnableStart(
-        isRunning: Boolean,
-        allTasksCompleted: Boolean,
-        isLoadingChecklistVisible: Boolean
-    ): Boolean {
-        return !isRunning && allTasksCompleted && !isLoadingChecklistVisible
-    }
-
     @Composable
     fun build() {
         val screenDimensions = remember { screenDimensionsService.getScreenDimensions() }
@@ -61,6 +54,7 @@ class GameUiMain(
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
         val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
         val allTasksCompleted = controller.allTasksCompleted()
+        val gameLifeCycleState = statusProvider.gameLifeCycleState
         val splashImage = controller.gameStateElements.splashImage
         val endingImage = controller.gameStateElements.endingImage
         val colorScheme = MaterialTheme.colorScheme
@@ -70,11 +64,6 @@ class GameUiMain(
             disabledContentColor = colorScheme.onSecondaryContainer
         )
         val textMainColor = colorScheme.onSurface
-        val isStartEnabled = shouldEnableStart(
-            isRunning = statusProvider.running,
-            allTasksCompleted = allTasksCompleted,
-            isLoadingChecklistVisible = isLoadingChecklistVisible
-        )
 
         LaunchedEffect(allTasksCompleted, splashImage, isLoadingChecklistVisible) {
             if (allTasksCompleted && isLoadingChecklistVisible) {
@@ -103,7 +92,7 @@ class GameUiMain(
             }
 
             val keyDownListener: (Event) -> Unit = { event ->
-                if (statusProvider.running && event is KeyboardEvent) {
+                if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -113,7 +102,7 @@ class GameUiMain(
             }
 
             val keyUpListener: (Event) -> Unit = { event ->
-                if (statusProvider.running && event is KeyboardEvent) {
+                if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -132,8 +121,8 @@ class GameUiMain(
             }
         }
 
-        LaunchedEffect(statusProvider.running) {
-            if (statusProvider.running) {
+        LaunchedEffect(statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING) {
+            if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING) {
                 var frameId: Int
                 fun loop(timestamp: Double) {
                     statusProvider.setCurrentFrameTime(timestamp)
@@ -177,7 +166,8 @@ class GameUiMain(
                     if (frame.completionTransitionRequested) {
                         gameUiDrawLayer.clearAllLayers()
                         endingImage.let { gameUiDrawLayer.drawSplash(it) }
-                        statusProvider.running = false
+                        statusProvider.gameMapState = GameMapState.COMPLETED
+                        statusProvider.gameLifeCycleState = GameLifeCycleState.COMPLETED
                         return
                     }
                     frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
@@ -203,7 +193,7 @@ class GameUiMain(
                 ),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (statusProvider.running && isTouchDevice) {
+            if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING && isTouchDevice) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f).fillMaxHeight().pointerInput(Unit) {
                         detectTapGestures(onPress = {
@@ -244,12 +234,12 @@ class GameUiMain(
                         .testTag("canvas-with-fps-overlay")
                 ) {
                     gameUiDrawLayer.build(
-                        isRunning = statusProvider.running,
+                        isRunning = statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING,
                         onFpsLabelChanged = { nextLabel ->
                             fpsLabel = nextLabel
                         }
                     )
-                    if (statusProvider.gameMapState != GameMapState.COMPLETED) {
+                    if (gameLifeCycleState != GameLifeCycleState.COMPLETED) {
                         Text(
                             text = gameStatusLabel,
                             style = MaterialTheme.typography.labelLarge,
@@ -296,7 +286,7 @@ class GameUiMain(
                         }
                     }
 
-                    if (statusProvider.gameMapState != GameMapState.COMPLETED) {
+                    if (gameLifeCycleState != GameLifeCycleState.INITIALIZING && gameLifeCycleState != GameLifeCycleState.COMPLETED) {
                         Text(
                             text = fpsLabel,
                             style = MaterialTheme.typography.labelLarge,
@@ -309,7 +299,9 @@ class GameUiMain(
                                 .semantics { contentDescription = "FPS label" }
                                 .testTag("fps-label")
                         )
+                    }
 
+                    if (gameLifeCycleState != GameLifeCycleState.INITIALIZING && gameLifeCycleState != GameLifeCycleState.COMPLETED) {
                         Text(
                             text = "Screen: ${screenDimensions.width}x${screenDimensions.height}",
                             style = MaterialTheme.typography.labelLarge,
@@ -323,7 +315,9 @@ class GameUiMain(
                                 .semantics { contentDescription = "Screen dimensions label" }
                                 .testTag("screen-dimensions-label")
                         )
+                    }
 
+                    if (gameLifeCycleState != GameLifeCycleState.INITIALIZING && gameLifeCycleState != GameLifeCycleState.COMPLETED) {
                         Column(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -344,57 +338,59 @@ class GameUiMain(
                         }
                     }
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .semantics { contentDescription = "start-pause-button-row" }
-                        .testTag("start-pause-button-row")
-                        .align(Alignment.CenterHorizontally)
-                ) {
-
-                    val focusManager = LocalFocusManager.current
-
-                    Button(
-                        onClick = {
-                            controller.start()
-                            focusManager.clearFocus()
-                        },
-                        enabled = isStartEnabled,
-                        colors = disabledButtonColors,
+                if (gameLifeCycleState != GameLifeCycleState.INITIALIZING) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .semantics { contentDescription = "start-button" }
-                            .testTag("start-button")
+                            .semantics { contentDescription = "start-pause-button-row" }
+                            .testTag("start-pause-button-row")
+                            .align(Alignment.CenterHorizontally)
                     ) {
-                        Text("Start", color = textMainColor)
-                    }
 
-                    Button(
-                        onClick = {
-                            controller.pause()
-                            focusManager.clearFocus()
-                        },
-                        enabled = statusProvider.running,
-                        colors = disabledButtonColors,
-                        modifier = Modifier
-                            .semantics { contentDescription = "pause-button" }
-                            .testTag("pause-button")
-                    ) {
-                        Text("Pause", color = textMainColor)
-                    }
+                        val focusManager = LocalFocusManager.current
 
-                    Button(
-                        onClick = {
-                            controller.reset()
-                            focusManager.clearFocus()
-                        },
-                        enabled = statusProvider.running,
-                        colors = disabledButtonColors,
-                        modifier = Modifier
-                            .semantics { contentDescription = "reset-button" }
-                            .testTag("reset-button")
-                    ) {
-                        Text("Reset", color = textMainColor)
+                        Button(
+                            onClick = {
+                                controller.start()
+                                focusManager.clearFocus()
+                            },
+                            enabled = gameLifeCycleState != GameLifeCycleState.RUNNING || gameLifeCycleState == GameLifeCycleState.COMPLETED,
+                            colors = disabledButtonColors,
+                            modifier = Modifier
+                                .semantics { contentDescription = "start-button" }
+                                .testTag("start-button")
+                        ) {
+                            Text("Start", color = textMainColor)
+                        }
+
+                        Button(
+                            onClick = {
+                                controller.pause()
+                                focusManager.clearFocus()
+                            },
+                            enabled = gameLifeCycleState == GameLifeCycleState.RUNNING,
+                            colors = disabledButtonColors,
+                            modifier = Modifier
+                                .semantics { contentDescription = "pause-button" }
+                                .testTag("pause-button")
+                        ) {
+                            Text("Pause", color = textMainColor)
+                        }
+
+                        Button(
+                            onClick = {
+                                controller.reset()
+                                focusManager.clearFocus()
+                            },
+                            enabled = gameLifeCycleState == GameLifeCycleState.RUNNING,
+                            colors = disabledButtonColors,
+                            modifier = Modifier
+                                .semantics { contentDescription = "reset-button" }
+                                .testTag("reset-button")
+                        ) {
+                            Text("Reset", color = textMainColor)
+                        }
                     }
                 }
             }

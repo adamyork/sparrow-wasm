@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common
 
+import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 
 /**
@@ -8,18 +9,20 @@ import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
  */
 interface StatusProvider {
 
-    var running: Boolean
+    var gameLifeCycleState: GameLifeCycleState
+    var gameMapState: GameMapState
     var lastPaintTime: Double
-    var gameMapState: GameMapState?
 
     fun getDeltaTimeCoefficient(): Double
 
-
     fun getFps(): Double
-
-    fun reset()
 
     fun setCurrentFrameTime(timestamp: Double)
 
     fun getCurrentFrameTime() : Double
+
+    fun reset()
+
 }
+
+

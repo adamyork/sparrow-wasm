@@ -23,6 +23,9 @@ import kotlinx.coroutines.await
 import kotlinx.coroutines.coroutineScope
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.Image
+import org.jetbrains.skia.Paint
+import org.jetbrains.skia.PaintMode
+import org.jetbrains.skia.Surface
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.get
 import org.w3c.dom.url.URL
@@ -162,12 +165,12 @@ class DefaultAssetService(
 
     override suspend fun loadItem(id: Int): ImageAsset {
         val entry = itemInfoMap[id] ?: throw AssetServiceReferenceException("Item ID $id not found")
-        return fetchImageAndBytes(entry.path, entry.width, entry.height)
+        return fetchImageAndBytes(entry.path, entry.width, entry.height, id)
     }
 
     override suspend fun loadEnemy(id: Int): ImageAsset {
         val entry = enemyInfoMap[id] ?: throw AssetServiceReferenceException("Enemy ID $id not found")
-        return fetchImageAndBytes(entry.path, entry.width, entry.height)
+        return fetchImageAndBytes(entry.path, entry.width, entry.height, id)
     }
 
     @OptIn(ExperimentalWasmJsInterop::class)
@@ -217,7 +220,7 @@ class DefaultAssetService(
         return audioMap[sound] ?: throw AssetServiceReferenceException("no audio path for for key $sound")
     }
 
-    override fun getTextForGameState(gameMapState: GameMapState?): TextAsset {
+    override fun getTextForGameState(gameMapState: GameMapState): TextAsset {
         return when (gameMapState) {
             GameMapState.COLLECTING -> {
                 val color = stringToColor(appProperties.map.directive.initial.color)
@@ -233,8 +236,6 @@ class DefaultAssetService(
                 val color = stringToColor(appProperties.map.directive.complete.color)
                 TextAsset(appProperties.map.directive.complete.text, color)
             }
-
-            null -> TextAsset("Press Start To Begin", Color.Black)
         }
     }
 
@@ -243,10 +244,13 @@ class DefaultAssetService(
     private fun stringToColor(stringColor: String) =
         colorMap[stringColor.lowercase()] ?: throw AssetServiceReferenceException("unknown color provided $stringColor")
 
-    private suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset {
+    private suspend fun fetchImageAndBytes(path: String, width: Int, height: Int, id: Int? = null): ImageAsset {
         logger.info { "fetchImageAndBytes for $path" }
         val response = httpClient.get(path)
-        val bytes = response.body<ByteArray>()
+        var bytes = response.body<ByteArray>()
+        if (id != null) {
+            bytes = drawIdAsDots(bytes, id)
+        }
         val skiaImage = Image.makeFromEncoded(bytes)
         try {
             val bitmap = skiaImage.toComposeImageBitmap()
@@ -254,5 +258,27 @@ class DefaultAssetService(
         } finally {
             skiaImage.close()
         }
+    }
+
+    private fun drawIdAsDots(bytes: ByteArray, id: Int): ByteArray {
+        val image = Image.makeFromEncoded(bytes)
+        val surface = Surface.makeRasterN32Premul(image.width, image.height)
+        val canvas = surface.canvas
+        canvas.drawImage(image, 0f, 0f)
+        val paint = Paint().apply {
+            color = org.jetbrains.skia.Color.BLACK
+            isAntiAlias = true
+            mode = PaintMode.FILL
+        }
+        for (i in 1..id) {
+            val x = 5f + (i * 10f) // Space them out
+            val y = 5f
+            canvas.drawCircle(x, y, 3f, paint)
+        }
+        val data = surface.makeImageSnapshot().encodeToData() ?: return bytes
+        val result = data.bytes
+        image.close()
+        surface.close()
+        return result
     }
 }
