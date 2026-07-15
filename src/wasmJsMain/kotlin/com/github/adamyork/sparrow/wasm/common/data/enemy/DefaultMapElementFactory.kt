@@ -45,6 +45,7 @@ class DefaultMapElementFactory : MapElementFactory {
         enemyType: EnemyType,
         width: Int,
         height: Int,
+        id: Int,
         animationFps: Double
     ): Enemy {
         val state = if (enemyType == EnemyType.RUNNER) {
@@ -58,6 +59,7 @@ class DefaultMapElementFactory : MapElementFactory {
             enemyType,
             width,
             height,
+            id,
             animationFps,
             state
         )
@@ -69,6 +71,7 @@ class DefaultMapElementFactory : MapElementFactory {
         enemyType: EnemyType,
         width: Int,
         height: Int,
+        id: Int,
         animationFps: Double,
         state: GameElementState
     ): Enemy {
@@ -77,19 +80,19 @@ class DefaultMapElementFactory : MapElementFactory {
         return when (enemyType) {
             EnemyType.BLOCKER -> BlockerEnemy(
                 position.x, position.y, imageAsset.width, imageAsset.height, state,
-                frameMetadata, imageAsset.imageAndBytes, enemyType, position.x, position.y,
+                frameMetadata, imageAsset.imageAndBytes, id, enemyType, position.x, position.y,
                 enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, animationFps
             )
 
             EnemyType.SHOOTER -> ShooterEnemy(
                 position.x, position.y, imageAsset.width, imageAsset.height, state,
-                frameMetadata, imageAsset.imageAndBytes, enemyType, position.x, position.y,
+                frameMetadata, imageAsset.imageAndBytes, id, enemyType, position.x, position.y,
                 enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, animationFps
             )
 
             EnemyType.RUNNER -> RunnerEnemy(
                 position.x, position.y, imageAsset.width, imageAsset.height, state,
-                frameMetadata, imageAsset.imageAndBytes, enemyType, position.x, position.y,
+                frameMetadata, imageAsset.imageAndBytes, id, enemyType, position.x, position.y,
                 enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, animationFps
             )
         }

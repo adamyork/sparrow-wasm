@@ -120,6 +120,7 @@ class GameMap(
                     enemyType,
                     targetImageAsset.width,
                     targetImageAsset.height,
+                    enemyIndex,
                     animationFps
                 )
             )

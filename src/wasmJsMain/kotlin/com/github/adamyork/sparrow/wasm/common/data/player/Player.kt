@@ -32,7 +32,6 @@ class Player(
 ) : GameElement {
 
     companion object {
-        //val LOGGER: Logger = LoggerFactory.getLogger(Player::class.java)
         const val ANIMATION_MOVING_FRAMES = 4
         const val ANIMATION_JUMPING_FRAMES = 8
         const val ANIMATION_COLLISION_FRAMES = 8

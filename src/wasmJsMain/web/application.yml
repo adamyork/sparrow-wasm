@@ -4,7 +4,7 @@ engine:
     animation: 12
 viewport:
   x: 0
-  y: 0
+  y: 768
   width: 1024
   height: 768
 player:
@@ -12,8 +12,8 @@ player:
     path: "https://sparrow-assets.pages.dev/sparrow-comp.png"
   width: 128
   height: 128
-  x: 128
-  y: 100
+  x: 0
+  y: 1408
 global:
     splash:
         asset:
@@ -34,6 +34,8 @@ map:
   col: "https://sparrow-assets.pages.dev/map1-collision.png"
   collision:
     visible: true
+  itemDots:
+    visible: true
   item:
     asset:
       one:
@@ -53,10 +55,183 @@ map:
         ref: "one"
       # noinspection SpringBootApplicationYaml
       1:
-        x: 797
-        y: 450
-        type: "finish"
-        ref: "two"
+        x: 170
+        y: 192
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      2:
+        x: 597
+        y: 192
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      3:
+        x: 1024
+        y: 192
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      4:
+        x: 1451
+        y: 192
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      5:
+        x: 1878
+        y: 192
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      6:
+        x: 170
+        y: 512
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      7:
+        x: 597
+        y: 512
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      8:
+        x: 1024
+        y: 512
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      9:
+        x: 1451
+        y: 512
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      10:
+        x: 1878
+        y: 512
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      11:
+        x: 170
+        y: 832
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      12:
+        x: 597
+        y: 832
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      13:
+        x: 1024
+        y: 832
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      14:
+        x: 1451
+        y: 832
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      15:
+        x: 1878
+        y: 832
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      16:
+        x: 170
+        y: 1152
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      17:
+        x: 597
+        y: 1152
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      18:
+        x: 1024
+        y: 1152
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      19:
+        x: 1451
+        y: 1152
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      20:
+        x: 1878
+        y: 1152
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      21:
+        x: 170
+        y: 1344
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      22:
+        x: 597
+        y: 1344
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      23:
+        x: 1024
+        y: 1344
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      24:
+        x: 1451
+        y: 1344
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      25:
+        x: 1878
+        y: 1344
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      26:
+        x: 170
+        y: 1472
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      27:
+        x: 597
+        y: 1472
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      28:
+        x: 1024
+        y: 1472
+        type: "collectable"
+        ref: "one"
+      # noinspection SpringBootApplicationYaml
+      29:
+        x: 1451
+        y: 1472
+        type: "collectable"
+        ref: "one"
+      30:
+          x: 797
+          y: 450
+          type: "finish"
+          ref: "two"
   enemy:
     asset:
       one:

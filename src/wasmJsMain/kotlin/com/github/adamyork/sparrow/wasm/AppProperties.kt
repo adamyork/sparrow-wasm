@@ -52,6 +52,7 @@ data class MapConfig(
     val width: Int, val height: Int,
     val bg: String, val mg: String, val fg: String, val col: String,
     val collision: VisibleConfig,
+    val itemDots: VisibleConfig = VisibleConfig(false),
     val item: ItemConfig,
     val enemy: EnemyConfig,
     val directive: DirectiveConfig

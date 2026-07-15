@@ -27,6 +27,7 @@ interface MapElementFactory {
         enemyType: EnemyType,
         width: Int,
         height: Int,
+        id: Int,
         animationFps: Double
     ): Enemy
 

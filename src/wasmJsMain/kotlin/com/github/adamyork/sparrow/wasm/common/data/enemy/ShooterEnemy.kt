@@ -18,6 +18,7 @@ class ShooterEnemy(
     override var state: GameElementState,
     override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
+    override val id: Int,
     override val type: EnemyType,
     override val originX: Int,
     override val originY: Int,
@@ -31,7 +32,6 @@ class ShooterEnemy(
 ) : Enemy, ThrottledAnimator {
 
     companion object {
-        //val LOGGER: Logger = LoggerFactory.getLogger(ShooterEnemy::class.java)
         const val PLAYER_PROXIMITY_THRESHOLD = 200
         const val ANIMATION_INTERACTING_FRAMES = 8
     }

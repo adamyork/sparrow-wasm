@@ -54,4 +54,6 @@ interface AssetService {
 
     fun showCollisionMap(): Boolean
 
+    fun drawIdAsDots(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int): ByteArray
+
 }

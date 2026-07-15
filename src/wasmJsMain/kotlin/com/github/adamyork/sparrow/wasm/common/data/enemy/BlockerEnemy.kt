@@ -18,6 +18,7 @@ class BlockerEnemy(
     override var state: GameElementState,
     override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
+    override val id: Int,
     override val type: EnemyType,
     override val originX: Int,
     override val originY: Int,
@@ -32,7 +33,6 @@ class BlockerEnemy(
 ) : Enemy, ThrottledAnimator {
 
     companion object {
-        //val LOGGER: Logger = LoggerFactory.getLogger(BlockerEnemy::class.java)
         const val ANIMATION_COLLISION_FRAMES = 8
         const val MAX_X_MOVEMENT = 100
         const val MOVEMENT_X_DISTANCE = 4

@@ -14,6 +14,7 @@ import com.github.adamyork.sparrow.wasm.common.data.player.Player
  */
 interface Enemy : GameElement {
 
+    val id: Int
     val type: EnemyType
     val originX: Int
     val originY: Int

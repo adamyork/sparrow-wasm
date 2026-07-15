@@ -27,7 +27,6 @@ class CollectibleItem(
 ) : Item, ThrottledAnimator {
 
     companion object {
-        //val LOGGER: Logger = LoggerFactory.getLogger(CollectibleItem::class.java)
         const val ANIMATION_DEACTIVATING_FRAMES = 4
         const val ANIMATION_ACTIVE_FRAMES = 16
     }
@@ -52,7 +51,6 @@ class CollectibleItem(
         }
         if (state == GameElementState.DEACTIVATING) {
             if (frameMetadata.frame == ANIMATION_DEACTIVATING_FRAMES) {
-                //LOGGER.info("deactivating complete 0")
                 metadataState =
                     FrameMetadataState(
                         GameElementCollisionState.FREE,
@@ -62,7 +60,6 @@ class CollectibleItem(
                 return Pair(metadata, metadataState)
             } else {
                 val nextFrame = frameMetadata.frame + 1
-                //LOGGER.info("deactivating frame $nextFrame")
                 metadata = deactivatingFrames[nextFrame] ?: throw AnimationFrameException(
                     deactivatingFrames.toString(),
                     nextFrame

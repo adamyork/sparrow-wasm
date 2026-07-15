@@ -76,14 +76,28 @@ class DefaultEngine @AppScope @Inject constructor(
         flippedFrameCache.clear()
         this.collision.collisionImage = collisionImageAndBytes
         this.collision.cacheCollisionPixels()
+        val showItemDots = assetService.appProperties.map.itemDots.visible
         gameMap.items.forEach { item ->
-            itemImageCache[item.type.name] = Image.makeFromBitmap(item.imageAndBytes.imageBitmap.asSkiaBitmap())
+            val image = if (showItemDots) {
+                val markedBytes = assetService.drawIdAsDots(item.imageAndBytes.bytes, item.id, item.width, item.height)
+                Image.makeFromEncoded(markedBytes)
+            } else {
+                Image.makeFromBitmap(item.imageAndBytes.imageBitmap.asSkiaBitmap())
+            }
+            itemImageCache[itemCacheKey(item)] = image
         }
         gameMap.enemies.forEach { enemy ->
-            enemyImageCache[enemy.type.name] = Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())
+            val image = if (showItemDots) {
+                val markedBytes = assetService.drawIdAsDots(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height)
+                Image.makeFromEncoded(markedBytes)
+            } else {
+                Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())
+            }
+            enemyImageCache[enemyCacheKey(enemy)] = image
         }
         mapItem = gameMap.items.firstOrNull() ?: DefaultItem()
-        mapItemImage = Image.makeFromBitmap(mapItem.imageAndBytes.imageBitmap.asSkiaBitmap())
+        mapItemImage = gameMap.items.firstOrNull()?.let { itemImageCache[itemCacheKey(it)] }
+            ?: Image.makeFromBitmap(mapItem.imageAndBytes.imageBitmap.asSkiaBitmap())
         playerImage = Image.makeFromBitmap(player.imageAndBytes.imageBitmap.asSkiaBitmap())
     }
 
@@ -318,8 +332,8 @@ class DefaultEngine @AppScope @Inject constructor(
                 val localX = element.x - viewPort.x
                 val localY = element.y - viewPort.y
                 val elementImage = when (element) {
-                    is Enemy -> enemyImageCache[element.type.name]
-                    is Item -> itemImageCache[element.type.name]
+                    is Enemy -> enemyImageCache[enemyCacheKey(element)]
+                    is Item -> itemImageCache[itemCacheKey(element)]
                     else -> null
                 } ?: throw IllegalStateException("No image found for element")
 
@@ -328,6 +342,10 @@ class DefaultEngine @AppScope @Inject constructor(
             }
         }
     }
+
+    private fun itemCacheKey(item: Item): String = "${item.type.name}:${item.id}"
+
+    private fun enemyCacheKey(enemy: Enemy): String = "${enemy.type.name}:${enemy.id}"
 
     private fun drawSprite(
         canvas: Canvas,

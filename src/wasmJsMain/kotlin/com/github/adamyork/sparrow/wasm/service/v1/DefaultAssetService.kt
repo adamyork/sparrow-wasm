@@ -165,12 +165,12 @@ class DefaultAssetService(
 
     override suspend fun loadItem(id: Int): ImageAsset {
         val entry = itemInfoMap[id] ?: throw AssetServiceReferenceException("Item ID $id not found")
-        return fetchImageAndBytes(entry.path, entry.width, entry.height, id)
+        return fetchImageAndBytes(entry.path, entry.width, entry.height)
     }
 
     override suspend fun loadEnemy(id: Int): ImageAsset {
         val entry = enemyInfoMap[id] ?: throw AssetServiceReferenceException("Enemy ID $id not found")
-        return fetchImageAndBytes(entry.path, entry.width, entry.height, id)
+        return fetchImageAndBytes(entry.path, entry.width, entry.height)
     }
 
     @OptIn(ExperimentalWasmJsInterop::class)
@@ -244,13 +244,10 @@ class DefaultAssetService(
     private fun stringToColor(stringColor: String) =
         colorMap[stringColor.lowercase()] ?: throw AssetServiceReferenceException("unknown color provided $stringColor")
 
-    private suspend fun fetchImageAndBytes(path: String, width: Int, height: Int, id: Int? = null): ImageAsset {
+    private suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset {
         logger.info { "fetchImageAndBytes for $path" }
         val response = httpClient.get(path)
-        var bytes = response.body<ByteArray>()
-        if (id != null) {
-            bytes = drawIdAsDots(bytes, id)
-        }
+        val bytes = response.body<ByteArray>()
         val skiaImage = Image.makeFromEncoded(bytes)
         try {
             val bitmap = skiaImage.toComposeImageBitmap()
@@ -260,25 +257,60 @@ class DefaultAssetService(
         }
     }
 
-    private fun drawIdAsDots(bytes: ByteArray, id: Int): ByteArray {
+    override fun drawIdAsDots(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int): ByteArray {
         val image = Image.makeFromEncoded(bytes)
         val surface = Surface.makeRasterN32Premul(image.width, image.height)
-        val canvas = surface.canvas
-        canvas.drawImage(image, 0f, 0f)
-        val paint = Paint().apply {
-            color = org.jetbrains.skia.Color.BLACK
+        val fillPaint = Paint().apply {
+            color = org.jetbrains.skia.Color.WHITE
             isAntiAlias = true
             mode = PaintMode.FILL
         }
-        for (i in 1..id) {
-            val x = 5f + (i * 10f) // Space them out
-            val y = 5f
-            canvas.drawCircle(x, y, 3f, paint)
+        val outlinePaint = Paint().apply {
+            color = org.jetbrains.skia.Color.BLACK
+            isAntiAlias = true
+            mode = PaintMode.STROKE
+            strokeWidth = 1f
         }
-        val data = surface.makeImageSnapshot().encodeToData() ?: return bytes
-        val result = data.bytes
-        image.close()
-        surface.close()
-        return result
+
+        try {
+            val canvas = surface.canvas
+            canvas.drawImage(image, 0f, 0f)
+
+            val safeFrameWidth = if (frameWidth > 0) frameWidth else image.width
+            val safeFrameHeight = if (frameHeight > 0) frameHeight else image.height
+            val columns = (image.width / safeFrameWidth).coerceAtLeast(1)
+            val rows = (image.height / safeFrameHeight).coerceAtLeast(1)
+
+            val dotRadius = 3f
+            val startX = 6f
+            val startY = 8f
+            val spacing = 8f
+            val dotCount = (id + 1).coerceAtLeast(1)
+
+            // Draw the marker in every frame cell so animation row/column changes still show the ID.
+            for (row in 0 until rows) {
+                for (column in 0 until columns) {
+                    val cellX = (column * safeFrameWidth).toFloat()
+                    val cellY = (row * safeFrameHeight).toFloat()
+                    val maxX = cellX + safeFrameWidth - (dotRadius + 2f)
+
+                    for (dotIndex in 0 until dotCount) {
+                        val x = cellX + startX + (dotIndex * spacing)
+                        if (x > maxX) break
+                        val y = cellY + startY
+                        canvas.drawCircle(x, y, dotRadius, fillPaint)
+                        canvas.drawCircle(x, y, dotRadius, outlinePaint)
+                    }
+                }
+            }
+
+            val data = surface.makeImageSnapshot().encodeToData() ?: return bytes
+            return data.bytes
+        } finally {
+            image.close()
+            surface.close()
+            fillPaint.close()
+            outlinePaint.close()
+        }
     }
 }
