@@ -48,7 +48,6 @@ class GameUiController(
 
     suspend fun initializeGame() {
         //TODO manage labels on start up
-        //TODO ending image
         //TODO Reset Game on ending not working
         runCatching {
             logger.info { "initializing" }
@@ -56,6 +55,7 @@ class GameUiController(
             assetService.initialize(this)
             val loaders: Map<String, suspend () -> Any> = mapOf(
                 "splash" to { assetService.loadSplash() },
+                "ending" to { assetService.loadEnding() },
                 "map" to { assetService.loadMap(0, this@GameUiController) },
                 "player" to { assetService.loadPlayer() },
                 "collectible item" to { assetService.loadItem(0) },
@@ -74,6 +74,7 @@ class GameUiController(
                 }.awaitAll().toMap()
             }
             val splashImage = (loadedAssets.getValue("splash") as ImageAsset).imageAndBytes.imageBitmap
+            val endingImage = (loadedAssets.getValue("ending") as ImageAsset).imageAndBytes.imageBitmap
             val viewPort = createInitialViewPort(screenDimensions)
             val gameMap = loadedAssets.getValue("map") as GameMap
             val playerAsset = loadedAssets.getValue("player") as ImageAsset
@@ -86,6 +87,7 @@ class GameUiController(
             gameStateElements.player = player
             gameStateElements.gameMap = gameMap
             gameStateElements.splashImage = splashImage
+            gameStateElements.endingImage = endingImage
             gameStateElements.playerAsset = playerAsset
             gameStateElements.mapItemCollectibleAsset = collectibleAsset
             gameStateElements.mapItemFinishAsset = finishAsset
@@ -203,24 +205,26 @@ class GameUiController(
     }
 
     fun reset() {
-        val elements = gameStateElements
         if (!isInitialized) {
             return
         }
         logger.info { "reset game" }
-        elements.player = engine.createDefaultPlayer(elements.playerAsset)
-        elements.gameMap.reset(
-            elements.mapItemCollectibleAsset,
-            elements.mapItemFinishAsset,
-            elements.mapEnemyBlockerAsset,
-            elements.mapEnemyShooterAsset,
+        gameStateElements.player = engine.createDefaultPlayer(gameStateElements.playerAsset)
+        gameStateElements.gameMap.reset(
+            gameStateElements.mapItemCollectibleAsset,
+            gameStateElements.mapItemFinishAsset,
+            gameStateElements.mapEnemyBlockerAsset,
+            gameStateElements.mapEnemyShooterAsset,
             assetService
         )
-        elements.viewPort = createInitialViewPort(screenDimensionsService.getScreenDimensions())
-        scoreService.gameMapItem = elements.gameMap.items
+        gameStateElements.viewPort = createInitialViewPort(screenDimensionsService.getScreenDimensions())
+        scoreService.gameMapItem = gameStateElements.gameMap.items
         refreshScoreLabels()
         statusProvider.reset()
-        statusProvider.gameMapState = elements.gameMap.state
+        statusProvider.gameMapState = gameStateElements.gameMap.state
+        if (!statusProvider.running) {
+            statusProvider.running = true
+        }
     }
 
     private fun createInitialViewPort(screenDimensions: ScreenDimensions): ViewPort {

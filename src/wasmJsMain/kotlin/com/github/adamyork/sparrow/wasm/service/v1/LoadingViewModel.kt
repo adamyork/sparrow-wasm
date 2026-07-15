@@ -36,6 +36,7 @@ class LoadingViewModel : ViewModel(), LoadingProgressListener {
                 "level-1-music" -> "audio_5"
                 "splash" -> "splash"
                 "app_yaml" -> "app_yaml"
+                "ending" -> "ending"
                 else -> ""
             }
         }
@@ -58,7 +59,8 @@ class LoadingViewModel : ViewModel(), LoadingProgressListener {
             LoadingTask("audio_3", "Enemy Sound 1"),
             LoadingTask("audio_4", "Item Sound 1"),
             LoadingTask("audio_5", "Background Music"),
-            LoadingTask("splash", "Splash Image")
+            LoadingTask("splash", "Splash Image"),
+            LoadingTask("ending", "Ending Image")
         )
     )
 

@@ -62,6 +62,7 @@ class GameUiMain(
         val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
         val allTasksCompleted = controller.allTasksCompleted()
         val splashImage = controller.gameStateElements.splashImage
+        val endingImage = controller.gameStateElements.endingImage
         val colorScheme = MaterialTheme.colorScheme
         val overlayBg = colorScheme.inverseSurface
         val disabledButtonColors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -175,7 +176,8 @@ class GameUiMain(
                     gameStatusLabel = frame.gameStatusLabel
                     if (frame.completionTransitionRequested) {
                         gameUiDrawLayer.clearAllLayers()
-                        splashImage.let { gameUiDrawLayer.drawSplash(it) }
+                        endingImage.let { gameUiDrawLayer.drawSplash(it) }
+                        statusProvider.running = false
                         return
                     }
                     frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }

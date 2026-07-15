@@ -14,6 +14,7 @@ data class GameStateElements(
     var player: Player,
     var gameMap: GameMap,
     var splashImage: ImageBitmap,
+    var endingImage: ImageBitmap,
     var playerAsset: ImageAsset,
     var mapItemCollectibleAsset: ImageAsset,
     var mapItemFinishAsset: ImageAsset,
@@ -29,6 +30,7 @@ data class GameStateElements(
             player = Player.emptyPlayer,
             gameMap = GameMap.emptyGameMap,
             splashImage = EmptyImage.createEmptyImage().toComposeImageBitmap(),
+            endingImage = EmptyImage.createEmptyImage().toComposeImageBitmap(),
             playerAsset = ImageAsset(
                 1,
                 1,
