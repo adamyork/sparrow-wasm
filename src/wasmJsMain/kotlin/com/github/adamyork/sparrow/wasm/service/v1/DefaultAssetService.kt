@@ -22,11 +22,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.await
 import kotlinx.coroutines.coroutineScope
 import me.tatarka.inject.annotations.Inject
-import org.jetbrains.skia.Image
-import org.jetbrains.skia.Paint
-import org.jetbrains.skia.PaintMode
-import org.jetbrains.skia.Surface
+import org.jetbrains.skia.*
 import org.khronos.webgl.Int8Array
+import org.khronos.webgl.Uint8Array
 import org.khronos.webgl.get
 import org.w3c.dom.url.URL
 import org.w3c.fetch.Response
@@ -257,60 +255,60 @@ class DefaultAssetService(
         }
     }
 
-    override fun drawIdAsDots(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int): ByteArray {
+    @OptIn(ExperimentalWasmJsInterop::class)
+    override suspend fun prepareFont(): Font {
+        val response = window.fetch("roboto_bold.ttf").await()
+        if (!response.ok) {
+            throw Exception("Failed to load font: ${response.statusText}")
+        }
+        val arrayBuffer = response.arrayBuffer().await()
+        val uint8Array = Uint8Array(arrayBuffer)
+        val bytes = ByteArray(uint8Array.length)
+        for (i in 0 until uint8Array.length) {
+            bytes[i] = uint8Array[i]
+        }
+        val data = Data.makeFromBytes(bytes)
+        val tf = FontMgr.default.makeFromData(data)
+            ?: throw IllegalStateException("Could not create typeface from data")
+        return Font(tf, 12F)
+    }
+
+    override fun drawIdAsText(
+        bytes: ByteArray,
+        id: Int,
+        frameWidth: Int,
+        frameHeight: Int,
+        font: Font
+    ): ByteArray {
         val image = Image.makeFromEncoded(bytes)
         val surface = Surface.makeRasterN32Premul(image.width, image.height)
-        val fillPaint = Paint().apply {
-            color = org.jetbrains.skia.Color.WHITE
-            isAntiAlias = true
-            mode = PaintMode.FILL
-        }
-        val outlinePaint = Paint().apply {
+        val textPaint = Paint().apply {
             color = org.jetbrains.skia.Color.BLACK
             isAntiAlias = true
-            mode = PaintMode.STROKE
-            strokeWidth = 1f
         }
-
         try {
             val canvas = surface.canvas
             canvas.drawImage(image, 0f, 0f)
-
             val safeFrameWidth = if (frameWidth > 0) frameWidth else image.width
             val safeFrameHeight = if (frameHeight > 0) frameHeight else image.height
             val columns = (image.width / safeFrameWidth).coerceAtLeast(1)
             val rows = (image.height / safeFrameHeight).coerceAtLeast(1)
-
-            val dotRadius = 3f
-            val startX = 6f
-            val startY = 8f
-            val spacing = 8f
-            val dotCount = (id + 1).coerceAtLeast(1)
-
-            // Draw the marker in every frame cell so animation row/column changes still show the ID.
+            val text = id.toString()
             for (row in 0 until rows) {
                 for (column in 0 until columns) {
                     val cellX = (column * safeFrameWidth).toFloat()
                     val cellY = (row * safeFrameHeight).toFloat()
-                    val maxX = cellX + safeFrameWidth - (dotRadius + 2f)
-
-                    for (dotIndex in 0 until dotCount) {
-                        val x = cellX + startX + (dotIndex * spacing)
-                        if (x > maxX) break
-                        val y = cellY + startY
-                        canvas.drawCircle(x, y, dotRadius, fillPaint)
-                        canvas.drawCircle(x, y, dotRadius, outlinePaint)
-                    }
+                    val drawX = cellX + 5f
+                    val drawY = cellY + 15f
+                    canvas.drawString(text, drawX, drawY, font, textPaint)
                 }
             }
-
             val data = surface.makeImageSnapshot().encodeToData() ?: return bytes
             return data.bytes
         } finally {
             image.close()
             surface.close()
-            fillPaint.close()
-            outlinePaint.close()
+            textPaint.close()
         }
     }
 }

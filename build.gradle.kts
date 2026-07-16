@@ -65,9 +65,14 @@ dependencies {
 
 
 val prepareDevServer = tasks.register<Copy>("prepareDevServer") {
-    description = "Prepares static assets for the dev server."
+    description = "Prepares static assets and Compose resources for the dev server."
     from(project.file("src/wasmJsMain/web"))
+    from(tasks.named("wasmJsProcessResources"))
     into(layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
+}
+
+tasks.named("prepareDevServer").configure {
+    dependsOn("wasmJsProcessResources")
 }
 
 tasks.named("wasmJsBrowserDevelopmentRun").configure {

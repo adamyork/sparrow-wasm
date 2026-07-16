@@ -9,6 +9,7 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
 import com.github.adamyork.sparrow.wasm.service.data.TextAsset
 import com.github.adamyork.sparrow.wasm.service.v1.LoadingProgressListener
+import org.jetbrains.skia.Font
 
 /**
  * Author: Adam York
@@ -54,6 +55,8 @@ interface AssetService {
 
     fun showCollisionMap(): Boolean
 
-    fun drawIdAsDots(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int): ByteArray
+    suspend fun prepareFont(): Font
+
+    fun drawIdAsText(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int, font: Font): ByteArray
 
 }

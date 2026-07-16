@@ -71,7 +71,7 @@ class DefaultEngine @AppScope @Inject constructor(
             foregroundSurface = it
         }
 
-    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player) {
+    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Font) {
         flippedFrameCache.values.forEach { it.close() }
         flippedFrameCache.clear()
         this.collision.collisionImage = collisionImageAndBytes
@@ -79,7 +79,8 @@ class DefaultEngine @AppScope @Inject constructor(
         val showItemDots = assetService.appProperties.map.itemDots.visible
         gameMap.items.forEach { item ->
             val image = if (showItemDots) {
-                val markedBytes = assetService.drawIdAsDots(item.imageAndBytes.bytes, item.id, item.width, item.height)
+                val markedBytes =
+                    assetService.drawIdAsText(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
                 Image.makeFromEncoded(markedBytes)
             } else {
                 Image.makeFromBitmap(item.imageAndBytes.imageBitmap.asSkiaBitmap())
@@ -88,7 +89,8 @@ class DefaultEngine @AppScope @Inject constructor(
         }
         gameMap.enemies.forEach { enemy ->
             val image = if (showItemDots) {
-                val markedBytes = assetService.drawIdAsDots(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height)
+                val markedBytes =
+                    assetService.drawIdAsText(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height, font)
                 Image.makeFromEncoded(markedBytes)
             } else {
                 Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())

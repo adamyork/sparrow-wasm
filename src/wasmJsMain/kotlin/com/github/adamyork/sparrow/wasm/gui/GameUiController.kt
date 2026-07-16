@@ -24,6 +24,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import org.jetbrains.skia.Font
 
 /**
  * Author: Adam York
@@ -60,7 +61,8 @@ class GameUiController(
                 "finish item" to { assetService.loadItem(1) },
                 "blocker enemy" to { assetService.loadEnemy(0) },
                 "shooter enemy" to { assetService.loadEnemy(1) },
-                "game audio" to { assetService.loadAudio(this@GameUiController) }
+                "game audio" to { assetService.loadAudio(this@GameUiController) },
+                "font" to {assetService.prepareFont()}
             )
             val loadedAssets = coroutineScope {
                 loaders.map { (key, loader) ->
@@ -81,6 +83,7 @@ class GameUiController(
             val blockerAsset = loadedAssets.getValue("blocker enemy") as ImageAsset
             val shooterAsset = loadedAssets.getValue("shooter enemy") as ImageAsset
             val player = engine.createDefaultPlayer(playerAsset)
+            val font = loadedAssets.getValue("font") as Font
             gameStateElements.viewPort = viewPort
             gameStateElements.player = player
             gameStateElements.gameMap = gameMap
@@ -104,7 +107,7 @@ class GameUiController(
                 gameStateElements.mapEnemyShooterAsset,
                 assetService
             )
-            engine.initialize(gameMap, gameMap.collisionAsset, player)
+            engine.initialize(gameMap, gameMap.collisionAsset, player, font)
             particles.populateColorMap(assetService)
             scoreService.gameMapItem = gameMap.items
             refreshScoreLabels()

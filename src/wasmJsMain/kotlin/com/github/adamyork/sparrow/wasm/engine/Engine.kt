@@ -8,6 +8,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
+import org.jetbrains.skia.Font
 
 /**
  * Author: Adam York
@@ -15,7 +16,7 @@ import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
  */
 interface Engine {
 
-    fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player)
+    fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Font)
 
     fun getCollisionBoundaries(player: Player): CollisionBoundaries
 
