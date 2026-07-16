@@ -259,18 +259,18 @@ class DefaultAssetService(
     override suspend fun prepareFont(): Font {
         val response = window.fetch("roboto_bold.ttf").await()
         if (!response.ok) {
-            throw Exception("Failed to load font: ${response.statusText}")
+            throw AssetServiceReferenceException("Failed to load font: ${response.statusText}")
         }
         val arrayBuffer = response.arrayBuffer().await()
         val uint8Array = Uint8Array(arrayBuffer)
         val bytes = ByteArray(uint8Array.length)
-        for (i in 0 until uint8Array.length) {
-            bytes[i] = uint8Array[i]
+        for (byteIndex in 0 until uint8Array.length) {
+            bytes[byteIndex] = uint8Array[byteIndex]
         }
         val data = Data.makeFromBytes(bytes)
-        val tf = FontMgr.default.makeFromData(data)
-            ?: throw IllegalStateException("Could not create typeface from data")
-        return Font(tf, 12F)
+        val typeFace = FontMgr.default.makeFromData(data)
+            ?: throw AssetServiceReferenceException("Could not create typeface from data")
+        return Font(typeFace, 12F)
     }
 
     override fun drawIdAsText(
