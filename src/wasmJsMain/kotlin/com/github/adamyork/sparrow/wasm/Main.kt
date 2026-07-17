@@ -1,5 +1,7 @@
 package com.github.adamyork.sparrow.wasm
 
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.window.ComposeViewport
 import com.github.adamyork.sparrow.wasm.gui.UiScaffold
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
@@ -10,6 +12,7 @@ private val logger = KotlinLogging.logger {}
  * Author: Adam York
  * Copyright (c) Adam York
  */
+@OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     LogConfig.initialize(minimumLevel = Level.INFO)
     logger.info { "app started" }
@@ -22,10 +25,8 @@ fun main() {
         component.platformInterop.hidePlatformLoader()
         val gameLayer = component.game
         val sparrowColorScheme = component.sparrowColorScheme
-        val uiScaffold = UiScaffold()
-        uiScaffold.buildGui(
-            game = gameLayer,
-            sparrowColorScheme = sparrowColorScheme
-        )
+        ComposeViewport(viewportContainerId = "ComposeTarget") {
+            UiScaffold().buildGui(gameLayer, sparrowColorScheme)
+        }
     }
 }

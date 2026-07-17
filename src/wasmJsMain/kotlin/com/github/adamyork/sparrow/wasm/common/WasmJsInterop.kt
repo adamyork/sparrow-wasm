@@ -7,8 +7,9 @@ import kotlinx.browser.document
 import kotlinx.browser.window
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skiko.wasm.onWasmReady
-import org.khronos.webgl.Int8Array
+import org.khronos.webgl.toInt8Array
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
 import org.w3c.dom.url.URL
 import org.w3c.files.Blob
 
@@ -43,12 +44,42 @@ class WasmJsInterop : PlatformInterop {
         return window.performance.now()
     }
 
-    override fun getBlobFromInt8Array(int8Array: Int8Array): Any {
-        return createBlobFromInt8Array(int8Array)
+    override fun getBlobFromBytes(bytes: ByteArray): Any {
+        return createBlobFromInt8Array(bytes.toInt8Array())
     }
 
     override fun createAudioBlobUri(blob: Any): String {
         return URL.createObjectURL(blob as Blob)
+    }
+
+    override fun isTouchDevice(): Boolean {
+        return window.navigator.maxTouchPoints > 0
+    }
+
+    override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
+        val nativeCallback: (Event) -> Unit = { event ->
+            @Suppress("UNCHECKED_CAST")
+            callback(event as T)
+        }
+        window.addEventListener(type, nativeCallback)
+    }
+
+    override fun <T> removeEventListener(type: String, callback: (T) -> Unit) {
+        val nativeCallback: (Event) -> Unit = { event ->
+            @Suppress("UNCHECKED_CAST")
+            callback(event as T)
+        }
+        window.removeEventListener(type, nativeCallback)
+    }
+
+    override fun requestAnimationFrame(callback: (Double) -> Unit): Int {
+        return window.requestAnimationFrame { timestamp ->
+            callback(timestamp)
+        }
+    }
+
+    override fun cancelAnimationFrame(handle: Int) {
+        window.cancelAnimationFrame(handle)
     }
 
 }

@@ -6,7 +6,6 @@ import com.github.adamyork.sparrow.wasm.common.ThrottledAnimator
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import org.khronos.webgl.Int8Array
 
 /**
  * Author: Adam York
@@ -50,11 +49,31 @@ class Player(
 
             override fun getPlatformNowTime(): Double = 0.0
 
-            override fun getBlobFromInt8Array(int8Array: Int8Array): Any {
+            override fun getBlobFromBytes(bytes: ByteArray): Any {
                 throw UnsupportedOperationException("Blob interop is not available for empty player")
             }
 
             override fun createAudioBlobUri(blob: Any): String {
+                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
+            }
+
+            override fun isTouchDevice(): Boolean {
+                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
+            }
+
+            override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
+                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
+            }
+
+            override fun <T> removeEventListener(type: String, callback: (T) -> Unit) {
+                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
+            }
+
+            override fun requestAnimationFrame(callback: (Double) -> Unit): Int {
+                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
+            }
+
+            override fun cancelAnimationFrame(handle: Int) {
                 throw UnsupportedOperationException("Audio URI interop is not available for empty player")
             }
         }

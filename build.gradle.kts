@@ -1,6 +1,7 @@
 @file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
 
 plugins {
+    alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -18,6 +19,8 @@ repositories {
 }
 
 kotlin {
+    androidTarget()
+
     wasmJs {
         binaries.executable()
         browser {
@@ -33,7 +36,7 @@ kotlin {
     }
 
     sourceSets {
-        commonMain.dependencies {
+        getByName("commonMain").dependencies {
             implementation(libs.kotlin.inject.runtime)
             implementation(libs.cache4k)
             implementation(libs.kotlin.logging)
@@ -44,7 +47,7 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.compose.material.icons.core)
             implementation(libs.compose.material.icons.extended)
-            implementation(libs.ktor.client.js)
+            implementation(libs.ktor.client.core)
             implementation(libs.kaml)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines.core)
@@ -53,14 +56,32 @@ kotlin {
             implementation(libs.lifecycle.viewmodel.compose)
         }
 
-        wasmJsMain.dependencies {
+        getByName("androidMain").dependencies {
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.kotlinx.coroutines.android)
+            implementation("androidx.activity:activity-compose:1.13.0")
+        }
+
+        getByName("wasmJsMain").dependencies {
+            implementation(libs.ktor.client.js)
             implementation(libs.kotlinx.browser)
         }
     }
 }
 
+android {
+    namespace = "com.github.adamyork.sparrow"
+    compileSdk = 36
+    defaultConfig {
+        minSdk = 24
+    }
+    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+    sourceSets["main"].java.srcDirs("src/androidMain/kotlin")
+}
+
 
 dependencies {
+    add("kspAndroid", libs.kotlin.inject.compiler)
     add("kspWasmJs", libs.kotlin.inject.compiler)
 }
 

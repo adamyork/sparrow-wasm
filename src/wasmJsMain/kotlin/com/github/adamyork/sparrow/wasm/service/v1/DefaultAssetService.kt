@@ -22,8 +22,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
-import org.khronos.webgl.Int8Array
-import org.khronos.webgl.toInt8Array
 import org.w3c.files.Blob
 
 /**
@@ -180,8 +178,7 @@ class DefaultAssetService(
             val response = httpClient.get(url)
             check(response.status.isSuccess()) { "Failed to load $url(status=${response.status})" }
             val bytes = response.body<ByteArray>()
-            val int8Array: Int8Array = bytes.toInt8Array()
-            return platformInterop.getBlobFromInt8Array(int8Array) as Blob
+            return platformInterop.getBlobFromBytes(bytes) as Blob
         }
 
         val deferredAudios = audioPathMap.map { (key, path) ->

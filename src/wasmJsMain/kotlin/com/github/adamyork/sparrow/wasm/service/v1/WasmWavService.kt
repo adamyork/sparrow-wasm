@@ -1,9 +1,9 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
+import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.service.AssetService
-import com.github.adamyork.sparrow.platform.service.WavService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.browser.document
 import me.tatarka.inject.annotations.Inject
@@ -44,7 +44,6 @@ class WasmWavService(
 
     override fun playBackgroundAudio() {
         logger.info { "play background called" }
-        //TODO Interop
         val audioTag = document.getElementById(BG_AUDIO_ID) as? HTMLAudioElement ?: run {
             logger.warn { "Background audio element not found in DOM" }
             return
@@ -55,7 +54,6 @@ class WasmWavService(
     }
 
     private fun createSfxAudioElement(): HTMLAudioElement {
-        //TODO Interop
         val element = document.createElement("audio").unsafeCast<HTMLAudioElement>()
         element.preload = "auto"
         return element

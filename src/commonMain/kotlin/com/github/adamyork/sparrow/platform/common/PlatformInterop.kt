@@ -1,7 +1,5 @@
 package com.github.adamyork.sparrow.platform.common
 
-import org.khronos.webgl.Int8Array
-
 interface PlatformInterop {
 
     fun onReady(action: () -> Unit)
@@ -14,8 +12,18 @@ interface PlatformInterop {
 
     fun getPlatformNowTime(): Double
 
-    fun getBlobFromInt8Array(int8Array: Int8Array): Any
+    fun getBlobFromBytes(bytes: ByteArray): Any
 
     fun createAudioBlobUri(blob: Any): String
+
+    fun isTouchDevice() : Boolean
+
+    fun <T> addEventListener(type: String, callback: (T) -> Unit)
+
+    fun <T> removeEventListener(type: String, callback: (T) -> Unit)
+
+    fun requestAnimationFrame(callback: (Double) -> Unit): Int
+
+    fun cancelAnimationFrame(handle: Int)
 
 }

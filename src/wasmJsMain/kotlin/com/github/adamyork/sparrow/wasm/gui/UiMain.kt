@@ -21,12 +21,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.github.adamyork.sparrow.wasm.service.RuntimeService
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
 import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
-import kotlinx.browser.window
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import kotlinx.coroutines.awaitCancellation
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
@@ -39,7 +39,8 @@ import kotlin.time.Duration.Companion.milliseconds
 class UiMain(
     private val controller: UiController,
     private val runtimeService: RuntimeService,
-    private val screenDimensionsService: ScreenDimensionsService
+    private val screenDimensionsService: ScreenDimensionsService,
+    private val platformInterop: PlatformInterop
 ) {
 
     @Composable
@@ -52,8 +53,7 @@ class UiMain(
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
-        //TODO Interop
-        val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
+        val isTouchDevice = remember { platformInterop.isTouchDevice() }
         val allTasksCompleted = controller.allTasksCompleted()
         val gameLifeCycleState = runtimeService.lifeCycleState
         val splashImage = controller.stateElements.splashImage
@@ -111,18 +111,13 @@ class UiMain(
                     }
                 }
             }
-
-            //TODO Interop
-            window.addEventListener("keydown", keyDownListener)
-            //TODO Interop
-            window.addEventListener("keyup", keyUpListener)
+            platformInterop.addEventListener("keydown", keyDownListener)
+            platformInterop.addEventListener("keyup", keyUpListener)
             try {
                 awaitCancellation()
             } finally {
-                //TODO Interop
-                window.removeEventListener("keydown", keyDownListener)
-                //TODO Interop
-                window.removeEventListener("keyup", keyUpListener)
+                platformInterop.removeEventListener("keydown", keyDownListener)
+                platformInterop.removeEventListener("keyup", keyUpListener)
             }
         }
 
@@ -175,16 +170,13 @@ class UiMain(
                         runtimeService.lifeCycleState = LifeCycleState.COMPLETED
                         return
                     }
-                    //TODO Interop
-                    frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
+                    frameId = platformInterop.requestAnimationFrame { timestamp -> loop(timestamp) }
                 }
-                //TODO Interop
-                frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
+                frameId = platformInterop.requestAnimationFrame { timestamp -> loop(timestamp) }
                 try {
                     awaitCancellation()
                 } finally {
-                    //TODO Interop
-                    window.cancelAnimationFrame(frameId)
+                    platformInterop.cancelAnimationFrame(frameId)
                 }
             }
         }

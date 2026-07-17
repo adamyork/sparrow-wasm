@@ -1,13 +1,14 @@
 package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.runtime.Composable
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
+import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
-import com.github.adamyork.sparrow.platform.service.WavService
 import me.tatarka.inject.annotations.Inject
 
 /**
@@ -23,7 +24,8 @@ class DefaultGame(
     private val scoreService: ScoreService,
     private val runtimeService: RuntimeService,
     private val wavService: WavService,
-    private val screenDimensionsService: ScreenDimensionsService
+    private val screenDimensionsService: ScreenDimensionsService,
+    private val platformInterop: PlatformInterop
 ) : Game {
 
     private val controller = UiController(
@@ -39,7 +41,8 @@ class DefaultGame(
     private val screen = UiMain(
         controller = controller,
         runtimeService = runtimeService,
-        screenDimensionsService = screenDimensionsService
+        screenDimensionsService = screenDimensionsService,
+        platformInterop = platformInterop
     )
 
     @Composable
