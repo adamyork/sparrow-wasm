@@ -1,7 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common
 
-
-import kotlinx.browser.window
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 
 /**
  * Author: Adam York
@@ -9,6 +8,7 @@ import kotlinx.browser.window
  */
 interface ThrottledAnimator {
 
+    val platformInterop: PlatformInterop
     val animationTargetFps: Double
     var animationTickCounter: Int
     var lastAnimationTickTimeMs: Double
@@ -18,7 +18,7 @@ interface ThrottledAnimator {
         get() = 1000.0 / animationTargetFps.coerceAtLeast(1.0)
 
     fun shouldAdvanceAnimationFrame(): Boolean {
-        val nowMs = window.performance.now()
+        val nowMs = platformInterop.getPlatformNowTime()
         if (lastAnimationTickTimeMs <= 0.0) {
             lastAnimationTickTimeMs = nowMs
             return false

@@ -59,6 +59,7 @@ kotlin {
     }
 }
 
+
 dependencies {
     add("kspWasmJs", libs.kotlin.inject.compiler)
 }

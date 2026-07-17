@@ -3,7 +3,6 @@ package com.github.adamyork.sparrow.wasm.common.data.map
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.adamyork.sparrow.wasm.common.data.EmptyImage
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
-import com.github.adamyork.sparrow.wasm.common.data.enemy.DefaultMapElementFactory
 import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
 import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
@@ -13,6 +12,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
+import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
 
 /**
  * Author: Adam York
@@ -36,6 +36,27 @@ class GameMap(
     companion object {
         const val VIEWPORT_HORIZONTAL_FAR_PARALLAX_OFFSET: Int = 4
         const val VIEWPORT_HORIZONTAL_MID_PARALLAX_OFFSET: Int = 2
+        private val EMPTY_MAP_ELEMENT_FACTORY = object : MapElementFactory {
+            override fun createCollectibleItem(
+                imageAsset: ImageAsset,
+                position: ItemPositionAndType,
+                itemType: ItemType,
+                width: Int,
+                height: Int,
+                id: Int,
+                animationFps: Double
+            ) = throw UnsupportedOperationException("Empty GameMap does not create map elements")
+
+            override fun createEnemy(
+                imageAsset: ImageAsset,
+                position: ItemPositionAndType,
+                enemyType: EnemyType,
+                width: Int,
+                height: Int,
+                id: Int,
+                animationFps: Double
+            ) = throw UnsupportedOperationException("Empty GameMap does not create map elements")
+        }
         val emptyGameMap: GameMap = GameMap(
             state = GameMapState.COLLECTING,
             farGroundAsset = ImageAsset(
@@ -62,7 +83,7 @@ class GameMap(
             items = arrayListOf(),
             enemies = arrayListOf(),
             particles = arrayListOf(),
-            mapElementFactory = DefaultMapElementFactory()
+            mapElementFactory = EMPTY_MAP_ELEMENT_FACTORY
         )
 
     }

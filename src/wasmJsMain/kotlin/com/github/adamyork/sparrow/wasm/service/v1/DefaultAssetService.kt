@@ -24,7 +24,6 @@ import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.toInt8Array
-import org.w3c.dom.url.URL
 import org.w3c.files.Blob
 
 /**
@@ -191,11 +190,11 @@ class DefaultAssetService(
         val deferredBackground = async { fetchBlob(appProperties.audio.background) }
         deferredAudios.forEach { (key, deferred) ->
             val blob = deferred.await()
-            audioMap[key] = URL.createObjectURL(blob)
+            audioMap[key] = platformInterop.createAudioBlobUri(blob)
             listener.onTaskCompleted(key.name)
         }
         listener.onTaskCompleted(appProperties.audio.background)
-        backgroundAudio = URL.createObjectURL(deferredBackground.await())
+        backgroundAudio = platformInterop.createAudioBlobUri(deferredBackground.await())
     }
 
     override fun getTotalEnemies(): Int = appProperties.map.enemy.positions.size

@@ -1,11 +1,12 @@
 package com.github.adamyork.sparrow.wasm.service
 
+import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultAssetService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultPhysicsSettingsService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultRuntimeService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultScoreService
-import com.github.adamyork.sparrow.wasm.service.v1.DefaultWavService
+import com.github.adamyork.sparrow.wasm.service.v1.WasmWavService
 import io.ktor.client.*
 import io.ktor.client.engine.js.*
 import io.ktor.client.plugins.*
@@ -31,7 +32,7 @@ interface ServiceConfig {
 
     @AppScope
     @Provides
-    fun provideWavService(impl: DefaultWavService): WavService = impl
+    fun provideWavService(impl: WasmWavService): WavService = impl
 
     @AppScope
     @Provides

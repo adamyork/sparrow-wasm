@@ -12,6 +12,10 @@ interface PlatformInterop {
 
     fun hidePlatformLoader()
 
+    fun getPlatformNowTime(): Double
+
     fun getBlobFromInt8Array(int8Array: Int8Array): Any
+
+    fun createAudioBlobUri(blob: Any): String
 
 }

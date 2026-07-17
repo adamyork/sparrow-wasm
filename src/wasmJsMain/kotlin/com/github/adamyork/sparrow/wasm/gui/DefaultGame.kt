@@ -7,7 +7,7 @@ import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
-import com.github.adamyork.sparrow.wasm.service.WavService
+import com.github.adamyork.sparrow.platform.service.WavService
 import me.tatarka.inject.annotations.Inject
 
 /**

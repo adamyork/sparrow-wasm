@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common.data.item
 
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
 import com.github.adamyork.sparrow.wasm.common.ThrottledAnimator
 import com.github.adamyork.sparrow.wasm.common.data.*
@@ -20,6 +21,7 @@ class CollectibleItem(
     override val imageAndBytes: ImageAndBytes,
     override var frameMetadata: FrameMetadata,
     override val id: Int,
+    override val platformInterop: PlatformInterop,
     override val animationTargetFps: Double = 12.0,
     override var animationTickCounter: Int = 0,
     override var lastAnimationTickTimeMs: Double = 0.0,

@@ -52,6 +52,7 @@ class UiMain(
         var totalLabel by remember { mutableStateOf("Total: --") }
         var remainingLabel by remember { mutableStateOf("Remaining: --") }
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
+        //TODO Interop
         val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
         val allTasksCompleted = controller.allTasksCompleted()
         val gameLifeCycleState = runtimeService.lifeCycleState
@@ -111,12 +112,16 @@ class UiMain(
                 }
             }
 
+            //TODO Interop
             window.addEventListener("keydown", keyDownListener)
+            //TODO Interop
             window.addEventListener("keyup", keyUpListener)
             try {
                 awaitCancellation()
             } finally {
+                //TODO Interop
                 window.removeEventListener("keydown", keyDownListener)
+                //TODO Interop
                 window.removeEventListener("keyup", keyUpListener)
             }
         }
@@ -170,12 +175,15 @@ class UiMain(
                         runtimeService.lifeCycleState = LifeCycleState.COMPLETED
                         return
                     }
+                    //TODO Interop
                     frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
                 }
+                //TODO Interop
                 frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
                 try {
                     awaitCancellation()
                 } finally {
+                    //TODO Interop
                     window.cancelAnimationFrame(frameId)
                 }
             }

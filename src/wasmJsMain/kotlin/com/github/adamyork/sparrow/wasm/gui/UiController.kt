@@ -15,7 +15,7 @@ import com.github.adamyork.sparrow.wasm.gui.data.UiState
 import com.github.adamyork.sparrow.wasm.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
-import com.github.adamyork.sparrow.wasm.service.WavService
+import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 import com.github.adamyork.sparrow.wasm.service.data.LoadingTask
 import com.github.adamyork.sparrow.wasm.service.v1.LoadingProgressListener

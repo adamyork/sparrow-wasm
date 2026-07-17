@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common.data.enemy
 
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.wasm.common.ThrottledAnimator
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
@@ -25,6 +26,7 @@ class BlockerEnemy(
     override var enemyPosition: EnemyPosition,
     override var colliding: GameElementCollisionState,
     override var interacting: EnemyInteractionState,
+    override val platformInterop: PlatformInterop,
     override val animationTargetFps: Double = 12.0,
     override var animationTickCounter: Int = 0,
     override var lastAnimationTickTimeMs: Double = 0.0,

@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.AudioQueue
 import com.github.adamyork.sparrow.wasm.service.RuntimeService
@@ -42,7 +43,8 @@ class DefaultEngine @AppScope @Inject constructor(
     private val audioQueue: AudioQueue,
     private val scoreService: ScoreService,
     private val assetService: AssetService,
-    private val runtimeService: RuntimeService
+    private val runtimeService: RuntimeService,
+    private val platformInterop: PlatformInterop
 ) : Engine {
 
     private val logger = KotlinLogging.logger {}
@@ -280,6 +282,7 @@ class DefaultEngine @AppScope @Inject constructor(
             PlayerMovingState.STATIONARY,
             Direction.RIGHT,
             GameElementCollisionState.FREE,
+            platformInterop,
             0,
             assetService.appProperties.engine.fps.animation.toDouble()
         )

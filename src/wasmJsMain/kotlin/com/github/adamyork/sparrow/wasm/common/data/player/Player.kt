@@ -1,10 +1,12 @@
 package com.github.adamyork.sparrow.wasm.common.data.player
 
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
+import com.github.adamyork.sparrow.wasm.common.ThrottledAnimator
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import kotlinx.browser.window
+import org.khronos.webgl.Int8Array
 
 /**
  * Author: Adam York
@@ -24,18 +26,38 @@ class Player(
     var moving: PlayerMovingState,
     var direction: Direction,
     var colliding: GameElementCollisionState,
+    override val platformInterop: PlatformInterop,
     var immunityTicks: Int = 0,
-    val animationTargetFps: Double = 12.0,
-    var animationTickCounter: Int = 0,
-    var lastAnimationTickTimeMs: Double = 0.0,
-    var animationTickBufferMs: Double = 0.0,
-) : GameElement {
+    override val animationTargetFps: Double = 12.0,
+    override var animationTickCounter: Int = 0,
+    override var lastAnimationTickTimeMs: Double = 0.0,
+    override var animationTickBufferMs: Double = 0.0,
+) : GameElement, ThrottledAnimator {
 
     companion object {
         const val ANIMATION_MOVING_FRAMES = 4
         const val ANIMATION_JUMPING_FRAMES = 8
         const val ANIMATION_COLLISION_FRAMES = 8
         const val IMMUNITY_TICKS_ON_HIT = 120
+        private val EMPTY_PLATFORM_INTEROP = object : PlatformInterop {
+            override fun onReady(action: () -> Unit) = Unit
+
+            override fun getWindowHeight(): Double = 0.0
+
+            override fun getWindowWidth(): Double = 0.0
+
+            override fun hidePlatformLoader() = Unit
+
+            override fun getPlatformNowTime(): Double = 0.0
+
+            override fun getBlobFromInt8Array(int8Array: Int8Array): Any {
+                throw UnsupportedOperationException("Blob interop is not available for empty player")
+            }
+
+            override fun createAudioBlobUri(blob: Any): String {
+                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
+            }
+        }
         val emptyPlayer: Player = Player(
             x = 0,
             y = 0,
@@ -50,6 +72,7 @@ class Player(
             moving = PlayerMovingState.STATIONARY,
             direction = Direction.RIGHT,
             colliding = GameElementCollisionState.FREE,
+            platformInterop = EMPTY_PLATFORM_INTEROP,
             immunityTicks = 0,
             animationTargetFps = 12.0,
             animationTickCounter = 0,
@@ -57,9 +80,6 @@ class Player(
             animationTickBufferMs = 0.0
         )
     }
-
-    private val animationFrameIntervalMs: Double
-        get() = 1000.0 / animationTargetFps.coerceAtLeast(1.0)
 
     var movingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var jumpingFrames: HashMap<Int, FrameMetadata> = HashMap()
@@ -75,21 +95,15 @@ class Player(
             EnemyInteractionState.ISOLATED,
             state
         )
-        val nowMs = window.performance.now()
-        if (lastAnimationTickTimeMs <= 0.0) {
-            lastAnimationTickTimeMs = nowMs
-            return Pair(frameMetadata, metadataState)
-        }
-        val elapsedMs = (nowMs - lastAnimationTickTimeMs).coerceAtLeast(0.0)
-        lastAnimationTickTimeMs = nowMs
-        animationTickBufferMs += elapsedMs
-        animationTickCounter += 1
-        if (colliding == GameElementCollisionState.COLLIDING) {
-            val currentFrame = frameMetadata.frame.coerceIn(1, ANIMATION_COLLISION_FRAMES)
-            if (animationTickBufferMs < animationFrameIntervalMs) {
+        if (!shouldAdvanceAnimationFrame()) {
+            if (colliding == GameElementCollisionState.COLLIDING) {
+                val currentFrame = frameMetadata.frame.coerceIn(1, ANIMATION_COLLISION_FRAMES)
                 return Pair(collisionFrames[currentFrame] ?: collisionFrames[1]!!, metadataState)
             }
-            animationTickBufferMs -= animationFrameIntervalMs
+            return Pair(frameMetadata, metadataState)
+        }
+        if (colliding == GameElementCollisionState.COLLIDING) {
+            val currentFrame = frameMetadata.frame.coerceIn(1, ANIMATION_COLLISION_FRAMES)
             val nextFrame = currentFrame + 1
             return if (nextFrame > ANIMATION_COLLISION_FRAMES) {
                 Pair(movingFrames[1]!!, metadataState)
@@ -97,11 +111,6 @@ class Player(
                 Pair(collisionFrames[nextFrame] ?: collisionFrames[1]!!, metadataState)
             }
         }
-        if (animationTickBufferMs < animationFrameIntervalMs) {
-            return Pair(frameMetadata, metadataState)
-        }
-        animationTickBufferMs -= animationFrameIntervalMs
-        animationTickCounter = 0
         if (jumping == PlayerJumpingState.INITIAL || jumping == PlayerJumpingState.RISING) {
             val nextFrame = if (frameMetadata.frame >= ANIMATION_JUMPING_FRAMES) 1 else frameMetadata.frame + 1
             val metadata = jumpingFrames[nextFrame] ?: jumpingFrames[1]!!

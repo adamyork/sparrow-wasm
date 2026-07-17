@@ -24,6 +24,7 @@ class UiScaffold {
         game: Game,
         sparrowColorScheme: SparrowColorScheme
     ) {
+        //TODO Interop
         ComposeViewport(
             viewportContainerId = "ComposeTarget"
         ) {

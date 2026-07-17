@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common.data.enemy
 
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
@@ -14,7 +15,9 @@ import me.tatarka.inject.annotations.Inject
  */
 @AppScope
 @Inject
-class DefaultMapElementFactory : MapElementFactory {
+class DefaultMapElementFactory(
+    private val platformInterop: PlatformInterop
+) : MapElementFactory {
 
     override fun createCollectibleItem(
         imageAsset: ImageAsset,
@@ -35,6 +38,7 @@ class DefaultMapElementFactory : MapElementFactory {
             imageAsset.imageAndBytes,
             FrameMetadata(1, Cell(1, 1, width, height)),
             id,
+            platformInterop,
             animationFps
         )
     }
@@ -81,19 +85,22 @@ class DefaultMapElementFactory : MapElementFactory {
             EnemyType.BLOCKER -> BlockerEnemy(
                 position.x, position.y, imageAsset.width, imageAsset.height, state,
                 frameMetadata, imageAsset.imageAndBytes, id, enemyType, position.x, position.y,
-                enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, animationFps
+                enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, platformInterop,
+                animationFps
             )
 
             EnemyType.SHOOTER -> ShooterEnemy(
                 position.x, position.y, imageAsset.width, imageAsset.height, state,
                 frameMetadata, imageAsset.imageAndBytes, id, enemyType, position.x, position.y,
-                enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, animationFps
+                enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, platformInterop,
+                animationFps
             )
 
             EnemyType.RUNNER -> RunnerEnemy(
                 position.x, position.y, imageAsset.width, imageAsset.height, state,
                 frameMetadata, imageAsset.imageAndBytes, id, enemyType, position.x, position.y,
-                enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, animationFps
+                enemyPosition, GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED, platformInterop,
+                animationFps
             )
         }
     }
