@@ -17,7 +17,7 @@ import androidx.compose.ui.window.ComposeViewport
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class GameUiScaffold {
+class UiScaffold {
 
     @OptIn(ExperimentalComposeUiApi::class)
     fun buildGui(

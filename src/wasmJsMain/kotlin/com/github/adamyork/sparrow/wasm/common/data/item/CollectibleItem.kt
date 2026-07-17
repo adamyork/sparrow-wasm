@@ -16,7 +16,7 @@ class CollectibleItem(
     override var x: Int,
     override var y: Int,
     override val type: ItemType,
-    override var state: GameElementState,
+    override var state: ElementState,
     override val imageAndBytes: ImageAndBytes,
     override var frameMetadata: FrameMetadata,
     override val id: Int,
@@ -49,13 +49,13 @@ class CollectibleItem(
         if (!shouldAdvanceAnimationFrame()) {
             return Pair(frameMetadata, metadataState)
         }
-        if (state == GameElementState.DEACTIVATING) {
+        if (state == ElementState.DEACTIVATING) {
             if (frameMetadata.frame == ANIMATION_DEACTIVATING_FRAMES) {
                 metadataState =
                     FrameMetadataState(
                         GameElementCollisionState.FREE,
                         EnemyInteractionState.ISOLATED,
-                        GameElementState.INACTIVE
+                        ElementState.INACTIVE
                     )
                 return Pair(metadata, metadataState)
             } else {

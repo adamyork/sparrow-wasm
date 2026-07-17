@@ -13,7 +13,7 @@ interface GameElement {
     var y: Int
     val height: Int
     val width: Int
-    var state: GameElementState
+    var state: ElementState
     var frameMetadata: FrameMetadata
     val imageAndBytes: ImageAndBytes
 

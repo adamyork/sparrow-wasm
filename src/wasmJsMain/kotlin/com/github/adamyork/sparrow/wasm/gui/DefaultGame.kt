@@ -2,7 +2,7 @@ package com.github.adamyork.sparrow.wasm.gui
 
 import androidx.compose.runtime.Composable
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.StatusProvider
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.service.AssetService
@@ -21,24 +21,24 @@ class DefaultGame(
     private val engine: Engine,
     private val particles: Particles,
     private val scoreService: ScoreService,
-    private val statusProvider: StatusProvider,
+    private val runtimeService: RuntimeService,
     private val wavService: WavService,
     private val screenDimensionsService: ScreenDimensionsService
 ) : Game {
 
-    private val controller = GameUiController(
+    private val controller = UiController(
         assetService = assetService,
         engine = engine,
         particles = particles,
         scoreService = scoreService,
-        statusProvider = statusProvider,
+        runtimeService = runtimeService,
         wavService = wavService,
         screenDimensionsService = screenDimensionsService
     )
 
-    private val screen = GameUiMain(
+    private val screen = UiMain(
         controller = controller,
-        statusProvider = statusProvider,
+        runtimeService = runtimeService,
         screenDimensionsService = screenDimensionsService
     )
 

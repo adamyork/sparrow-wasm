@@ -31,7 +31,7 @@ class DefaultMapElementFactory : MapElementFactory {
             position.x,
             position.y,
             itemType,
-            GameElementState.ACTIVE,
+            ElementState.ACTIVE,
             imageAsset.imageAndBytes,
             FrameMetadata(1, Cell(1, 1, width, height)),
             id,
@@ -49,9 +49,9 @@ class DefaultMapElementFactory : MapElementFactory {
         animationFps: Double
     ): Enemy {
         val state = if (enemyType == EnemyType.RUNNER) {
-            GameElementState.INACTIVE
+            ElementState.INACTIVE
         } else {
-            GameElementState.ACTIVE
+            ElementState.ACTIVE
         }
         return createEnemyWithState(
             imageAsset,
@@ -73,7 +73,7 @@ class DefaultMapElementFactory : MapElementFactory {
         height: Int,
         id: Int,
         animationFps: Double,
-        state: GameElementState
+        state: ElementState
     ): Enemy {
         val frameMetadata = FrameMetadata(1, Cell(1, 1, width, height))
         val enemyPosition = EnemyPosition(position.x, position.y, Direction.LEFT)

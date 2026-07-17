@@ -15,7 +15,7 @@ class BlockerEnemy(
     override var y: Int,
     override val width: Int,
     override val height: Int,
-    override var state: GameElementState,
+    override var state: ElementState,
     override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
     override val id: Int,
@@ -98,7 +98,7 @@ class BlockerEnemy(
         return EnemyPosition(enemyPosition.x, enemyPosition.y, Direction.LEFT)
     }
 
-    override fun getNextEnemyState(player: Player): GameElementState {
+    override fun getNextEnemyState(player: Player): ElementState {
         return this.state
     }
 

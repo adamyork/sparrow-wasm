@@ -1,17 +1,17 @@
 package com.github.adamyork.sparrow.wasm.gui
 
-import com.github.adamyork.sparrow.wasm.common.StatusProvider
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
-import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
+import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
-import com.github.adamyork.sparrow.wasm.gui.data.GameStateElements
-import com.github.adamyork.sparrow.wasm.gui.data.GeneralUiState
+import com.github.adamyork.sparrow.wasm.gui.data.StateElements
+import com.github.adamyork.sparrow.wasm.gui.data.UiState
 import com.github.adamyork.sparrow.wasm.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.wasm.service.AssetService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
@@ -30,12 +30,12 @@ import org.jetbrains.skia.Font
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class GameUiController(
+class UiController(
     private val assetService: AssetService,
     private val engine: Engine,
     private val particles: Particles,
     private val scoreService: ScoreService,
-    private val statusProvider: StatusProvider,
+    private val runtimeService: RuntimeService,
     private val wavService: WavService,
     private val screenDimensionsService: ScreenDimensionsService
 ) : LoadingProgressListener {
@@ -43,7 +43,7 @@ class GameUiController(
     private val logger = KotlinLogging.logger {}
     private val viewModel = LoadingViewModel()
 
-    val gameStateElements: GameStateElements = GameStateElements.emptyGameStateElements
+    val stateElements: StateElements = StateElements.emptyStateElements
     val loadingTasks: List<LoadingTask>
         get() = viewModel.loadingTasks
 
@@ -55,13 +55,13 @@ class GameUiController(
             val loaders: Map<String, suspend () -> Any> = mapOf(
                 "splash" to { assetService.loadSplash() },
                 "ending" to { assetService.loadEnding() },
-                "map" to { assetService.loadMap(0, this@GameUiController) },
+                "map" to { assetService.loadMap(0, this@UiController) },
                 "player" to { assetService.loadPlayer() },
                 "collectible item" to { assetService.loadItem(0) },
                 "finish item" to { assetService.loadItem(1) },
                 "blocker enemy" to { assetService.loadEnemy(0) },
                 "shooter enemy" to { assetService.loadEnemy(1) },
-                "game audio" to { assetService.loadAudio(this@GameUiController) },
+                "game audio" to { assetService.loadAudio(this@UiController) },
                 "font" to {assetService.prepareFont()}
             )
             val loadedAssets = coroutineScope {
@@ -84,35 +84,35 @@ class GameUiController(
             val shooterAsset = loadedAssets.getValue("shooter enemy") as ImageAsset
             val player = engine.createDefaultPlayer(playerAsset)
             val font = loadedAssets.getValue("font") as Font
-            gameStateElements.viewPort = viewPort
-            gameStateElements.player = player
-            gameStateElements.gameMap = gameMap
-            gameStateElements.splashImage = splashImage
-            gameStateElements.endingImage = endingImage
-            gameStateElements.playerAsset = playerAsset
-            gameStateElements.mapItemCollectibleAsset = collectibleAsset
-            gameStateElements.mapItemFinishAsset = finishAsset
-            gameStateElements.mapEnemyBlockerAsset = blockerAsset
-            gameStateElements.mapEnemyShooterAsset = shooterAsset
-            gameStateElements.scoreLabel = "Score: --"
-            gameStateElements.totalLabel = "Total: --"
-            gameStateElements.remainingLabel = "Remaining: --"
+            stateElements.viewPort = viewPort
+            stateElements.player = player
+            stateElements.gameMap = gameMap
+            stateElements.splashImage = splashImage
+            stateElements.endingImage = endingImage
+            stateElements.playerAsset = playerAsset
+            stateElements.mapItemCollectibleAsset = collectibleAsset
+            stateElements.mapItemFinishAsset = finishAsset
+            stateElements.mapEnemyBlockerAsset = blockerAsset
+            stateElements.mapEnemyShooterAsset = shooterAsset
+            stateElements.scoreLabel = "Score: --"
+            stateElements.totalLabel = "Total: --"
+            stateElements.remainingLabel = "Remaining: --"
             gameMap.generateMapItems(
-                gameStateElements.mapItemCollectibleAsset,
-                gameStateElements.mapItemFinishAsset,
+                stateElements.mapItemCollectibleAsset,
+                stateElements.mapItemFinishAsset,
                 assetService
             )
             gameMap.generateMapEnemies(
-                gameStateElements.mapEnemyBlockerAsset,
-                gameStateElements.mapEnemyShooterAsset,
+                stateElements.mapEnemyBlockerAsset,
+                stateElements.mapEnemyShooterAsset,
                 assetService
             )
             engine.initialize(gameMap, gameMap.collisionAsset, player, font)
             particles.populateColorMap(assetService)
             scoreService.gameMapItem = gameMap.items
             refreshScoreLabels()
-            statusProvider.gameMapState = gameMap.state
-            statusProvider.gameLifeCycleState = GameLifeCycleState.INITIALIZED
+            runtimeService.gameMapState = gameMap.state
+            runtimeService.lifeCycleState = LifeCycleState.INITIALIZED
             logger.info { "splash loaded and game initialized" }
         }.onFailure { logger.error { "init failed $it" } }
     }
@@ -121,9 +121,9 @@ class GameUiController(
         val total = scoreService.getTotal()
         val remaining = scoreService.getRemaining()
         val score = (total - remaining).coerceAtLeast(0)
-        gameStateElements.scoreLabel = "Score: $score"
-        gameStateElements.totalLabel = "Total: $total"
-        gameStateElements.remainingLabel = "Remaining: $remaining"
+        stateElements.scoreLabel = "Score: $score"
+        stateElements.totalLabel = "Total: $total"
+        stateElements.remainingLabel = "Remaining: $remaining"
     }
 
     override fun onTaskCompleted(taskId: String) {
@@ -136,22 +136,22 @@ class GameUiController(
     fun allTasksCompleted(): Boolean = loadingTasks.all { it.isCompleted }
 
     fun start() {
-        if (statusProvider.gameMapState == GameMapState.COMPLETED) {
+        if (runtimeService.gameMapState == GameMapState.COMPLETED) {
             reset()
         }
-        statusProvider.gameLifeCycleState = GameLifeCycleState.RUNNING
+        runtimeService.lifeCycleState = LifeCycleState.RUNNING
         wavService.playBackgroundAudio()
     }
 
-    fun tick(timestamp: Double): GeneralUiState {
-        val currentFps = statusProvider.getFps()
-        val elements = gameStateElements
-        if (statusProvider.gameLifeCycleState != GameLifeCycleState.INITIALIZING) {
-            statusProvider.gameMapState = elements.gameMap.state
+    fun tick(timestamp: Double): UiState {
+        val currentFps = runtimeService.getFps()
+        val elements = stateElements
+        if (runtimeService.lifeCycleState != LifeCycleState.INITIALIZING) {
+            runtimeService.gameMapState = elements.gameMap.state
         }
-        val statusText = assetService.getTextForGameState(statusProvider.gameMapState)
-        if (statusProvider.gameLifeCycleState != GameLifeCycleState.RUNNING || statusProvider.gameLifeCycleState == GameLifeCycleState.INITIALIZING) {
-            return GeneralUiState(
+        val statusText = assetService.getTextForGameState(runtimeService.gameMapState)
+        if (runtimeService.lifeCycleState != LifeCycleState.RUNNING || runtimeService.lifeCycleState == LifeCycleState.INITIALIZING) {
+            return UiState(
                 drawResult = DrawResult.EMPTY_DRAW_RESULT,
                 fpsLabel = "FPS: ${currentFps.toInt()}",
                 gameStatusLabel = statusText.message,
@@ -159,7 +159,7 @@ class GameUiController(
                 scoreLabel = elements.scoreLabel,
                 totalLabel = elements.totalLabel,
                 remainingLabel = elements.remainingLabel,
-                gameMapState = statusProvider.gameMapState,
+                gameMapState = runtimeService.gameMapState,
                 completionTransitionRequested = false
             )
         }
@@ -174,11 +174,11 @@ class GameUiController(
         val drawResult = engine.draw(elements.gameMap, elements.viewPort, elements.player, timestamp)
         wavService.playNext()
         val currentGameState = elements.gameMap.state
-        statusProvider.gameMapState = currentGameState
-        if (currentGameState == GameMapState.COMPLETED && statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING) {
+        runtimeService.gameMapState = currentGameState
+        if (currentGameState == GameMapState.COMPLETED && runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
             pause()
         }
-        return GeneralUiState(
+        return UiState(
             drawResult = drawResult,
             fpsLabel = "FPS: ${currentFps.toInt()}",
             gameStatusLabel = statusText.message,
@@ -192,8 +192,8 @@ class GameUiController(
     }
 
     fun applyInput(controlType: ControlType, controlAction: ControlAction) {
-        val elements = gameStateElements
-        if (statusProvider.gameLifeCycleState == GameLifeCycleState.INITIALIZING) return
+        val elements = stateElements
+        if (runtimeService.lifeCycleState == LifeCycleState.INITIALIZING) return
         when (controlType) {
             ControlType.START -> {
                 engine.startInput(controlAction, elements.player)
@@ -206,29 +206,29 @@ class GameUiController(
     }
 
     fun pause() {
-        statusProvider.gameLifeCycleState = when {
-            statusProvider.gameMapState == GameMapState.COMPLETED -> GameLifeCycleState.COMPLETED
-            statusProvider.gameLifeCycleState != GameLifeCycleState.INITIALIZING -> GameLifeCycleState.PAUSED
-            else -> GameLifeCycleState.INITIALIZING
+        runtimeService.lifeCycleState = when {
+            runtimeService.gameMapState == GameMapState.COMPLETED -> LifeCycleState.COMPLETED
+            runtimeService.lifeCycleState != LifeCycleState.INITIALIZING -> LifeCycleState.PAUSED
+            else -> LifeCycleState.INITIALIZING
         }
     }
 
     fun reset() {
         logger.info { "reset game" }
-        gameStateElements.player = engine.createDefaultPlayer(gameStateElements.playerAsset)
-        gameStateElements.gameMap.reset(
-            gameStateElements.mapItemCollectibleAsset,
-            gameStateElements.mapItemFinishAsset,
-            gameStateElements.mapEnemyBlockerAsset,
-            gameStateElements.mapEnemyShooterAsset,
+        stateElements.player = engine.createDefaultPlayer(stateElements.playerAsset)
+        stateElements.gameMap.reset(
+            stateElements.mapItemCollectibleAsset,
+            stateElements.mapItemFinishAsset,
+            stateElements.mapEnemyBlockerAsset,
+            stateElements.mapEnemyShooterAsset,
             assetService
         )
-        gameStateElements.viewPort = createInitialViewPort(screenDimensionsService.getScreenDimensions())
-        scoreService.gameMapItem = gameStateElements.gameMap.items
+        stateElements.viewPort = createInitialViewPort(screenDimensionsService.getScreenDimensions())
+        scoreService.gameMapItem = stateElements.gameMap.items
         refreshScoreLabels()
-        statusProvider.reset()
-        statusProvider.gameMapState = gameStateElements.gameMap.state
-        statusProvider.gameLifeCycleState = GameLifeCycleState.RUNNING
+        runtimeService.reset()
+        runtimeService.gameMapState = stateElements.gameMap.state
+        runtimeService.lifeCycleState = LifeCycleState.RUNNING
     }
 
     private fun createInitialViewPort(screenDimensions: ScreenDimensions): ViewPort {

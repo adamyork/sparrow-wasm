@@ -21,10 +21,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.github.adamyork.sparrow.wasm.common.StatusProvider
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import com.github.adamyork.sparrow.wasm.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ControlType
-import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
+import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import kotlinx.browser.window
 import kotlinx.coroutines.awaitCancellation
@@ -36,16 +36,16 @@ import kotlin.time.Duration.Companion.milliseconds
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class GameUiMain(
-    private val controller: GameUiController,
-    private val statusProvider: StatusProvider,
+class UiMain(
+    private val controller: UiController,
+    private val runtimeService: RuntimeService,
     private val screenDimensionsService: ScreenDimensionsService
 ) {
 
     @Composable
     fun build() {
         val screenDimensions = remember { screenDimensionsService.getScreenDimensions() }
-        val gameUiDrawLayer = remember { GameUiDrawLayer(screenDimensionsService) }
+        val uiDrawLayer = remember { UiDrawLayer(screenDimensionsService) }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
         var gameStatusLabel by remember { mutableStateOf("Press Start To Begin") }
         var scoreLabel by remember { mutableStateOf("Score: --") }
@@ -54,9 +54,9 @@ class GameUiMain(
         var isLoadingChecklistVisible by remember { mutableStateOf(true) }
         val isTouchDevice = remember { window.navigator.maxTouchPoints > 0 }
         val allTasksCompleted = controller.allTasksCompleted()
-        val gameLifeCycleState = statusProvider.gameLifeCycleState
-        val splashImage = controller.gameStateElements.splashImage
-        val endingImage = controller.gameStateElements.endingImage
+        val gameLifeCycleState = runtimeService.lifeCycleState
+        val splashImage = controller.stateElements.splashImage
+        val endingImage = controller.stateElements.endingImage
         val colorScheme = MaterialTheme.colorScheme
         val overlayBg = colorScheme.inverseSurface
         val disabledButtonColors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -69,13 +69,13 @@ class GameUiMain(
             if (allTasksCompleted && isLoadingChecklistVisible) {
                 kotlinx.coroutines.delay(1000.milliseconds)
                 isLoadingChecklistVisible = false
-                gameUiDrawLayer.drawSplash(splashImage)
+                uiDrawLayer.drawSplash(splashImage)
             }
         }
 
         LaunchedEffect(Unit) {
             controller.initializeGame()
-            val stateElements = controller.gameStateElements
+            val stateElements = controller.stateElements
             scoreLabel = stateElements.scoreLabel
             totalLabel = stateElements.totalLabel
             remainingLabel = stateElements.remainingLabel
@@ -92,7 +92,7 @@ class GameUiMain(
             }
 
             val keyDownListener: (Event) -> Unit = { event ->
-                if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING && event is KeyboardEvent) {
+                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -102,7 +102,7 @@ class GameUiMain(
             }
 
             val keyUpListener: (Event) -> Unit = { event ->
-                if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING && event is KeyboardEvent) {
+                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
                     val action = toControlAction(event)
                     if (action != null) {
                         event.preventDefault()
@@ -121,42 +121,42 @@ class GameUiMain(
             }
         }
 
-        LaunchedEffect(statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING) {
-            if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING) {
+        LaunchedEffect(runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
+            if (runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
                 var frameId: Int
                 fun loop(timestamp: Double) {
-                    statusProvider.setCurrentFrameTime(timestamp)
+                    runtimeService.setCurrentFrameTime(timestamp)
                     val frame = controller.tick(timestamp)
                     frame.drawResult.farGroundBitmap?.let { image ->
-                        gameUiDrawLayer.drawFarGround(
+                        uiDrawLayer.drawFarGround(
                             image,
                             frame.drawResult.farGroundOffsetX,
                             frame.drawResult.farGroundOffsetY
                         )
                     }
                     frame.drawResult.midGroundBitmap?.let { image ->
-                        gameUiDrawLayer.drawMidGround(
+                        uiDrawLayer.drawMidGround(
                             image,
                             frame.drawResult.midGroundOffsetX,
                             frame.drawResult.midGroundOffsetY
                         )
                     }
                     frame.drawResult.nearFieldBitmap?.let { image ->
-                        gameUiDrawLayer.drawNearField(
+                        uiDrawLayer.drawNearField(
                             image,
                             frame.drawResult.nearFieldOffsetX,
                             frame.drawResult.nearFieldOffsetY
                         )
                     }
                     frame.drawResult.collisionBitmap?.let { image ->
-                        gameUiDrawLayer.drawCollision(
+                        uiDrawLayer.drawCollision(
                             image,
                             frame.drawResult.collisionOffsetX,
                             frame.drawResult.collisionOffsetY
                         )
                     }
                     frame.drawResult.foregroundImage?.let { image ->
-                        gameUiDrawLayer.drawForeground(image)
+                        uiDrawLayer.drawForeground(image)
                     }
                     fpsLabel = frame.fpsLabel
                     scoreLabel = frame.scoreLabel
@@ -164,10 +164,10 @@ class GameUiMain(
                     remainingLabel = frame.remainingLabel
                     gameStatusLabel = frame.gameStatusLabel
                     if (frame.completionTransitionRequested) {
-                        gameUiDrawLayer.clearAllLayers()
-                        endingImage.let { gameUiDrawLayer.drawSplash(it) }
-                        statusProvider.gameMapState = GameMapState.COMPLETED
-                        statusProvider.gameLifeCycleState = GameLifeCycleState.COMPLETED
+                        uiDrawLayer.clearAllLayers()
+                        endingImage.let { uiDrawLayer.drawSplash(it) }
+                        runtimeService.gameMapState = GameMapState.COMPLETED
+                        runtimeService.lifeCycleState = LifeCycleState.COMPLETED
                         return
                     }
                     frameId = window.requestAnimationFrame { timestamp -> loop(timestamp) }
@@ -193,7 +193,7 @@ class GameUiMain(
                 ),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING && isTouchDevice) {
+            if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && isTouchDevice) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f).fillMaxHeight().pointerInput(Unit) {
                         detectTapGestures(onPress = {
@@ -233,13 +233,13 @@ class GameUiMain(
                         .semantics { contentDescription = "canvas-with-fps-overlay" }
                         .testTag("canvas-with-fps-overlay")
                 ) {
-                    gameUiDrawLayer.build(
-                        isRunning = statusProvider.gameLifeCycleState == GameLifeCycleState.RUNNING,
+                    uiDrawLayer.build(
+                        isRunning = runtimeService.lifeCycleState == LifeCycleState.RUNNING,
                         onFpsLabelChanged = { nextLabel ->
                             fpsLabel = nextLabel
                         }
                     )
-                    if (gameLifeCycleState != GameLifeCycleState.COMPLETED) {
+                    if (gameLifeCycleState != LifeCycleState.COMPLETED) {
                         Text(
                             text = gameStatusLabel,
                             style = MaterialTheme.typography.labelLarge,
@@ -286,7 +286,7 @@ class GameUiMain(
                         }
                     }
 
-                    if (gameLifeCycleState != GameLifeCycleState.INITIALIZING && gameLifeCycleState != GameLifeCycleState.COMPLETED) {
+                    if (gameLifeCycleState != LifeCycleState.INITIALIZING && gameLifeCycleState != LifeCycleState.COMPLETED) {
                         Text(
                             text = fpsLabel,
                             style = MaterialTheme.typography.labelLarge,
@@ -301,7 +301,7 @@ class GameUiMain(
                         )
                     }
 
-                    if (gameLifeCycleState != GameLifeCycleState.INITIALIZING && gameLifeCycleState != GameLifeCycleState.COMPLETED) {
+                    if (gameLifeCycleState != LifeCycleState.INITIALIZING && gameLifeCycleState != LifeCycleState.COMPLETED) {
                         Text(
                             text = "Screen: ${screenDimensions.width}x${screenDimensions.height}",
                             style = MaterialTheme.typography.labelLarge,
@@ -317,7 +317,7 @@ class GameUiMain(
                         )
                     }
 
-                    if (gameLifeCycleState != GameLifeCycleState.INITIALIZING && gameLifeCycleState != GameLifeCycleState.COMPLETED) {
+                    if (gameLifeCycleState != LifeCycleState.INITIALIZING && gameLifeCycleState != LifeCycleState.COMPLETED) {
                         Column(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -338,7 +338,7 @@ class GameUiMain(
                         }
                     }
                 }
-                if (gameLifeCycleState != GameLifeCycleState.INITIALIZING) {
+                if (gameLifeCycleState != LifeCycleState.INITIALIZING) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -355,7 +355,7 @@ class GameUiMain(
                                 controller.start()
                                 focusManager.clearFocus()
                             },
-                            enabled = gameLifeCycleState != GameLifeCycleState.RUNNING || gameLifeCycleState == GameLifeCycleState.COMPLETED,
+                            enabled = gameLifeCycleState != LifeCycleState.RUNNING || gameLifeCycleState == LifeCycleState.COMPLETED,
                             colors = disabledButtonColors,
                             modifier = Modifier
                                 .semantics { contentDescription = "start-button" }
@@ -369,7 +369,7 @@ class GameUiMain(
                                 controller.pause()
                                 focusManager.clearFocus()
                             },
-                            enabled = gameLifeCycleState == GameLifeCycleState.RUNNING,
+                            enabled = gameLifeCycleState == LifeCycleState.RUNNING,
                             colors = disabledButtonColors,
                             modifier = Modifier
                                 .semantics { contentDescription = "pause-button" }
@@ -383,7 +383,7 @@ class GameUiMain(
                                 controller.reset()
                                 focusManager.clearFocus()
                             },
-                            enabled = gameLifeCycleState == GameLifeCycleState.RUNNING,
+                            enabled = gameLifeCycleState == LifeCycleState.RUNNING,
                             colors = disabledButtonColors,
                             modifier = Modifier
                                 .semantics { contentDescription = "reset-button" }

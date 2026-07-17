@@ -3,7 +3,7 @@ package com.github.adamyork.sparrow.wasm.engine.v1
 import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.common.AudioQueue
-import com.github.adamyork.sparrow.wasm.common.StatusProvider
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.BlockerEnemy
 import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
@@ -42,7 +42,7 @@ class DefaultEngine @AppScope @Inject constructor(
     private val audioQueue: AudioQueue,
     private val scoreService: ScoreService,
     private val assetService: AssetService,
-    private val statusProvider: StatusProvider
+    private val runtimeService: RuntimeService
 ) : Engine {
 
     private val logger = KotlinLogging.logger {}
@@ -177,10 +177,10 @@ class DefaultEngine @AppScope @Inject constructor(
             val (metadata, metadataState) = (item as GameElement).getNextFrameMetadataWithState()
             var nextState = metadataState.state
             if (item.type == ItemType.FINISH) {
-                if (gameMap.state == GameMapState.COMPLETING && item.state == GameElementState.INACTIVE) {
-                    nextState = GameElementState.ACTIVE
-                } else if (gameMap.state == GameMapState.COLLECTING && item.state != GameElementState.INACTIVE) {
-                    nextState = GameElementState.INACTIVE
+                if (gameMap.state == GameMapState.COMPLETING && item.state == ElementState.INACTIVE) {
+                    nextState = ElementState.ACTIVE
+                } else if (gameMap.state == GameMapState.COLLECTING && item.state != ElementState.INACTIVE) {
+                    nextState = ElementState.INACTIVE
                 }
             }
             item.state = nextState
@@ -191,12 +191,12 @@ class DefaultEngine @AppScope @Inject constructor(
 
     private fun adjustMapAfterItemCollision(gameMap: GameMap) {
         val index = gameMap.items.indexOfFirst { item ->
-            item.type == ItemType.COLLECTABLE && item.state == GameElementState.INACTIVE
+            item.type == ItemType.COLLECTABLE && item.state == ElementState.INACTIVE
         }
         if (index != -1) {
             val item = gameMap.items[index]
             if (item is CollectibleItem) {
-                item.state = GameElementState.ACTIVE
+                item.state = ElementState.ACTIVE
                 gameMap.items[index] = item
                 if (gameMap.state == GameMapState.COMPLETING) {
                     gameMap.state = GameMapState.COLLECTING
@@ -206,10 +206,10 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     private fun manageMapEnemies(gameMap: GameMap, player: Player) {
-        val deltaTimeCoefficient = statusProvider.getDeltaTimeCoefficient()
+        val deltaTimeCoefficient = runtimeService.getDeltaTimeCoefficient()
         for ((index, enemy) in gameMap.enemies.withIndex()) {
             val nextState = enemy.getNextEnemyState(player)
-            if (nextState != GameElementState.INACTIVE) {
+            if (nextState != ElementState.INACTIVE) {
                 val nextPosition = when (enemy) {
                     is BlockerEnemy -> enemy.getNextPosition(deltaTimeCoefficient)
                     is RunnerEnemy -> enemy.getNextPosition(deltaTimeCoefficient)
@@ -245,7 +245,7 @@ class DefaultEngine @AppScope @Inject constructor(
         drawPlayer(player, viewPort, foregroundCanvas, playerImage)
 
         val foregroundImage = foregroundSurface.makeImageSnapshot()
-        statusProvider.lastPaintTime = timestamp
+        runtimeService.lastPaintTime = timestamp
         return DrawResult(
             foregroundImage = foregroundImage,
             foregroundOffsetX = viewPort.x.toFloat(),
@@ -271,7 +271,7 @@ class DefaultEngine @AppScope @Inject constructor(
             assetService.appProperties.player.y,
             playerAsset.width,
             playerAsset.height,
-            GameElementState.ACTIVE,
+            ElementState.ACTIVE,
             FrameMetadata(1, Cell(1, 1, playerAsset.width, playerAsset.height)),
             playerAsset.imageAndBytes,
             0.0,
@@ -330,7 +330,7 @@ class DefaultEngine @AppScope @Inject constructor(
         transformDirection: Boolean
     ) {
         for (element in elements) {
-            if (element.state != GameElementState.INACTIVE && element.cullingCheck(viewPort)) {
+            if (element.state != ElementState.INACTIVE && element.cullingCheck(viewPort)) {
                 val localX = element.x - viewPort.x
                 val localY = element.y - viewPort.y
                 val elementImage = when (element) {
@@ -481,6 +481,6 @@ class DefaultEngine @AppScope @Inject constructor(
     }
 
     private fun hasVisibleActiveElements(elements: ArrayList<out GameElement>, viewPort: ViewPort): Boolean {
-        return elements.any { it.state != GameElementState.INACTIVE && it.cullingCheck(viewPort) }
+        return elements.any { it.state != ElementState.INACTIVE && it.cullingCheck(viewPort) }
     }
 }

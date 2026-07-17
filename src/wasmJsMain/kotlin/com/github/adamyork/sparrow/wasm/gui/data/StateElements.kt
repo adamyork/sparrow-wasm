@@ -9,7 +9,7 @@ import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
 
-data class GameStateElements(
+data class StateElements(
     var viewPort: ViewPort,
     var player: Player,
     var gameMap: GameMap,
@@ -25,7 +25,7 @@ data class GameStateElements(
     var remainingLabel: String
 ) {
     companion object {
-        val emptyGameStateElements: GameStateElements = GameStateElements(
+        val emptyStateElements: StateElements = StateElements(
             viewPort = ViewPort(0, 0, 0, 0, 1, 1),
             player = Player.emptyPlayer,
             gameMap = GameMap.emptyGameMap,

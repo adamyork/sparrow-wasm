@@ -9,7 +9,7 @@ import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
-import com.github.adamyork.sparrow.wasm.common.v1.DefaultStatusProvider
+import com.github.adamyork.sparrow.wasm.service.v1.DefaultRuntimeService
 import com.github.adamyork.sparrow.wasm.engine.Collision
 import com.github.adamyork.sparrow.wasm.engine.Physics
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
@@ -28,13 +28,13 @@ import kotlin.math.*
 @AppScope
 @Inject
 class DefaultPhysics(
-    private val statusProviderFactory: () -> DefaultStatusProvider,
+    private val statusProviderFactory: () -> DefaultRuntimeService,
     val physicsSettingsService: PhysicsSettingsService
 ) : Physics {
 
     private val logger = KotlinLogging.logger {}
 
-    private val statusProvider: DefaultStatusProvider
+    private val statusProvider: DefaultRuntimeService
         get() = statusProviderFactory()
 
     override fun applyPlayerPhysics(

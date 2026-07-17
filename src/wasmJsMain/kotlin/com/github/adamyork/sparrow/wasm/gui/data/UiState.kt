@@ -8,7 +8,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
  * Author: Adam York
  * Copyright (c) Adam York
  */
-data class GeneralUiState(
+data class UiState(
     val drawResult: DrawResult,
     val fpsLabel: String,
     val gameStatusLabel: String,

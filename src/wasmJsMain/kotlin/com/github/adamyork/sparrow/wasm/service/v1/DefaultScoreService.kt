@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.data.GameElementState
+import com.github.adamyork.sparrow.wasm.common.data.ElementState
 import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.service.ScoreService
@@ -27,7 +27,7 @@ class DefaultScoreService : ScoreService {
     override fun getTotal(): Int = cachedTotal
 
     override fun getRemaining(): Int {
-        return internalGameMapItem.count { it.type == ItemType.COLLECTABLE && it.state == GameElementState.ACTIVE }
+        return internalGameMapItem.count { it.type == ItemType.COLLECTABLE && it.state == ElementState.ACTIVE }
     }
 
     override fun allFound(): Boolean = getRemaining() == 0

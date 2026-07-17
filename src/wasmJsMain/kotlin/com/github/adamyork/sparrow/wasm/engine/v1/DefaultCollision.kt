@@ -141,12 +141,12 @@ class DefaultCollision(
         var newGameState = gameMap.state
         for (itemIndex in items.indices) {
             val item = items[itemIndex]
-            if (item.state == GameElementState.ACTIVE && playerRect.overlaps(item.toRect())) {
+            if (item.state == ElementState.ACTIVE && playerRect.overlaps(item.toRect())) {
                 if (item.type == ItemType.FINISH) {
                     newGameState = GameMapState.COMPLETED
                 }
                 audioQueue.queue.add(Sounds.ITEM_COLLECT)
-                item.state = GameElementState.DEACTIVATING
+                item.state = ElementState.DEACTIVATING
                 item.frameMetadata = item.getFirstDeactivatingFrame()
                 items[itemIndex] = item
             }
@@ -174,7 +174,7 @@ class DefaultCollision(
         for (enemyIndex in managedMapEnemies.indices) {
             val enemy = managedMapEnemies[enemyIndex]
             val element = enemy as GameElement
-            if (element.state == GameElementState.INACTIVE) continue
+            if (element.state == ElementState.INACTIVE) continue
             val enemyRect = enemy.toRect()
             val isColliding = playerRect.overlaps(enemyRect)
             var isInteracting = false
@@ -258,7 +258,7 @@ class DefaultCollision(
         particles.applyCollisionParticles(player.x, player.y, particleList)
         if (scoreService.getTotal() != scoreService.getRemaining()) {
             val firstMapItem =
-                gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == GameElementState.INACTIVE }
+                gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == ElementState.INACTIVE }
                     ?: throw IllegalStateException("needs to be at least one map item")
             particles.applyMapItemReturnParticle(player, firstMapItem, particleList)
         }

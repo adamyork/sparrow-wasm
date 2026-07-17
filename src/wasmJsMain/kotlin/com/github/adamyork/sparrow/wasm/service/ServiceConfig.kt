@@ -3,6 +3,7 @@ package com.github.adamyork.sparrow.wasm.service
 import com.github.adamyork.sparrow.wasm.AppScope
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultAssetService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultPhysicsSettingsService
+import com.github.adamyork.sparrow.wasm.service.v1.DefaultRuntimeService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultScoreService
 import com.github.adamyork.sparrow.wasm.service.v1.DefaultWavService
 import io.ktor.client.*
@@ -41,6 +42,10 @@ interface ServiceConfig {
             socketTimeoutMillis = 10000
         }
     }
+
+    @AppScope
+    @Provides
+    fun provideRuntimeService(impl: DefaultRuntimeService): RuntimeService = impl
 
 
 }

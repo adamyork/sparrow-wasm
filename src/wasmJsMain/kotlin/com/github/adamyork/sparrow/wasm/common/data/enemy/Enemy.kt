@@ -5,7 +5,7 @@ import com.github.adamyork.sparrow.wasm.common.data.FrameMetadata
 import com.github.adamyork.sparrow.wasm.common.data.FrameMetadataState
 import com.github.adamyork.sparrow.wasm.common.data.GameElement
 import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
-import com.github.adamyork.sparrow.wasm.common.data.GameElementState
+import com.github.adamyork.sparrow.wasm.common.data.ElementState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 
 /**
@@ -24,7 +24,7 @@ interface Enemy : GameElement {
 
     fun getNextPosition(): EnemyPosition
 
-    fun getNextEnemyState(player: Player): GameElementState
+    fun getNextEnemyState(player: Player): ElementState
 
     fun getNextCollisionMetadataWithState(
         animatingFrames: HashMap<Int, FrameMetadata>,

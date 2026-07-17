@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm
 
-import com.github.adamyork.sparrow.wasm.gui.GameUiScaffold
+import com.github.adamyork.sparrow.wasm.gui.UiScaffold
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
 import kotlinx.browser.document
@@ -33,8 +33,8 @@ fun main() {
         }
         val gameLayer = component.game
         val sparrowColorScheme = component.sparrowColorScheme
-        val gameUIScaffold = GameUiScaffold()
-        gameUIScaffold.buildGui(
+        val uiScaffold = UiScaffold()
+        uiScaffold.buildGui(
             game = gameLayer,
             sparrowColorScheme = sparrowColorScheme
         )

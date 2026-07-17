@@ -26,7 +26,7 @@ interface Item : GameElement {
                 EnemyInteractionState.ISOLATED,
                 state
             )
-        if (state == GameElementState.ACTIVE) {
+        if (state == ElementState.ACTIVE) {
             if (frameMetadata.frame == numActiveFrames) {
                 return Pair(metadata, metadataState)
             } else {

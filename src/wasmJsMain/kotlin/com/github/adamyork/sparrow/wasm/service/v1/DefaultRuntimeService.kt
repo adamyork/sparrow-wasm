@@ -1,13 +1,13 @@
-package com.github.adamyork.sparrow.wasm.common.v1
+package com.github.adamyork.sparrow.wasm.service.v1
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.StatusProvider
-import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
+import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import me.tatarka.inject.annotations.Inject
 
 /**
@@ -16,15 +16,15 @@ import me.tatarka.inject.annotations.Inject
  */
 @AppScope
 @Inject
-class DefaultStatusProvider(
+class DefaultRuntimeService(
     val assetService: AssetService
-) : StatusProvider {
+) : RuntimeService {
 
     private companion object {
         const val FPS_SAMPLE_WINDOW_MS: Double = 1000.0
     }
 
-    override var gameLifeCycleState by mutableStateOf(GameLifeCycleState.INITIALIZING)
+    override var lifeCycleState by mutableStateOf(LifeCycleState.INITIALIZING)
     override var gameMapState by mutableStateOf(GameMapState.COLLECTING)
     override var lastPaintTime: Double = 0.0
 
@@ -83,7 +83,7 @@ class DefaultStatusProvider(
     override fun reset() {
         lastPaintTime = 0.0
         gameMapState = GameMapState.COLLECTING
-        gameLifeCycleState = GameLifeCycleState.INITIALIZED
+        lifeCycleState = LifeCycleState.INITIALIZED
         fpsWindowStartTime = 0.0
         fpsFrameCountInWindow = 0
         lastObservedPaintTime = 0.0

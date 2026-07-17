@@ -1,15 +1,15 @@
-package com.github.adamyork.sparrow.wasm.common
+package com.github.adamyork.sparrow.wasm.service
 
-import com.github.adamyork.sparrow.wasm.common.data.GameLifeCycleState
+import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
-interface StatusProvider {
+interface RuntimeService {
 
-    var gameLifeCycleState: GameLifeCycleState
+    var lifeCycleState: LifeCycleState
     var gameMapState: GameMapState
     var lastPaintTime: Double
 

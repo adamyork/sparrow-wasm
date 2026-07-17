@@ -24,7 +24,7 @@ import org.jetbrains.skia.Image as SkiaImage
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class GameUiDrawLayer(
+class UiDrawLayer(
     private val screenDimensionsService: ScreenDimensionsService
 ) {
 

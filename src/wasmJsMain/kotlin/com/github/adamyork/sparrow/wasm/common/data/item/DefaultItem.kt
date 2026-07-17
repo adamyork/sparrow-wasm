@@ -17,7 +17,7 @@ class DefaultItem : Item {
     override var y: Int = 0
     override val height: Int = 0
     override val width: Int = 0
-    override var state: GameElementState = GameElementState.INACTIVE
+    override var state: ElementState = ElementState.INACTIVE
     override val imageAndBytes: ImageAndBytes =
         ImageAndBytes(byteArrayOf(), EmptyImage.createEmptyImage().toComposeImageBitmap())
 
@@ -26,7 +26,7 @@ class DefaultItem : Item {
         return Pair(
             frameMetadata, FrameMetadataState(
                 GameElementCollisionState.FREE, EnemyInteractionState.ISOLATED,
-                GameElementState.INACTIVE
+                ElementState.INACTIVE
             )
         )
     }

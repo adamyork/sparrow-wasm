@@ -15,7 +15,7 @@ class RunnerEnemy(
     override var y: Int,
     override val width: Int,
     override val height: Int,
-    override var state: GameElementState,
+    override var state: ElementState,
     override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
     override val id: Int,
@@ -44,14 +44,14 @@ class RunnerEnemy(
         generateAnimationFrameIndex()
     }
 
-    override fun getNextEnemyState(player: Player): GameElementState {
+    override fun getNextEnemyState(player: Player): ElementState {
         val withinXRange = player.x >= this.originX - PLAYER_PROXIMITY_THRESHOLD
         val withinYRange = player.y == this.originY - this.height
         val notAtEndOfPath = this.x > 0
         return if (withinXRange && withinYRange && notAtEndOfPath) {
-            GameElementState.ACTIVE
+            ElementState.ACTIVE
         } else if (this.x == 0) {
-            GameElementState.INACTIVE
+            ElementState.INACTIVE
         } else {
             this.state
         }
