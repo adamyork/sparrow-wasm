@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.service.v1
 
-import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.data.ElementState
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.data.ElementState
 import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.service.ScoreService

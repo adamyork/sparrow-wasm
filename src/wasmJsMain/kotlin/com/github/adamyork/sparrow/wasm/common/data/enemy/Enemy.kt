@@ -1,11 +1,11 @@
 package com.github.adamyork.sparrow.wasm.common.data.enemy
 
-import com.github.adamyork.sparrow.wasm.common.AnimationFrameException
+import com.github.adamyork.sparrow.platform.common.AnimationFrameException
+import com.github.adamyork.sparrow.platform.common.data.ElementState
 import com.github.adamyork.sparrow.wasm.common.data.FrameMetadata
 import com.github.adamyork.sparrow.wasm.common.data.FrameMetadataState
 import com.github.adamyork.sparrow.wasm.common.data.GameElement
-import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
-import com.github.adamyork.sparrow.wasm.common.data.ElementState
+import com.github.adamyork.sparrow.platform.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 
 /**

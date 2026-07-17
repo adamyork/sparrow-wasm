@@ -1,7 +1,7 @@
-package com.github.adamyork.sparrow.wasm.service.v1
+package com.github.adamyork.sparrow.platform.service.v1
 
-import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.service.PhysicsSettingsService
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.service.PhysicsSettingsService
 import me.tatarka.inject.annotations.Inject
 
 /**

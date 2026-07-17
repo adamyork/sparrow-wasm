@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm.service
 
-import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
+import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 
 /**
@@ -19,7 +19,7 @@ interface RuntimeService {
 
     fun setCurrentFrameTime(timestamp: Double)
 
-    fun getCurrentFrameTime() : Double
+    fun getCurrentFrameTime(): Double
 
     fun reset()
 

@@ -4,7 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.github.adamyork.sparrow.wasm.service.data.LoadingTask
+import com.github.adamyork.sparrow.platform.service.data.LoadingTask
+import com.github.adamyork.sparrow.platform.service.LoadingProgressListener
 
 /**
  * Author: Adam York

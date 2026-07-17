@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm.common.data.enemy
 
-import com.github.adamyork.sparrow.wasm.common.data.Direction
+import com.github.adamyork.sparrow.platform.common.data.Direction
 
 /**
  * Author: Adam York

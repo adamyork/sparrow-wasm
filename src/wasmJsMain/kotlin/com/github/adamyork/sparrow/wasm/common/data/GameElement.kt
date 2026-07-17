@@ -1,7 +1,9 @@
 package com.github.adamyork.sparrow.wasm.common.data
 
 import androidx.compose.ui.geometry.Rect
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.platform.common.data.Direction
+import com.github.adamyork.sparrow.platform.common.data.ElementState
+import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 
 /**
  * Author: Adam York

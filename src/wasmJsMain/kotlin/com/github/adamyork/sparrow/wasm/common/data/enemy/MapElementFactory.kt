@@ -2,8 +2,8 @@ package com.github.adamyork.sparrow.wasm.common.data.enemy
 
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
-import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
-import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
+import com.github.adamyork.sparrow.platform.service.data.ImageAsset
+import com.github.adamyork.sparrow.platform.service.data.ItemPositionAndType
 
 /**
  * Author: Adam York

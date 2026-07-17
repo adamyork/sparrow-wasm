@@ -1,7 +1,7 @@
 package com.github.adamyork.sparrow.wasm.common
 
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
-import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.platform.AppScope
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.browser.document
 import kotlinx.browser.window

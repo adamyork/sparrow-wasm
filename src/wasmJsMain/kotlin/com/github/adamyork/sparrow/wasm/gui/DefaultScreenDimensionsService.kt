@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm.gui
 
-import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.wasm.gui.data.ScreenDimensions
 import me.tatarka.inject.annotations.Inject
 

@@ -1,8 +1,12 @@
 package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.geometry.Rect
-import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.AudioQueue
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.data.Sounds
+import com.github.adamyork.sparrow.platform.common.AudioQueue
+import com.github.adamyork.sparrow.platform.common.data.Direction
+import com.github.adamyork.sparrow.platform.common.data.ElementState
+import com.github.adamyork.sparrow.platform.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyType
@@ -18,7 +22,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.service.ScoreService
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.Bitmap

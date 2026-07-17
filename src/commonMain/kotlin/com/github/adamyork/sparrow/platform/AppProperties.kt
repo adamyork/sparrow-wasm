@@ -1,4 +1,4 @@
-package com.github.adamyork.sparrow.wasm
+package com.github.adamyork.sparrow.platform
 
 import kotlinx.serialization.Serializable
 

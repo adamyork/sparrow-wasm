@@ -10,9 +10,9 @@ import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.service.AssetService
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
-import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
+import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.platform.service.data.ImageAsset
+import com.github.adamyork.sparrow.platform.service.data.ItemPositionAndType
 
 /**
  * Author: Adam York

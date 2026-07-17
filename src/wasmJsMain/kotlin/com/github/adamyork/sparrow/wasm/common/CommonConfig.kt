@@ -1,8 +1,9 @@
 package com.github.adamyork.sparrow.wasm.common
 
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
-import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.v1.DefaultAudioQueue
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.AudioQueue
+import com.github.adamyork.sparrow.platform.common.v1.DefaultAudioQueue
 import me.tatarka.inject.annotations.Provides
 
 /**

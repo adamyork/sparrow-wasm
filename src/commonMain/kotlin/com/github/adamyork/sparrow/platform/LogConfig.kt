@@ -1,4 +1,4 @@
-package com.github.adamyork.sparrow.wasm
+package com.github.adamyork.sparrow.platform
 
 import io.github.oshai.kotlinlogging.*
 import kotlinx.datetime.TimeZone

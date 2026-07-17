@@ -1,14 +1,14 @@
 package com.github.adamyork.sparrow.wasm.service
 
 import androidx.compose.ui.graphics.ImageBitmap
-import com.github.adamyork.sparrow.wasm.AppProperties
-import com.github.adamyork.sparrow.wasm.common.data.Sounds
+import com.github.adamyork.sparrow.platform.AppProperties
+import com.github.adamyork.sparrow.platform.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
-import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
-import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
-import com.github.adamyork.sparrow.wasm.service.data.TextAsset
-import com.github.adamyork.sparrow.wasm.service.v1.LoadingProgressListener
+import com.github.adamyork.sparrow.platform.service.data.ImageAsset
+import com.github.adamyork.sparrow.platform.service.data.ItemPositionAndType
+import com.github.adamyork.sparrow.platform.service.data.TextAsset
+import com.github.adamyork.sparrow.platform.service.LoadingProgressListener
 import org.jetbrains.skia.Font
 
 /**

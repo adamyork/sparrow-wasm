@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.wasm
 
+import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.wasm.common.CommonConfig
 import com.github.adamyork.sparrow.wasm.engine.EngineConfig
 import com.github.adamyork.sparrow.wasm.gui.GuiConfig

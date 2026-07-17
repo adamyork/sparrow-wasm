@@ -1,6 +1,6 @@
-package com.github.adamyork.sparrow.wasm.common
+package com.github.adamyork.sparrow.platform.common
 
-import com.github.adamyork.sparrow.wasm.common.data.Sounds
+import com.github.adamyork.sparrow.platform.common.data.Sounds
 
 /**
  * Author: Adam York

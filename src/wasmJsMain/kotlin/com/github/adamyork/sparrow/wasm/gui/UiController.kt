@@ -1,24 +1,24 @@
 package com.github.adamyork.sparrow.wasm.gui
 
-import com.github.adamyork.sparrow.wasm.service.RuntimeService
-import com.github.adamyork.sparrow.wasm.common.data.ControlAction
-import com.github.adamyork.sparrow.wasm.common.data.ControlType
-import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
+import com.github.adamyork.sparrow.platform.common.data.ControlAction
+import com.github.adamyork.sparrow.platform.common.data.ControlType
+import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
+import com.github.adamyork.sparrow.platform.service.LoadingProgressListener
+import com.github.adamyork.sparrow.platform.service.WavService
+import com.github.adamyork.sparrow.platform.service.data.ImageAsset
+import com.github.adamyork.sparrow.platform.service.data.LoadingTask
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.engine.Engine
 import com.github.adamyork.sparrow.wasm.engine.Particles
 import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
+import com.github.adamyork.sparrow.wasm.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.wasm.gui.data.StateElements
 import com.github.adamyork.sparrow.wasm.gui.data.UiState
-import com.github.adamyork.sparrow.wasm.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import com.github.adamyork.sparrow.wasm.service.ScoreService
-import com.github.adamyork.sparrow.platform.service.WavService
-import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
-import com.github.adamyork.sparrow.wasm.service.data.LoadingTask
-import com.github.adamyork.sparrow.wasm.service.v1.LoadingProgressListener
 import com.github.adamyork.sparrow.wasm.service.v1.LoadingViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.async
@@ -62,7 +62,7 @@ class UiController(
                 "blocker enemy" to { assetService.loadEnemy(0) },
                 "shooter enemy" to { assetService.loadEnemy(1) },
                 "game audio" to { assetService.loadAudio(this@UiController) },
-                "font" to {assetService.prepareFont()}
+                "font" to { assetService.prepareFont() }
             )
             val loadedAssets = coroutineScope {
                 loaders.map { (key, loader) ->

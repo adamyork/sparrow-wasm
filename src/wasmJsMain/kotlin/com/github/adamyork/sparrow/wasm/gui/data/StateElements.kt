@@ -6,8 +6,8 @@ import com.github.adamyork.sparrow.wasm.common.data.EmptyImage
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
+import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 
 data class StateElements(
     var viewPort: ViewPort,

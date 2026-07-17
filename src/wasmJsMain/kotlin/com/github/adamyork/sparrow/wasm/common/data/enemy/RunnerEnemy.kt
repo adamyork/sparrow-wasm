@@ -1,10 +1,13 @@
 package com.github.adamyork.sparrow.wasm.common.data.enemy
 
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
-import com.github.adamyork.sparrow.wasm.common.ThrottledAnimator
+import com.github.adamyork.sparrow.platform.common.ThrottledAnimator
+import com.github.adamyork.sparrow.platform.common.data.Direction
+import com.github.adamyork.sparrow.platform.common.data.ElementState
+import com.github.adamyork.sparrow.platform.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import kotlin.math.floor
 
 /**

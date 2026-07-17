@@ -1,4 +1,4 @@
-package com.github.adamyork.sparrow.wasm.service.v1
+package com.github.adamyork.sparrow.platform.service
 
 /**
  * Author: Adam York

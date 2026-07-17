@@ -1,6 +1,6 @@
 package com.github.adamyork.sparrow.wasm.engine
 
-import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.wasm.common.data.enemy.DefaultMapElementFactory
 import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.wasm.engine.v1.DefaultCollision

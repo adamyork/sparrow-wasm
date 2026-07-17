@@ -1,13 +1,13 @@
 package com.github.adamyork.sparrow.wasm.engine
 
-import com.github.adamyork.sparrow.wasm.common.data.ControlAction
+import com.github.adamyork.sparrow.platform.common.data.ControlAction
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.DrawResult
-import com.github.adamyork.sparrow.wasm.service.data.ImageAndBytes
-import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
+import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
+import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import org.jetbrains.skia.Font
 
 /**

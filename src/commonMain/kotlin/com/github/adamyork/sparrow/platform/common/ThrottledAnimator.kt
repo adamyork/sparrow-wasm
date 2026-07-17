@@ -1,6 +1,4 @@
-package com.github.adamyork.sparrow.wasm.common
-
-import com.github.adamyork.sparrow.platform.common.PlatformInterop
+package com.github.adamyork.sparrow.platform.common
 
 /**
  * Author: Adam York

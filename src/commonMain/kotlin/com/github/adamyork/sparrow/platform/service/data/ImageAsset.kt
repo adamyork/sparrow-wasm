@@ -1,4 +1,4 @@
-package com.github.adamyork.sparrow.wasm.service.data
+package com.github.adamyork.sparrow.platform.service.data
 
 
 /**

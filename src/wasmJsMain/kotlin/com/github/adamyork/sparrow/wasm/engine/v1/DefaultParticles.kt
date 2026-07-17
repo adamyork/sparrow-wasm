@@ -1,8 +1,8 @@
 package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.Color
-import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.data.Direction
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.data.Direction
 import com.github.adamyork.sparrow.wasm.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.wasm.common.data.item.Item
 import com.github.adamyork.sparrow.wasm.common.data.player.Player

@@ -1,12 +1,15 @@
 package com.github.adamyork.sparrow.wasm.common.data.enemy
 
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
-import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.data.Direction
+import com.github.adamyork.sparrow.platform.common.data.ElementState
+import com.github.adamyork.sparrow.platform.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.*
 import com.github.adamyork.sparrow.wasm.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
-import com.github.adamyork.sparrow.wasm.service.data.ImageAsset
-import com.github.adamyork.sparrow.wasm.service.data.ItemPositionAndType
+import com.github.adamyork.sparrow.platform.service.data.ImageAsset
+import com.github.adamyork.sparrow.platform.service.data.ItemPositionAndType
 import me.tatarka.inject.annotations.Inject
 
 /**

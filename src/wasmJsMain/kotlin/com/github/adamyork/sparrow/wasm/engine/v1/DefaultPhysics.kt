@@ -1,10 +1,10 @@
 package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.geometry.Rect
-import com.github.adamyork.sparrow.wasm.AppScope
-import com.github.adamyork.sparrow.wasm.common.data.ControlAction
-import com.github.adamyork.sparrow.wasm.common.data.Direction
-import com.github.adamyork.sparrow.wasm.common.data.GameElementCollisionState
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.data.ControlAction
+import com.github.adamyork.sparrow.platform.common.data.Direction
+import com.github.adamyork.sparrow.platform.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.ViewPort
 import com.github.adamyork.sparrow.wasm.common.data.player.Player
 import com.github.adamyork.sparrow.wasm.common.data.player.PlayerJumpingState
@@ -16,7 +16,7 @@ import com.github.adamyork.sparrow.wasm.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.wasm.engine.data.Particle
 import com.github.adamyork.sparrow.wasm.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.engine.data.PlayerPhysicsResult
-import com.github.adamyork.sparrow.wasm.service.PhysicsSettingsService
+import com.github.adamyork.sparrow.platform.service.PhysicsSettingsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import kotlin.math.*

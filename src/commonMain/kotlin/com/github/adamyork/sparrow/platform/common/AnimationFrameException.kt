@@ -1,4 +1,4 @@
-package com.github.adamyork.sparrow.wasm.common
+package com.github.adamyork.sparrow.platform.common
 
 /**
  * Author: Adam York

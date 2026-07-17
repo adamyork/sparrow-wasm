@@ -1,5 +1,7 @@
 package com.github.adamyork.sparrow.wasm.common.data
 
+import com.github.adamyork.sparrow.platform.common.data.ElementState
+import com.github.adamyork.sparrow.platform.common.data.GameElementCollisionState
 import com.github.adamyork.sparrow.wasm.common.data.enemy.EnemyInteractionState
 
 /**

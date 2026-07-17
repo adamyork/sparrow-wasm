@@ -22,9 +22,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
-import com.github.adamyork.sparrow.wasm.common.data.ControlAction
-import com.github.adamyork.sparrow.wasm.common.data.ControlType
-import com.github.adamyork.sparrow.wasm.common.data.LifeCycleState
+import com.github.adamyork.sparrow.platform.common.data.ControlAction
+import com.github.adamyork.sparrow.platform.common.data.ControlType
+import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMapState
 import com.github.adamyork.sparrow.wasm.service.RuntimeService
 import kotlinx.coroutines.awaitCancellation
