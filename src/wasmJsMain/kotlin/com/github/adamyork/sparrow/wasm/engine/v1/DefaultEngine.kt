@@ -80,7 +80,7 @@ class DefaultEngine @AppScope @Inject constructor(
         gameMap.items.forEach { item ->
             val image = if (showItemDots) {
                 val markedBytes =
-                    assetService.drawIdAsText(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
+                    assetService.drawId(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
                 Image.makeFromEncoded(markedBytes)
             } else {
                 Image.makeFromBitmap(item.imageAndBytes.imageBitmap.asSkiaBitmap())
@@ -90,7 +90,7 @@ class DefaultEngine @AppScope @Inject constructor(
         gameMap.enemies.forEach { enemy ->
             val image = if (showItemDots) {
                 val markedBytes =
-                    assetService.drawIdAsText(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height, font)
+                    assetService.drawId(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height, font)
                 Image.makeFromEncoded(markedBytes)
             } else {
                 Image.makeFromBitmap(enemy.imageAndBytes.imageBitmap.asSkiaBitmap())

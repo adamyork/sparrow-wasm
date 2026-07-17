@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.charleskorn.kaml.Yaml
 import com.github.adamyork.sparrow.wasm.AppProperties
 import com.github.adamyork.sparrow.wasm.AppScope
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.wasm.common.data.Sounds
 import com.github.adamyork.sparrow.wasm.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.wasm.common.data.map.GameMap
@@ -17,17 +18,13 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import kotlinx.browser.window
 import kotlinx.coroutines.async
-import kotlinx.coroutines.await
 import kotlinx.coroutines.coroutineScope
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
 import org.khronos.webgl.Int8Array
-import org.khronos.webgl.Uint8Array
-import org.khronos.webgl.get
+import org.khronos.webgl.toInt8Array
 import org.w3c.dom.url.URL
-import org.w3c.fetch.Response
 import org.w3c.files.Blob
 
 /**
@@ -38,8 +35,18 @@ import org.w3c.files.Blob
 @Inject
 class DefaultAssetService(
     private val httpClient: HttpClient,
-    private val mapElementFactory: MapElementFactory
+    private val mapElementFactory: MapElementFactory,
+    private val platformInterop: PlatformInterop
 ) : AssetService {
+
+    companion object {
+        private val COLOR_MAP = mapOf(
+            "green" to Color.Green, "white" to Color.White, "blue" to Color.Blue,
+            "darkgray" to Color.DarkGray, "red" to Color.Red, "gray" to Color.Gray,
+            "lightgray" to Color.LightGray, "yellow" to Color.Yellow,
+            "magenta" to Color.Magenta, "black" to Color.Black
+        )
+    }
 
     override var backgroundMusicBytesMap: HashMap<Int, ByteArray> = HashMap()
 
@@ -54,20 +61,11 @@ class DefaultAssetService(
 
     private lateinit var backgroundAudio: String
 
-    private val colorMap = mapOf(
-        "green" to Color.Green, "white" to Color.White, "blue" to Color.Blue,
-        "darkgray" to Color.DarkGray, "red" to Color.Red, "gray" to Color.Gray,
-        "lightgray" to Color.LightGray, "yellow" to Color.Yellow,
-        "magenta" to Color.Magenta, "black" to Color.Black
-    )
-
-    @OptIn(ExperimentalWasmJsInterop::class)
     override suspend fun initialize(listener: LoadingProgressListener) {
         logger.info { "initialize called loading yaml" }
-        val response = window.fetch("application.yml").await()
-        val buffer = response.arrayBuffer().await()
-        val uint8Array = Int8Array(buffer)
-        val bytes = ByteArray(uint8Array.length) { byteIndex -> uint8Array[byteIndex] }
+        val response = httpClient.get("application.yml")
+        check(response.status.isSuccess()) { "Failed to load application yml (status=${response.status})" }
+        val bytes = response.body<ByteArray>()
         val yamlString = bytes.decodeToString()
         listener.onTaskCompleted("app_yaml")
         logger.info { "yaml loaded" }
@@ -171,7 +169,6 @@ class DefaultAssetService(
         return fetchImageAndBytes(entry.path, entry.width, entry.height)
     }
 
-    @OptIn(ExperimentalWasmJsInterop::class)
     override suspend fun loadAudio(listener: LoadingProgressListener) = coroutineScope {
         val audioPathMap = mapOf(
             Sounds.JUMP to appProperties.audio.player.jump,
@@ -181,8 +178,11 @@ class DefaultAssetService(
         )
 
         suspend fun fetchBlob(url: String): Blob {
-            val response = window.fetch(url).await().unsafeCast<Response>()
-            return response.blob().await()
+            val response = httpClient.get(url)
+            check(response.status.isSuccess()) { "Failed to load $url(status=${response.status})" }
+            val bytes = response.body<ByteArray>()
+            val int8Array: Int8Array = bytes.toInt8Array()
+            return platformInterop.getBlobFromInt8Array(int8Array) as Blob
         }
 
         val deferredAudios = audioPathMap.map { (key, path) ->
@@ -240,7 +240,8 @@ class DefaultAssetService(
     override fun showCollisionMap(): Boolean = appProperties.map.collision.visible
 
     private fun stringToColor(stringColor: String) =
-        colorMap[stringColor.lowercase()] ?: throw AssetServiceReferenceException("unknown color provided $stringColor")
+        COLOR_MAP[stringColor.lowercase()]
+            ?: throw AssetServiceReferenceException("unknown color provided $stringColor")
 
     private suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset {
         logger.info { "fetchImageAndBytes for $path" }
@@ -255,25 +256,17 @@ class DefaultAssetService(
         }
     }
 
-    @OptIn(ExperimentalWasmJsInterop::class)
     override suspend fun prepareFont(): Font {
-        val response = window.fetch("roboto_bold.ttf").await()
-        if (!response.ok) {
-            throw AssetServiceReferenceException("Failed to load font: ${response.statusText}")
-        }
-        val arrayBuffer = response.arrayBuffer().await()
-        val uint8Array = Uint8Array(arrayBuffer)
-        val bytes = ByteArray(uint8Array.length)
-        for (byteIndex in 0 until uint8Array.length) {
-            bytes[byteIndex] = uint8Array[byteIndex]
-        }
+        val response = httpClient.get("roboto_bold.ttf")
+        check(response.status.isSuccess()) { "Failed to load application font (status=${response.status})" }
+        val bytes = response.body<ByteArray>()
         val data = Data.makeFromBytes(bytes)
         val typeFace = FontMgr.default.makeFromData(data)
             ?: throw AssetServiceReferenceException("Could not create typeface from data")
         return Font(typeFace, 12F)
     }
 
-    override fun drawIdAsText(
+    override fun drawId(
         bytes: ByteArray,
         id: Int,
         frameWidth: Int,

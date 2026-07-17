@@ -57,6 +57,6 @@ interface AssetService {
 
     suspend fun prepareFont(): Font
 
-    fun drawIdAsText(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int, font: Font): ByteArray
+    fun drawId(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int, font: Font): ByteArray
 
 }
