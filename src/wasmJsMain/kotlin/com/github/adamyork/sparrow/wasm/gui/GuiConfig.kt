@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.wasm.gui
 
 import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.gui.*
 import me.tatarka.inject.annotations.Provides
 
 /**

@@ -1,12 +1,15 @@
 package com.github.adamyork.sparrow.wasm.service
 
-import com.github.adamyork.sparrow.platform.service.PhysicsSettingsService
-import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.platform.AppScope
-import com.github.adamyork.sparrow.wasm.service.v1.DefaultAssetService
+import com.github.adamyork.sparrow.platform.service.AssetService
+import com.github.adamyork.sparrow.platform.service.PhysicsSettingsService
+import com.github.adamyork.sparrow.platform.service.RuntimeService
+import com.github.adamyork.sparrow.platform.service.ScoreService
+import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.platform.service.v1.DefaultPhysicsSettingsService
-import com.github.adamyork.sparrow.wasm.service.v1.DefaultRuntimeService
-import com.github.adamyork.sparrow.wasm.service.v1.DefaultScoreService
+import com.github.adamyork.sparrow.platform.service.v1.DefaultRuntimeService
+import com.github.adamyork.sparrow.platform.service.v1.DefaultScoreService
+import com.github.adamyork.sparrow.platform.service.v1.DefaultAssetService
 import com.github.adamyork.sparrow.wasm.service.v1.WasmWavService
 import io.ktor.client.*
 import io.ktor.client.engine.js.*

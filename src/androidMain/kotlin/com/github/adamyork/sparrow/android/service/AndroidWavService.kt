@@ -1,0 +1,14 @@
+package com.github.adamyork.sparrow.android.service
+
+import com.github.adamyork.sparrow.platform.service.WavService
+
+class AndroidWavService : WavService {
+
+	override fun playNext() {
+		// Android implementation pending.
+	}
+
+	override fun playBackgroundAudio() {
+		// Android implementation pending.
+	}
+}
