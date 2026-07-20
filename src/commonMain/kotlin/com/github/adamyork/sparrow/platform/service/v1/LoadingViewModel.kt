@@ -11,7 +11,6 @@ import com.github.adamyork.sparrow.platform.service.data.LoadingTask
  * Author: Adam York
  * Copyright (c) Adam York
  */
-//TODO interop
 class LoadingViewModel : ViewModel(), LoadingProgressListener {
 
     companion object {

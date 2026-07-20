@@ -1,4 +1,5 @@
 [versions]
+activityCompose = "1.13.0"
 kotlin = "2.4.0"
 compose = "1.11.1"
 kotlinInject = "0.7.2"
@@ -9,12 +10,13 @@ kaml = "0.104.0"
 kotlinxDatetime = "0.8.0"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerialization = "1.7.3"
-lifecycle = "2.8.4"
+lifecycle = "2.9.6"
 ksp = "2.3.10"
 kotlinxBrowser = "0.3"
-agp = "8.10.0"
+agp = "9.1.0"
 
 [libraries]
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
@@ -48,5 +50,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -6,8 +6,6 @@ import com.github.adamyork.sparrow.platform.engine.Collision
 import com.github.adamyork.sparrow.platform.engine.Engine
 import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.Physics
-import com.github.adamyork.sparrow.platform.engine.v1.DefaultCollision
-import com.github.adamyork.sparrow.platform.engine.v1.DefaultEngine
 import com.github.adamyork.sparrow.platform.engine.v1.DefaultParticles
 import com.github.adamyork.sparrow.platform.engine.v1.DefaultPhysics
 import com.github.adamyork.sparrow.wasm.common.data.enemy.DefaultMapElementFactory
@@ -21,11 +19,11 @@ interface EngineConfig {
 
     @AppScope
     @Provides
-    fun provideEngine(impl: DefaultEngine): Engine = impl
+    fun provideEngine(impl: WasmJsEngine): Engine = impl
 
     @AppScope
     @Provides
-    fun provideCollision(impl: DefaultCollision): Collision = impl
+    fun provideCollision(impl: WasmJsCollision): Collision = impl
 
     @AppScope
     @Provides

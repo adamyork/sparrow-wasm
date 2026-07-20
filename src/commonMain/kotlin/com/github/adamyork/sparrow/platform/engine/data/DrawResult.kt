@@ -1,15 +1,13 @@
 package com.github.adamyork.sparrow.platform.engine.data
 
 import androidx.compose.ui.graphics.ImageBitmap
-import org.jetbrains.skia.Image
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
 data class DrawResult(
-    //TODO interop
-    val foregroundImage: Image?,
+    val foregroundImage: PlatformImage?,
     val farGroundBitmap: ImageBitmap?,
     val farGroundOffsetX: Float,
     val farGroundOffsetY: Float,

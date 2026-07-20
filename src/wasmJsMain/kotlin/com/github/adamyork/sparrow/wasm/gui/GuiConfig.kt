@@ -10,13 +10,13 @@ import me.tatarka.inject.annotations.Provides
  */
 interface GuiConfig {
 
-    val game: Game
+    val game: PlatformGame
     val sparrowColorScheme: SparrowColorScheme
     val screenDimensionsService: ScreenDimensionsService
 
     @AppScope
     @Provides
-    fun provideGameLayer(impl: DefaultGame): Game = impl
+    fun provideGameLayer(impl: WasmJsGame): PlatformGame = impl
 
 
     @AppScope

@@ -59,7 +59,7 @@ kotlin {
         getByName("androidMain").dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
-            implementation("androidx.activity:activity-compose:1.13.0")
+            implementation(libs.activity.compose)
         }
 
         getByName("wasmJsMain").dependencies {
@@ -74,6 +74,8 @@ android {
     compileSdk = 36
     defaultConfig {
         minSdk = 24
+        //noinspection OldTargetApi
+        targetSdk = 36
     }
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].java.srcDirs("src/androidMain/kotlin")

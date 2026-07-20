@@ -6,9 +6,9 @@ import androidx.compose.runtime.Composable
  * Author: Adam York
  * Copyright (c) Adam York
  */
-interface Game {
+interface PlatformGame {
 
     @Composable
-    fun build()
+    fun Build()
 
 }

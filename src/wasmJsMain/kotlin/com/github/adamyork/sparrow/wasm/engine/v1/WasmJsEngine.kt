@@ -1,4 +1,4 @@
-package com.github.adamyork.sparrow.platform.engine.v1
+package com.github.adamyork.sparrow.wasm.engine.v1
 
 import androidx.compose.ui.graphics.asSkiaBitmap
 import com.github.adamyork.sparrow.platform.AppScope
@@ -12,10 +12,12 @@ import com.github.adamyork.sparrow.platform.common.data.enemy.RunnerEnemy
 import com.github.adamyork.sparrow.platform.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.platform.common.data.item.DefaultItem
 import com.github.adamyork.sparrow.platform.common.data.item.Item
+import com.github.adamyork.sparrow.platform.common.data.item.ItemType
 import com.github.adamyork.sparrow.platform.common.data.map.GameMap
 import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.common.data.player.Player
 import com.github.adamyork.sparrow.platform.common.data.player.PlayerJumpingState
+import com.github.adamyork.sparrow.platform.common.data.player.PlayerMovingState
 import com.github.adamyork.sparrow.platform.engine.Collision
 import com.github.adamyork.sparrow.platform.engine.Engine
 import com.github.adamyork.sparrow.platform.engine.Particles
@@ -26,20 +28,16 @@ import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.ScoreService
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
-import com.github.adamyork.sparrow.wasm.common.data.*
-import com.github.adamyork.sparrow.wasm.common.data.item.ItemType
-import com.github.adamyork.sparrow.wasm.common.data.player.PlayerMovingState
-import com.github.adamyork.sparrow.wasm.engine.data.*
+import com.github.adamyork.sparrow.wasm.engine.data.WasmJsPlatformImage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.*
-import kotlin.collections.iterator
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class DefaultEngine @AppScope @Inject constructor(
+class WasmJsEngine @AppScope @Inject constructor(
     private val physics: Physics,
     private val collision: Collision,
     private val particles: Particles,
@@ -53,8 +51,16 @@ class DefaultEngine @AppScope @Inject constructor(
     private val logger = KotlinLogging.logger {}
 
     private var mapItem: Item = DefaultItem()
-    private var mapItemImage: Image = EmptyImage.createEmptyImage()
-    private var playerImage: Image = EmptyImage.createEmptyImage()
+    private var mapItemImage: Image = Image.makeRaster(
+        ImageInfo.makeN32(1, 1, ColorAlphaType.PREMUL),
+        byteArrayOf(0xFF.toByte(), 0x00.toByte(), 0x00.toByte(), 0xFF.toByte()), // ARGB or RGBA depending on N32
+        4
+    )
+    private var playerImage: Image = Image.makeRaster(
+        ImageInfo.makeN32(1, 1, ColorAlphaType.PREMUL),
+        byteArrayOf(0xFF.toByte(), 0x00.toByte(), 0x00.toByte(), 0xFF.toByte()), // ARGB or RGBA depending on N32
+        4
+    )
 
     private val itemImageCache: HashMap<String, Image> = hashMapOf()
     private val enemyImageCache: HashMap<String, Image> = hashMapOf()
@@ -76,7 +82,7 @@ class DefaultEngine @AppScope @Inject constructor(
             foregroundSurface = it
         }
 
-    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Font) {
+    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
         flippedFrameCache.values.forEach { it.close() }
         flippedFrameCache.clear()
         this.collision.collisionImage = collisionImageAndBytes
@@ -252,7 +258,7 @@ class DefaultEngine @AppScope @Inject constructor(
         val foregroundImage = foregroundSurface.makeImageSnapshot()
         runtimeService.lastPaintTime = timestamp
         return DrawResult(
-            foregroundImage = foregroundImage,
+            foregroundImage = WasmJsPlatformImage(foregroundImage),
             foregroundOffsetX = viewPort.x.toFloat(),
             foregroundOffsetY = viewPort.y.toFloat(),
             farGroundBitmap = map.farGroundAsset.imageAndBytes.imageBitmap,

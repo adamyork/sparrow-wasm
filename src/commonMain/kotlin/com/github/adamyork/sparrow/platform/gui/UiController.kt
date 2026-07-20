@@ -16,12 +16,10 @@ import com.github.adamyork.sparrow.platform.service.*
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import com.github.adamyork.sparrow.platform.service.data.LoadingTask
 import com.github.adamyork.sparrow.platform.service.v1.LoadingViewModel
-import com.github.adamyork.sparrow.wasm.service.v1.LoadingViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import org.jetbrains.skia.Font
 
 /**
  * Author: Adam York
@@ -80,8 +78,7 @@ class UiController(
             val blockerAsset = loadedAssets.getValue("blocker enemy") as ImageAsset
             val shooterAsset = loadedAssets.getValue("shooter enemy") as ImageAsset
             val player = engine.createDefaultPlayer(playerAsset)
-            //TODO Interop
-            val font = loadedAssets.getValue("font") as Font
+            val font = loadedAssets.getValue("font")
             stateElements.viewPort = viewPort
             stateElements.player = player
             stateElements.gameMap = gameMap
@@ -150,7 +147,6 @@ class UiController(
         val statusText = assetService.getTextForGameState(runtimeService.gameMapState)
         if (runtimeService.lifeCycleState != LifeCycleState.RUNNING || runtimeService.lifeCycleState == LifeCycleState.INITIALIZING) {
             return UiState(
-                //TODO interop
                 drawResult = DrawResult.EMPTY_DRAW_RESULT,
                 fpsLabel = "FPS: ${currentFps.toInt()}",
                 gameStatusLabel = statusText.message,
@@ -178,7 +174,6 @@ class UiController(
             pause()
         }
         return UiState(
-            //TODO interop
             drawResult = drawResult,
             fpsLabel = "FPS: ${currentFps.toInt()}",
             gameStatusLabel = statusText.message,

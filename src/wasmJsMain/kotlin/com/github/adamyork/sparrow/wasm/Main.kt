@@ -3,7 +3,7 @@ package com.github.adamyork.sparrow.wasm
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import com.github.adamyork.sparrow.platform.LogConfig
-import com.github.adamyork.sparrow.wasm.gui.UiScaffold
+import com.github.adamyork.sparrow.platform.gui.UiScaffold
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
 
@@ -27,7 +27,7 @@ fun main() {
         val gameLayer = component.game
         val sparrowColorScheme = component.sparrowColorScheme
         ComposeViewport(viewportContainerId = "ComposeTarget") {
-            UiScaffold().buildGui(gameLayer, sparrowColorScheme)
+            UiScaffold().BuildGui(gameLayer, sparrowColorScheme)
         }
     }
 }

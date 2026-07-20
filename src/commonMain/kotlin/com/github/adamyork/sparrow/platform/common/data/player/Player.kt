@@ -1,10 +1,13 @@
 package com.github.adamyork.sparrow.platform.common.data.player
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.ImageBitmap
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.common.ThrottledAnimator
 import com.github.adamyork.sparrow.platform.common.data.*
 import com.github.adamyork.sparrow.platform.common.data.enemy.EnemyInteractionState
+import com.github.adamyork.sparrow.platform.gui.UiController
+import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 
 /**
@@ -74,6 +77,14 @@ class Player(
             }
 
             override fun cancelAnimationFrame(handle: Int) {
+                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
+            }
+
+            @Composable
+            override fun InsertInputHandlers(
+                controller: UiController,
+                runtimeService: RuntimeService
+            ) {
                 throw UnsupportedOperationException("Audio URI interop is not available for empty player")
             }
         }

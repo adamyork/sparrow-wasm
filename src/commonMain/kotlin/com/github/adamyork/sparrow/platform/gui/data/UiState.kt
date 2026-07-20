@@ -1,8 +1,7 @@
 package com.github.adamyork.sparrow.platform.gui.data
-
-import androidx.compose.ui.draw.DrawResult
 import androidx.compose.ui.graphics.Color
 import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
+import com.github.adamyork.sparrow.platform.engine.data.DrawResult
 
 /**
  * Author: Adam York

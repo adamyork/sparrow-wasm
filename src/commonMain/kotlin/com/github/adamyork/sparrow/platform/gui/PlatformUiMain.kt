@@ -7,11 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,26 +26,25 @@ import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.service.RuntimeService
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
-import org.w3c.dom.events.Event
-import org.w3c.dom.events.KeyboardEvent
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
-//TODO Interop
-class UiMain(
-    private val controller: UiController,
-    private val runtimeService: RuntimeService,
-    private val screenDimensionsService: ScreenDimensionsService,
-    private val platformInterop: PlatformInterop
+abstract class PlatformUiMain(
+    val controller: UiController,
+    val runtimeService: RuntimeService,
+    val screenDimensionsService: ScreenDimensionsService,
+    val platformInterop: PlatformInterop
 ) {
 
+    abstract var uiDrawLayer: PlatformUiDrawLayer
+
     @Composable
-    fun build() {
+    fun Build() {
         val screenDimensions = remember { screenDimensionsService.getScreenDimensions() }
-        val uiDrawLayer = remember { UiDrawLayer(screenDimensionsService) }
+        val uiDrawLayer = remember { uiDrawLayer }
         var fpsLabel by remember { mutableStateOf("FPS: --") }
         var gameStatusLabel by remember { mutableStateOf("Press Start To Begin") }
         var scoreLabel by remember { mutableStateOf("Score: --") }
@@ -85,44 +80,7 @@ class UiMain(
             remainingLabel = stateElements.remainingLabel
         }
 
-        LaunchedEffect(Unit) {
-            fun toControlAction(event: KeyboardEvent): ControlAction? {
-                return when (event.key.lowercase()) {
-                    "arrowleft" -> ControlAction.LEFT
-                    "arrowright" -> ControlAction.RIGHT
-                    " ", "space", "spacebar" -> ControlAction.JUMP
-                    else -> null
-                }
-            }
-
-            val keyDownListener: (Event) -> Unit = { event ->
-                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
-                    val action = toControlAction(event)
-                    if (action != null) {
-                        event.preventDefault()
-                        controller.applyInput(ControlType.START, action)
-                    }
-                }
-            }
-
-            val keyUpListener: (Event) -> Unit = { event ->
-                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
-                    val action = toControlAction(event)
-                    if (action != null) {
-                        event.preventDefault()
-                        controller.applyInput(ControlType.STOP, action)
-                    }
-                }
-            }
-            platformInterop.addEventListener("keydown", keyDownListener)
-            platformInterop.addEventListener("keyup", keyUpListener)
-            try {
-                awaitCancellation()
-            } finally {
-                platformInterop.removeEventListener("keydown", keyDownListener)
-                platformInterop.removeEventListener("keyup", keyUpListener)
-            }
-        }
+        platformInterop.InsertInputHandlers(controller, runtimeService)
 
         LaunchedEffect(runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
             if (runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
@@ -236,7 +194,7 @@ class UiMain(
                         .semantics { contentDescription = "canvas-with-fps-overlay" }
                         .testTag("canvas-with-fps-overlay")
                 ) {
-                    uiDrawLayer.build(
+                    uiDrawLayer.Build(
                         isRunning = runtimeService.lifeCycleState == LifeCycleState.RUNNING,
                         onFpsLabelChanged = { nextLabel ->
                             fpsLabel = nextLabel

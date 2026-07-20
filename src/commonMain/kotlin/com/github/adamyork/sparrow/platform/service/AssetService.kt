@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.platform.service
 
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.text.font.Font
 import com.github.adamyork.sparrow.platform.AppProperties
 import com.github.adamyork.sparrow.platform.common.data.Sounds
 import com.github.adamyork.sparrow.platform.common.data.map.GameMap
@@ -8,8 +9,6 @@ import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import com.github.adamyork.sparrow.platform.service.data.ItemPositionAndType
 import com.github.adamyork.sparrow.platform.service.data.TextAsset
-import org.jetbrains.skia.Font
-
 /**
  * Author: Adam York
  * Copyright (c) Adam York
@@ -54,9 +53,8 @@ interface AssetService {
 
     fun showCollisionMap(): Boolean
 
-    //TODO Interop
-    suspend fun prepareFont(): Font
+    suspend fun prepareFont(): Any
 
-    fun drawId(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int, font: Font): ByteArray
+    fun drawId(bytes: ByteArray, id: Int, frameWidth: Int, frameHeight: Int, font: Any): ByteArray
 
 }

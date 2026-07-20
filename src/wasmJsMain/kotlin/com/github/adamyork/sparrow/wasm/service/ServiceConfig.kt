@@ -9,7 +9,7 @@ import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.platform.service.v1.DefaultPhysicsSettingsService
 import com.github.adamyork.sparrow.platform.service.v1.DefaultRuntimeService
 import com.github.adamyork.sparrow.platform.service.v1.DefaultScoreService
-import com.github.adamyork.sparrow.platform.service.v1.DefaultAssetService
+import com.github.adamyork.sparrow.wasm.service.v1.WasmJsAssetService
 import com.github.adamyork.sparrow.wasm.service.v1.WasmWavService
 import io.ktor.client.*
 import io.ktor.client.engine.js.*
@@ -24,7 +24,7 @@ interface ServiceConfig {
 
     @AppScope
     @Provides
-    fun provideAssetService(impl: DefaultAssetService): AssetService = impl
+    fun provideAssetService(impl: WasmJsAssetService): AssetService = impl
 
     @AppScope
     @Provides

@@ -21,8 +21,6 @@ import com.github.adamyork.sparrow.platform.service.ScoreService
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
-import org.jetbrains.skia.Bitmap
-import org.jetbrains.skia.Image
 import kotlin.math.absoluteValue
 
 /**
@@ -31,7 +29,7 @@ import kotlin.math.absoluteValue
  */
 @AppScope
 @Inject
-class DefaultCollision(
+abstract class PlatformCollision(
     private val physics: Physics,
     private val scoreService: ScoreService
 ) : Collision {
@@ -45,26 +43,15 @@ class DefaultCollision(
     private val logger = KotlinLogging.logger {}
 
     override lateinit var collisionImage: ImageAndBytes
-    private lateinit var collisionMask: BooleanArray
-    private var bitmapWidth: Int = 0
-    private var bitmapHeight: Int = 0
+    protected lateinit var collisionMask: BooleanArray
+    protected var bitmapWidth: Int = 0
+    protected var bitmapHeight: Int = 0
     private var lastPlayerX: Int = -1
     private var lastPlayerY: Int = -1
     private var cachedBoundaries: CollisionBoundaries? = null
 
     override fun cacheCollisionPixels() {
-        val image = Image.makeFromEncoded(collisionImage.bytes)
-        val bitmap = Bitmap.makeFromImage(image)
-        bitmapWidth = bitmap.width
-        bitmapHeight = bitmap.height
-        val pixelMap = bitmap.peekPixels() ?: throw IllegalStateException("Failed to peek pixels")
-        collisionMask = BooleanArray(bitmapWidth * bitmapHeight)
-        for (y in 0 until bitmapHeight) {
-            val rowOffset = y * bitmapWidth
-            for (x in 0 until bitmapWidth) {
-                collisionMask[rowOffset + x] = (pixelMap.getColor(x, y) == COLLISION_COLOR_VALUE)
-            }
-        }
+        throw RuntimeException("Must Implement")
     }
 
     override fun getCollisionBoundaries(player: Player): CollisionBoundaries {

@@ -9,29 +9,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.github.adamyork.sparrow.platform.engine.data.PlatformImage
 import com.github.adamyork.sparrow.platform.gui.data.ScreenDimensions
-import org.jetbrains.skia.Paint
-import org.jetbrains.skia.Rect
-import org.jetbrains.skia.SamplingMode
-import org.jetbrains.skia.Image as SkiaImage
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
-//TODO Interop
-class UiDrawLayer(
-    private val screenDimensionsService: ScreenDimensionsService
+abstract class PlatformUiDrawLayer(
+    protected val screenDimensionsService: ScreenDimensionsService
 ) {
 
-    private val foregroundPaint = Paint().apply {
-        isAntiAlias = true
-    }
+    abstract var foregroundPaint: Any
+    abstract var foregroundBitmap: Any?
 
     private var splashImageBitmap: ImageBitmap? by mutableStateOf(null)
     private var farGroundBitmap: ImageBitmap? by mutableStateOf(null)
@@ -43,24 +36,43 @@ class UiDrawLayer(
     private var collisionBitmap: ImageBitmap? by mutableStateOf(null)
     private var collisionOffsetX: Float by mutableStateOf(0f)
     private var collisionOffsetY: Float by mutableStateOf(0f)
-    private var foregroundBitmap: SkiaImage? by mutableStateOf(null)
     private var nearFieldBitmap: ImageBitmap? by mutableStateOf(null)
     private var nearFieldOffsetX: Float by mutableStateOf(0f)
     private var nearFieldOffsetY: Float by mutableStateOf(0f)
 
     @Composable
-    fun build(
+    fun Build(
         isRunning: Boolean,
         onFpsLabelChanged: (String) -> Unit = {}
     ) {
         val screenDimensions = remember { screenDimensionsService.getScreenDimensions() }
         Box(modifier = Modifier.size(width = screenDimensions.width.dp, height = screenDimensions.height.dp)) {
             LayerCanvas(bitmap = splashImageBitmap, screenDimensions = screenDimensions, isSplash = true)
-            LayerCanvas(bitmap = farGroundBitmap, screenDimensions = screenDimensions, offsetX = farGroundOffsetX, offsetY = farGroundOffsetY)
-            LayerCanvas(midGroundBitmap, screenDimensions = screenDimensions, offsetX = midGroundOffsetX, offsetY = midGroundOffsetY)
+            LayerCanvas(
+                bitmap = farGroundBitmap,
+                screenDimensions = screenDimensions,
+                offsetX = farGroundOffsetX,
+                offsetY = farGroundOffsetY
+            )
+            LayerCanvas(
+                midGroundBitmap,
+                screenDimensions = screenDimensions,
+                offsetX = midGroundOffsetX,
+                offsetY = midGroundOffsetY
+            )
             ForegroundLayerCanvas(image = foregroundBitmap)
-            LayerCanvas(nearFieldBitmap, screenDimensions = screenDimensions, offsetX = nearFieldOffsetX, offsetY = nearFieldOffsetY)
-            LayerCanvas(collisionBitmap, screenDimensions = screenDimensions, offsetX = collisionOffsetX, offsetY = collisionOffsetY)
+            LayerCanvas(
+                nearFieldBitmap,
+                screenDimensions = screenDimensions,
+                offsetX = nearFieldOffsetX,
+                offsetY = nearFieldOffsetY
+            )
+            LayerCanvas(
+                collisionBitmap,
+                screenDimensions = screenDimensions,
+                offsetX = collisionOffsetX,
+                offsetY = collisionOffsetY
+            )
         }
 
         LaunchedEffect(isRunning) {
@@ -87,7 +99,10 @@ class UiDrawLayer(
                         srcOffset = IntOffset.Zero,
                         srcSize = IntSize(image.width, image.height),
                         dstOffset = IntOffset.Zero,
-                        dstSize = IntSize((screenDimensions.width * density).toInt(), (screenDimensions.height * density).toInt())
+                        dstSize = IntSize(
+                            (screenDimensions.width * density).toInt(),
+                            (screenDimensions.height * density).toInt()
+                        )
                     )
                 } else {
                     val scaledWidth = (image.width * density).toInt()
@@ -108,24 +123,8 @@ class UiDrawLayer(
     }
 
     @Composable
-    private fun ForegroundLayerCanvas(image: SkiaImage?) {
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-                .clip(RectangleShape)
-        ) {
-            image?.let { foreground ->
-                drawIntoCanvas { canvas ->
-                    canvas.skiaCanvas.drawImageRect(
-                        image = foreground,
-                        src = Rect.makeXYWH(0f, 0f, foreground.width.toFloat(), foreground.height.toFloat()),
-                        dst = Rect.makeXYWH(0f, 0f, foreground.width.toFloat() * density, foreground.height.toFloat() * density),
-                        samplingMode = SamplingMode.LINEAR,
-                        paint = foregroundPaint,
-                        strict = true
-                    )
-                }
-            }
-        }
+    protected open fun ForegroundLayerCanvas(image: Any?) {
+        throw RuntimeException("must implement")
     }
 
     fun drawSplash(image: ImageBitmap) {
@@ -144,9 +143,8 @@ class UiDrawLayer(
         midGroundOffsetY = offsetY
     }
 
-    fun drawForeground(image: SkiaImage) {
-        foregroundBitmap?.close()
-        foregroundBitmap = image
+    open fun drawForeground(image: PlatformImage) {
+        throw RuntimeException("must implement")
     }
 
     fun drawNearField(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {
@@ -161,22 +159,8 @@ class UiDrawLayer(
         collisionOffsetY = offsetY
     }
 
-    fun clearAllLayers() {
-        splashImageBitmap = null
-        farGroundBitmap = null
-        midGroundBitmap = null
-        collisionBitmap = null
-        nearFieldBitmap = null
-        farGroundOffsetX = 0f
-        farGroundOffsetY = 0f
-        midGroundOffsetX = 0f
-        midGroundOffsetY = 0f
-        collisionOffsetX = 0f
-        collisionOffsetY = 0f
-        nearFieldOffsetX = 0f
-        nearFieldOffsetY = 0f
-        foregroundBitmap?.close()
-        foregroundBitmap = null
+    open fun clearAllLayers() {
+        throw RuntimeException("must implement")
     }
 
 }

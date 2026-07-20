@@ -1,7 +1,14 @@
 package com.github.adamyork.sparrow.android.common
 
+import androidx.compose.runtime.Composable
+import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
+import com.github.adamyork.sparrow.platform.gui.UiController
+import com.github.adamyork.sparrow.platform.service.RuntimeService
+import me.tatarka.inject.annotations.Inject
 
+@AppScope
+@Inject
 class AndroidJsInterop : PlatformInterop {
     override fun onReady(action: () -> Unit) {
         throw RuntimeException()
@@ -48,6 +55,14 @@ class AndroidJsInterop : PlatformInterop {
     }
 
     override fun cancelAnimationFrame(handle: Int) {
+        throw RuntimeException()
+    }
+
+    @Composable
+    override fun InsertInputHandlers(
+        controller: UiController,
+        runtimeService: RuntimeService
+    ) {
         throw RuntimeException()
     }
 }

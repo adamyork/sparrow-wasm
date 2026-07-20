@@ -8,7 +8,6 @@ import com.github.adamyork.sparrow.platform.engine.data.CollisionBoundaries
 import com.github.adamyork.sparrow.platform.engine.data.DrawResult
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
-import org.jetbrains.skia.Font
 
 /**
  * Author: Adam York
@@ -16,8 +15,7 @@ import org.jetbrains.skia.Font
  */
 interface Engine {
 
-    //TODO Interop
-    fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Font)
+    fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any)
 
     fun getCollisionBoundaries(player: Player): CollisionBoundaries
 

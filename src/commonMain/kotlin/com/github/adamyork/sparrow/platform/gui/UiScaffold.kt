@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.dp
 class UiScaffold {
 
     @Composable
-    fun buildGui(
-        game: Game,
+    fun BuildGui(
+        game: PlatformGame,
         sparrowColorScheme: SparrowColorScheme
     ) {
         MaterialTheme(
@@ -49,7 +49,7 @@ class UiScaffold {
                             .semantics { contentDescription = "Main content max width container" }
                             .testTag("main-content-wrapper")
                     ) {
-                        game.build()
+                        game.Build()
                     }
                 }
             }
