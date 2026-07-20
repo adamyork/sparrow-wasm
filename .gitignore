@@ -29,3 +29,4 @@ replay_pid*
 .idea/
 build/classes/kotlin/wasmJs/main/default/linkdata/root_package/0_.knm
 build/
+local.properties
