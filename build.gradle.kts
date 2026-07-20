@@ -83,7 +83,7 @@ android {
 
 
 dependencies {
-    implementation("io.ktor:ktor-client-okhttp-jvm:3.0.1")
+    implementation(libs.ktor.client.okhttp.jvm)
     add("kspAndroid", libs.kotlin.inject.compiler)
     add("kspWasmJs", libs.kotlin.inject.compiler)
 }
@@ -92,6 +92,7 @@ dependencies {
 val prepareDevServer = tasks.register<Copy>("prepareDevServer") {
     description = "Prepares static assets and Compose resources for the dev server."
     from(project.file("src/wasmJsMain/web"))
+    from(project.file("src/commonMain/composeResources/files"))
     from(tasks.named("wasmJsProcessResources"))
     into(layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
 }

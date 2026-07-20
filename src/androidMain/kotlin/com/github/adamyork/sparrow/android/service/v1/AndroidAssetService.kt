@@ -15,6 +15,7 @@ import com.github.adamyork.sparrow.platform.service.data.AssetServiceReferenceEx
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import com.github.adamyork.sparrow.platform.service.v1.AbstractPlatformAssetService
+import com.github.adamyork.sparrow_wasm.generated.resources.Res
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -41,6 +42,12 @@ class AndroidAssetService(
 ) : AbstractPlatformAssetService(httpClient, mapElementFactory) {
 
     private lateinit var backgroundAudio: String
+
+    override suspend fun initialize(listener: LoadingProgressListener) {
+        logger.info { "initialize called loading yaml" }
+        val bytes = Res.readBytes("files/application.yml")
+        finishInit(bytes = bytes, listener = listener)
+    }
 
     override suspend fun loadBufferedImageAsync(file: String): ImageBitmap {
         logger.info { "loadBufferedImageAsync called to load $file" }
@@ -100,9 +107,7 @@ class AndroidAssetService(
 
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun prepareFont(): Any {
-        val response = httpClient.get("roboto_bold.ttf")
-        check(response.status.isSuccess()) { "Failed to load application font (status=${response.status})" }
-        val bytes = response.body<ByteArray>()
+        val bytes = Res.readBytes("files/roboto_bold.ttf")
         val tempFile = withContext(Dispatchers.IO) {
             File.createTempFile("font_temp", ".ttf")
         }
