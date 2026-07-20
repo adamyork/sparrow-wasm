@@ -83,6 +83,7 @@ android {
 
 
 dependencies {
+    implementation("io.ktor:ktor-client-okhttp-jvm:3.0.1")
     add("kspAndroid", libs.kotlin.inject.compiler)
     add("kspWasmJs", libs.kotlin.inject.compiler)
 }
