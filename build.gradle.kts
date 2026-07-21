@@ -59,7 +59,7 @@ kotlin {
         getByName("androidMain").dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
-            implementation("androidx.activity:activity-compose:1.13.0")
+            implementation(libs.activity.compose)
         }
 
         getByName("wasmJsMain").dependencies {
@@ -74,6 +74,8 @@ android {
     compileSdk = 36
     defaultConfig {
         minSdk = 24
+        //noinspection OldTargetApi
+        targetSdk = 36
     }
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].java.srcDirs("src/androidMain/kotlin")
@@ -81,6 +83,7 @@ android {
 
 
 dependencies {
+    implementation(libs.ktor.client.okhttp.jvm)
     add("kspAndroid", libs.kotlin.inject.compiler)
     add("kspWasmJs", libs.kotlin.inject.compiler)
 }
@@ -89,6 +92,7 @@ dependencies {
 val prepareDevServer = tasks.register<Copy>("prepareDevServer") {
     description = "Prepares static assets and Compose resources for the dev server."
     from(project.file("src/wasmJsMain/web"))
+    from(project.file("src/commonMain/composeResources/files"))
     from(tasks.named("wasmJsProcessResources"))
     into(layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
 }

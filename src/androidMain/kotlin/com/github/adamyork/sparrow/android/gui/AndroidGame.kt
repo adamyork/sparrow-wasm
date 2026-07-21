@@ -1,0 +1,55 @@
+package com.github.adamyork.sparrow.android.gui
+
+import androidx.compose.runtime.Composable
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
+import com.github.adamyork.sparrow.platform.engine.Engine
+import com.github.adamyork.sparrow.platform.engine.Particles
+import com.github.adamyork.sparrow.platform.gui.PlatformGame
+import com.github.adamyork.sparrow.platform.gui.ScreenDimensionsService
+import com.github.adamyork.sparrow.platform.gui.UiController
+import com.github.adamyork.sparrow.platform.service.AssetService
+import com.github.adamyork.sparrow.platform.service.RuntimeService
+import com.github.adamyork.sparrow.platform.service.ScoreService
+import com.github.adamyork.sparrow.platform.service.WavService
+import me.tatarka.inject.annotations.Inject
+
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
+@AppScope
+@Inject
+class AndroidGame(
+    private val assetService: AssetService,
+    private val engine: Engine,
+    private val particles: Particles,
+    private val scoreService: ScoreService,
+    private val runtimeService: RuntimeService,
+    private val wavService: WavService,
+    private val screenDimensionsService: ScreenDimensionsService,
+    private val platformInterop: PlatformInterop
+) : PlatformGame {
+
+    private val controller = UiController(
+        assetService = assetService,
+        engine = engine,
+        particles = particles,
+        scoreService = scoreService,
+        runtimeService = runtimeService,
+        wavService = wavService,
+        screenDimensionsService = screenDimensionsService
+    )
+
+    private val screen = AndroidUiMain(
+        controller = controller,
+        runtimeService = runtimeService,
+        screenDimensionsService = screenDimensionsService,
+        platformInterop = platformInterop
+    )
+
+    @Composable
+    override fun Build() {
+        screen.Build()
+    }
+}

@@ -1,15 +1,24 @@
 package com.github.adamyork.sparrow.wasm.common
 
-import com.github.adamyork.sparrow.platform.common.PlatformInterop
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
+import com.github.adamyork.sparrow.platform.common.data.ControlAction
+import com.github.adamyork.sparrow.platform.common.data.ControlType
+import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
+import com.github.adamyork.sparrow.platform.gui.UiController
+import com.github.adamyork.sparrow.platform.service.RuntimeService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.awaitCancellation
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skiko.wasm.onWasmReady
 import org.khronos.webgl.toInt8Array
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
+import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.url.URL
 import org.w3c.files.Blob
 
@@ -80,6 +89,51 @@ class WasmJsInterop : PlatformInterop {
 
     override fun cancelAnimationFrame(handle: Int) {
         window.cancelAnimationFrame(handle)
+    }
+
+    @Composable
+    override fun InsertInputHandlers(
+        controller: UiController,
+        runtimeService: RuntimeService
+    ) {
+        return LaunchedEffect(Unit) {
+            fun toControlAction(event: KeyboardEvent): ControlAction? {
+                return when (event.key.lowercase()) {
+                    "arrowleft" -> ControlAction.LEFT
+                    "arrowright" -> ControlAction.RIGHT
+                    " ", "space", "spacebar" -> ControlAction.JUMP
+                    else -> null
+                }
+            }
+
+            val keyDownListener: (Event) -> Unit = { event ->
+                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
+                    val action = toControlAction(event)
+                    if (action != null) {
+                        event.preventDefault()
+                        controller.applyInput(ControlType.START, action)
+                    }
+                }
+            }
+
+            val keyUpListener: (Event) -> Unit = { event ->
+                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
+                    val action = toControlAction(event)
+                    if (action != null) {
+                        event.preventDefault()
+                        controller.applyInput(ControlType.STOP, action)
+                    }
+                }
+            }
+            addEventListener("keydown", keyDownListener)
+            addEventListener("keyup", keyUpListener)
+            try {
+                awaitCancellation()
+            } finally {
+                removeEventListener("keydown", keyDownListener)
+                removeEventListener("keyup", keyUpListener)
+            }
+        }
     }
 
 }

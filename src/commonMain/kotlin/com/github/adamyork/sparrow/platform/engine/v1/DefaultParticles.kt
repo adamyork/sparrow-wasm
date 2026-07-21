@@ -1,0 +1,187 @@
+package com.github.adamyork.sparrow.platform.engine.v1
+
+import androidx.compose.ui.graphics.Color
+import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.data.Direction
+import com.github.adamyork.sparrow.platform.common.data.enemy.Enemy
+import com.github.adamyork.sparrow.platform.common.data.item.Item
+import com.github.adamyork.sparrow.platform.common.data.player.Player
+import com.github.adamyork.sparrow.platform.engine.Particles
+import com.github.adamyork.sparrow.platform.engine.data.Particle
+import com.github.adamyork.sparrow.platform.engine.data.ParticleShape
+import com.github.adamyork.sparrow.platform.engine.data.ParticleType
+import com.github.adamyork.sparrow.platform.service.AssetService
+import me.tatarka.inject.annotations.Inject
+import kotlin.random.Random
+
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
+@AppScope
+@Inject
+class DefaultParticles : Particles {
+
+    companion object {
+        const val MAX_SQUARE_RADIAL_RADIUS: Int = 45
+        private const val MAX_ACTIVE_PROJECTILES: Int = 1
+        private const val COLLISION_PARTICLE_COUNT: Int = 360
+        private const val PROJECTILE_SIZE: Int = 24
+        private const val BASE_DIAMETER_MULTIPLIER = 3
+        private const val BASE_DIAMETER_MULTIPLIER_BUFFER = 6
+        private const val DUST_Y_OFFSET = 10
+        private const val DIAMETER_MAX = 30
+    }
+
+    private val dustParticleOffsets = listOf(
+        10 to 2, 6 to 4, 14 to 5, 20 to 7, 27 to 8, 34 to 6,
+        40 to 3, 32 to 9, 25 to 11, 18 to 10, 11 to 8, 22 to 12
+    )
+
+    private var colorMap: Map<ParticleType, Color> = emptyMap()
+
+    override fun applyCollisionParticles(originX: Int, originY: Int, particles: ArrayList<Particle>) {
+        val collisionColor = colorMap[ParticleType.COLLISION] ?: Color.White
+        repeat(COLLISION_PARTICLE_COUNT) { index ->
+            particles.add(
+                Particle(
+                    index,
+                    originX,
+                    originY,
+                    originX,
+                    originY,
+                    8,
+                    8,
+                    ParticleType.COLLISION,
+                    0,
+                    40,
+                    Random.nextInt(50),
+                    Random.nextInt(50),
+                    1,
+                    collisionColor,
+                    ParticleShape.RECT
+                )
+            )
+        }
+    }
+
+    override fun applyDustParticles(player: Player, particles: ArrayList<Particle>) {
+        val footY = player.y + player.height - (player.height / DUST_Y_OFFSET)
+        val color = colorMap[ParticleType.DUST] ?: Color.White
+        dustParticleOffsets.forEachIndexed { index, (offsetX, offsetY) ->
+            val diameter = ((index * BASE_DIAMETER_MULTIPLIER) + BASE_DIAMETER_MULTIPLIER_BUFFER)
+                .coerceAtMost(DIAMETER_MAX)
+            val anchorX = if (player.direction == Direction.LEFT) {
+                player.x + player.width - (player.width / 4) + offsetX
+            } else {
+                player.x + (player.width / 4) - offsetX
+            }
+            val particleX = anchorX - (diameter / 2)
+            val particleY = (footY - offsetY) - (diameter / 2)
+            particles.add(
+                Particle(
+                    index,
+                    particleX,
+                    particleY,
+                    player.x,
+                    player.y,
+                    diameter,
+                    diameter,
+                    ParticleType.DUST,
+                    0,
+                    20,
+                    0,
+                    0,
+                    0,
+                    color,
+                    ParticleShape.CIRCLE
+                )
+            )
+        }
+    }
+
+    override fun applyProjectileParticle(
+        player: Player,
+        enemy: Enemy,
+        particles: ArrayList<Particle>
+    ): Boolean {
+        val count = getActiveProjectileCount(particles)
+        if (count >= MAX_ACTIVE_PROJECTILES) return false
+        particles.add(
+            Particle(
+                count + 1,
+                enemy.x,
+                enemy.y,
+                player.x,
+                player.y,
+                PROJECTILE_SIZE,
+                PROJECTILE_SIZE,
+                ParticleType.PROJECTILE,
+                0,
+                50,
+                enemy.x,
+                enemy.y,
+                1,
+                colorMap[ParticleType.PROJECTILE] ?: Color.White,
+                ParticleShape.CIRCLE
+            )
+        )
+        return true
+    }
+
+    override fun applyMapItemReturnParticle(player: Player, mapItem: Item, particles: ArrayList<Particle>) {
+        particles.add(
+            Particle(
+                0,
+                player.x,
+                player.y,
+                mapItem.x,
+                mapItem.y,
+                mapItem.width,
+                mapItem.height,
+                ParticleType.MAP_ITEM_RETURN,
+                0,
+                500,
+                0,
+                0,
+                1,
+                Color.White,
+                ParticleShape.RECT
+            )
+        )
+    }
+
+    override fun populateColorMap(assetService: AssetService) {
+        colorMap = mapOf(
+            ParticleType.DUST to Color(
+                assetService.appProperties.particle.player.movement.color.r.toFloat() / 255f,
+                assetService.appProperties.particle.player.movement.color.g.toFloat() / 255f,
+                assetService.appProperties.particle.player.movement.color.b.toFloat() / 255f,
+                assetService.appProperties.particle.player.movement.color.a.toFloat() / 255f
+            ),
+            ParticleType.COLLISION to Color(
+                assetService.appProperties.particle.player.collision.color.r.toFloat() / 255f,
+                assetService.appProperties.particle.player.collision.color.g.toFloat() / 255f,
+                assetService.appProperties.particle.player.collision.color.b.toFloat() / 255f,
+                assetService.appProperties.particle.player.collision.color.a.toFloat() / 255f
+            ),
+            ParticleType.PROJECTILE to Color(
+                assetService.appProperties.particle.enemy.projectile.color.r.toFloat() / 255f,
+                assetService.appProperties.particle.enemy.projectile.color.g.toFloat() / 255f,
+                assetService.appProperties.particle.enemy.projectile.color.b.toFloat() / 255f,
+                assetService.appProperties.particle.enemy.projectile.color.a.toFloat() / 255f
+            )
+        )
+    }
+
+    private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int {
+        var count = 0
+        for (particleIndex in particles.indices) {
+            if (particles[particleIndex].type == ParticleType.PROJECTILE) {
+                count++
+            }
+        }
+        return count
+    }
+
+}

@@ -3,7 +3,7 @@ package com.github.adamyork.sparrow.wasm.service.v1
 import com.github.adamyork.sparrow.platform.service.WavService
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.common.AudioQueue
-import com.github.adamyork.sparrow.wasm.service.AssetService
+import com.github.adamyork.sparrow.platform.service.AssetService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.browser.document
 import me.tatarka.inject.annotations.Inject

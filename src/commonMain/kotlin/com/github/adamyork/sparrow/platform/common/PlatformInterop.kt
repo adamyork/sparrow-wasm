@@ -1,5 +1,14 @@
 package com.github.adamyork.sparrow.platform.common
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import com.github.adamyork.sparrow.platform.common.data.ControlAction
+import com.github.adamyork.sparrow.platform.common.data.ControlType
+import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
+import com.github.adamyork.sparrow.platform.gui.UiController
+import com.github.adamyork.sparrow.platform.service.RuntimeService
+import kotlinx.coroutines.awaitCancellation
+
 interface PlatformInterop {
 
     fun onReady(action: () -> Unit)
@@ -25,5 +34,8 @@ interface PlatformInterop {
     fun requestAnimationFrame(callback: (Double) -> Unit): Int
 
     fun cancelAnimationFrame(handle: Int)
+
+    @Composable
+    fun InsertInputHandlers(controller: UiController, runtimeService: RuntimeService)
 
 }
