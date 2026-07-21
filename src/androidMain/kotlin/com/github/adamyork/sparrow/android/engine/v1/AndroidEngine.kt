@@ -1,15 +1,8 @@
 package com.github.adamyork.sparrow.android.engine.v1
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
-import android.graphics.Rect
-import android.graphics.RectF
+import android.graphics.*
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.core.graphics.createBitmap
 import com.github.adamyork.sparrow.android.engine.data.AndroidPlatformImage
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.common.AudioQueue
@@ -26,18 +19,13 @@ import com.github.adamyork.sparrow.platform.common.data.player.Player
 import com.github.adamyork.sparrow.platform.engine.Collision
 import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.Physics
-import com.github.adamyork.sparrow.platform.engine.data.DrawResult
-import com.github.adamyork.sparrow.platform.engine.data.Particle
-import com.github.adamyork.sparrow.platform.engine.data.ParticleShape
-import com.github.adamyork.sparrow.platform.engine.data.ParticleType
-import com.github.adamyork.sparrow.platform.engine.data.PlatformImage
+import com.github.adamyork.sparrow.platform.engine.data.*
 import com.github.adamyork.sparrow.platform.engine.v1.PlatformEngine
 import com.github.adamyork.sparrow.platform.service.AssetService
 import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.ScoreService
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import me.tatarka.inject.annotations.Inject
-import androidx.core.graphics.createBitmap
 
 @AppScope
 @Inject
@@ -101,56 +89,49 @@ class AndroidEngine(
         flippedFrameCache.clear()
         this.collision.collisionImage = collisionImageAndBytes
         this.collision.cacheCollisionPixels()
-
         val showItemDots = assetService.appProperties.map.itemDots.visible
-
         gameMap.items.forEach { item ->
             val bitmap = if (showItemDots) {
                 val markedBytes = assetService.drawId(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
-                requireNotNull(android.graphics.BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
+                requireNotNull(BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
                     "Failed to decode marked item image"
                 }
             } else {
                 item.imageAndBytes.imageBitmap.asAndroidBitmap()
             }
-            itemImageCache[itemCacheKey(item)] = AndroidPlatformImage(bitmap.copy(Bitmap.Config.ARGB_8888, false))
+            itemImageCache[itemCacheKey(item)] = AndroidPlatformImage(bitmap)
         }
-
         gameMap.enemies.forEach { enemy ->
             val bitmap = if (showItemDots) {
-                val markedBytes = assetService.drawId(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height, font)
-                requireNotNull(android.graphics.BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
+                val markedBytes =
+                    assetService.drawId(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height, font)
+                requireNotNull(BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
                     "Failed to decode marked enemy image"
                 }
             } else {
                 enemy.imageAndBytes.imageBitmap.asAndroidBitmap()
             }
-            enemyImageCache[enemyCacheKey(enemy)] = AndroidPlatformImage(bitmap.copy(Bitmap.Config.ARGB_8888, false))
+            enemyImageCache[enemyCacheKey(enemy)] = AndroidPlatformImage(bitmap)
         }
-
         mapItem = gameMap.items.firstOrNull() ?: DefaultItem()
         mapItemImage = gameMap.items.firstOrNull()?.let { itemImageCache[itemCacheKey(it)] }
-            ?: AndroidPlatformImage(mapItem.imageAndBytes.imageBitmap.asAndroidBitmap().copy(Bitmap.Config.ARGB_8888, false))
-        playerImage = AndroidPlatformImage(player.imageAndBytes.imageBitmap.asAndroidBitmap().copy(Bitmap.Config.ARGB_8888, false))
+            ?: AndroidPlatformImage(mapItem.imageAndBytes.imageBitmap.asAndroidBitmap())
+        playerImage = AndroidPlatformImage(player.imageAndBytes.imageBitmap.asAndroidBitmap())
     }
 
     override fun draw(map: GameMap, viewPort: ViewPort, player: Player, timestamp: Double): DrawResult {
         val foregroundBitmap = getOrCreateForegroundSurface(viewPort) as Bitmap
         val foregroundCanvas = Canvas(foregroundBitmap)
         foregroundCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-
         drawMapElements(map.items, viewPort, foregroundCanvas, false)
         if (hasVisibleActiveElements(map.enemies, viewPort)) {
             drawMapElements(map.enemies, viewPort, foregroundCanvas, true)
         }
-
         drawParticles(map, viewPort, foregroundCanvas, mapItem, mapItemImage)
         drawPlayer(player, viewPort, foregroundCanvas, playerImage)
-
-        val foregroundSnapshot = foregroundBitmap.copy(Bitmap.Config.ARGB_8888, false)
         runtimeService.lastPaintTime = timestamp
         return DrawResult(
-            foregroundImage = AndroidPlatformImage(foregroundSnapshot),
+            foregroundImage = AndroidPlatformImage(foregroundBitmap),
             foregroundOffsetX = viewPort.x.toFloat(),
             foregroundOffsetY = viewPort.y.toFloat(),
             farGroundBitmap = map.farGroundAsset.imageAndBytes.imageBitmap,
@@ -234,17 +215,17 @@ class AndroidEngine(
         val width = element.width
         val height = element.height
         val cacheKey = "${image.hashCode()}:$srcX:$srcY:$width:$height"
-        val cached = flippedFrameCache[cacheKey] as? AndroidPlatformImage
-        if (cached != null) {
-            return cached.bitmap
-        }
+        (flippedFrameCache[cacheKey] as? AndroidPlatformImage)?.let { return it.bitmap }
 
         val boundedX = srcX.coerceIn(0, (image.width - width).coerceAtLeast(0))
         val boundedY = srcY.coerceIn(0, (image.height - height).coerceAtLeast(0))
+
         val frame = Bitmap.createBitmap(image, boundedX, boundedY, width, height)
         val matrix = Matrix().apply { preScale(-1f, 1f) }
-        val flipped = Bitmap.createBitmap(frame, 0, 0, width, height, matrix, false)
-        flippedFrameCache[cacheKey] = AndroidPlatformImage(flipped)
+        val flipped = Bitmap.createBitmap(frame, 0, 0, width, height, matrix, true)
+        frame.recycle()
+        val platformImage = AndroidPlatformImage(flipped)
+        flippedFrameCache[cacheKey] = platformImage
         return flipped
     }
 
@@ -287,7 +268,6 @@ class AndroidEngine(
                 else -> 0.33f
             }
             particlePaint.color = particleColorArgb(particle, alphaMultiplier)
-
             val x = particle.x.toFloat() - vpX
             val y = particle.y.toFloat() - vpY
             if (particle.shape == ParticleShape.CIRCLE) {
@@ -318,4 +298,3 @@ class AndroidEngine(
         }
     }
 }
-
