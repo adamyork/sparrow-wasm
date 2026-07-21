@@ -1,5 +1,9 @@
 package com.github.adamyork.sparrow.platform.gui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
 import com.github.adamyork.sparrow.platform.common.data.ControlAction
 import com.github.adamyork.sparrow.platform.common.data.ControlType
 import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
@@ -9,9 +13,9 @@ import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.engine.Engine
 import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.data.DrawResult
-import com.github.adamyork.sparrow.platform.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.platform.gui.data.StateElements
 import com.github.adamyork.sparrow.platform.gui.data.UiState
+import com.github.adamyork.sparrow.platform.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.platform.service.*
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import com.github.adamyork.sparrow.platform.service.data.LoadingTask
@@ -39,6 +43,10 @@ class UiController(
     private val viewModel = LoadingViewModel()
 
     val stateElements: StateElements = StateElements.emptyStateElements
+    var splashImage: ImageBitmap? by mutableStateOf(null)
+        private set
+    var endingImage: ImageBitmap? by mutableStateOf(null)
+        private set
     val loadingTasks: List<LoadingTask>
         get() = viewModel.loadingTasks
 
@@ -70,8 +78,8 @@ class UiController(
             }
             val splashImage = (loadedAssets.getValue("splash") as ImageAsset).imageAndBytes.imageBitmap
             val endingImage = (loadedAssets.getValue("ending") as ImageAsset).imageAndBytes.imageBitmap
-            val viewPort = createInitialViewPort(screenDimensions)
             val gameMap = loadedAssets.getValue("map") as GameMap
+            val viewPort = createInitialViewPort(screenDimensions)
             val playerAsset = loadedAssets.getValue("player") as ImageAsset
             val collectibleAsset = loadedAssets.getValue("collectible item") as ImageAsset
             val finishAsset = loadedAssets.getValue("finish item") as ImageAsset
@@ -84,6 +92,8 @@ class UiController(
             stateElements.gameMap = gameMap
             stateElements.splashImage = splashImage
             stateElements.endingImage = endingImage
+            this.splashImage = splashImage
+            this.endingImage = endingImage
             stateElements.playerAsset = playerAsset
             stateElements.mapItemCollectibleAsset = collectibleAsset
             stateElements.mapItemFinishAsset = finishAsset
@@ -188,7 +198,9 @@ class UiController(
 
     fun applyInput(controlType: ControlType, controlAction: ControlAction) {
         val elements = stateElements
-        if (runtimeService.lifeCycleState == LifeCycleState.INITIALIZING) return
+        if (runtimeService.lifeCycleState == LifeCycleState.INITIALIZING) {
+            return
+        }
         when (controlType) {
             ControlType.START -> {
                 engine.startInput(controlAction, elements.player)

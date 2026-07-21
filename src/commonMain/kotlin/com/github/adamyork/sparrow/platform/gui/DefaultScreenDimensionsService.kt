@@ -15,6 +15,7 @@ class DefaultScreenDimensionsService : ScreenDimensionsService {
     private var screenDimensions: ScreenDimensions? = null
 
     override fun initialize(screenWidth: Int, screenHeight: Int) {
+        if (screenDimensions != null) return
         screenDimensions = ScreenDimensions.fromScreenResolution(screenWidth, screenHeight)
     }
 

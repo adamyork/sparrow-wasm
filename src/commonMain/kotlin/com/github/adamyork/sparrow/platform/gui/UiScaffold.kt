@@ -31,15 +31,15 @@ class UiScaffold {
                 modifier = Modifier
                     .semantics { contentDescription = "Application scaffold" }
                     .testTag("app-scaffold"),
+                contentWindowInsets = WindowInsets(0.dp),
                 containerColor = MaterialTheme.colorScheme.background
-            ) { innerPadding ->
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                         .semantics { contentDescription = "Main page layout container" }
-                        .testTag("main-layout")
-                        .padding(innerPadding),
+                        .testTag("main-layout"),
                     contentAlignment = Alignment.TopCenter
                 ) {
                     Box(

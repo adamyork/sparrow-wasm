@@ -5,19 +5,11 @@ import android.content.res.Resources
 import android.os.SystemClock
 import android.util.Base64
 import android.view.Choreographer
-import android.view.KeyEvent
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.ViewCompat
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
-import com.github.adamyork.sparrow.platform.common.data.ControlAction
-import com.github.adamyork.sparrow.platform.common.data.ControlType
-import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
 import com.github.adamyork.sparrow.platform.gui.UiController
 import com.github.adamyork.sparrow.platform.service.RuntimeService
-import kotlinx.coroutines.awaitCancellation
 import me.tatarka.inject.annotations.Inject
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -28,6 +20,9 @@ class AndroidJsInterop : PlatformInterop {
     private val frameCallbacks = mutableMapOf<Int, Choreographer.FrameCallback>()
     private val listenersByType = mutableMapOf<String, MutableSet<(Any) -> Unit>>()
     private val callbackAdaptersByType = mutableMapOf<String, MutableMap<Any, (Any) -> Unit>>()
+
+    @Volatile
+    private var lastFrameTimeMs: Double = 0.0
 
     override fun onReady(action: () -> Unit) {
         action()
@@ -46,7 +41,11 @@ class AndroidJsInterop : PlatformInterop {
     }
 
     override fun getPlatformNowTime(): Double {
-        return SystemClock.elapsedRealtimeNanos() / 1_000_000.0
+        return if (lastFrameTimeMs > 0.0) {
+            lastFrameTimeMs
+        } else {
+            SystemClock.elapsedRealtimeNanos() / 1_000_000.0
+        }
     }
 
     override fun getBlobFromBytes(bytes: ByteArray): Any {
@@ -95,7 +94,9 @@ class AndroidJsInterop : PlatformInterop {
     override fun requestAnimationFrame(callback: (Double) -> Unit): Int {
         val frameId = frameIdCounter.getAndIncrement()
         val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
-            callback(frameTimeNanos / 1_000_000.0)
+            val frameTimeMs = frameTimeNanos / 1_000_000.0
+            lastFrameTimeMs = frameTimeMs
+            callback(frameTimeMs)
         }
         synchronized(frameCallbacks) {
             frameCallbacks[frameId] = frameCallback
@@ -114,76 +115,6 @@ class AndroidJsInterop : PlatformInterop {
         controller: UiController,
         runtimeService: RuntimeService
     ) {
-        val view = LocalView.current
-        LaunchedEffect(view) {
-            fun onKeyDown(event: KeyEvent) {
-                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
-                    val action = toControlAction(event)
-                    if (action != null) {
-                        controller.applyInput(ControlType.START, action)
-                    }
-                }
-            }
-
-            fun onKeyUp(event: KeyEvent) {
-                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
-                    val action = toControlAction(event)
-                    if (action != null) {
-                        controller.applyInput(ControlType.STOP, action)
-                    }
-                }
-            }
-
-            val listener = ViewCompat.OnUnhandledKeyEventListenerCompat { _, event ->
-                when (event.action) {
-                    KeyEvent.ACTION_DOWN -> {
-                        dispatchEvent("keydown", event)
-                        runtimeService.lifeCycleState == LifeCycleState.RUNNING && toControlAction(event) != null
-                    }
-
-                    KeyEvent.ACTION_UP -> {
-                        dispatchEvent("keyup", event)
-                        runtimeService.lifeCycleState == LifeCycleState.RUNNING && toControlAction(event) != null
-                    }
-
-                    else -> false
-                }
-            }
-
-            addEventListener("keydown", ::onKeyDown)
-            addEventListener("keyup", ::onKeyUp)
-            view.isFocusableInTouchMode = true
-            view.requestFocus()
-            ViewCompat.addOnUnhandledKeyEventListener(view, listener)
-            try {
-                awaitCancellation()
-            } finally {
-                removeEventListener("keydown", ::onKeyDown)
-                removeEventListener("keyup", ::onKeyUp)
-                ViewCompat.removeOnUnhandledKeyEventListener(view, listener)
-            }
-        }
-    }
-
-    private fun toControlAction(event: KeyEvent): ControlAction? {
-        return when (event.keyCode) {
-            KeyEvent.KEYCODE_DPAD_LEFT,
-            KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT -> ControlAction.LEFT
-
-            KeyEvent.KEYCODE_DPAD_RIGHT,
-            KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT -> ControlAction.RIGHT
-
-            KeyEvent.KEYCODE_SPACE,
-            KeyEvent.KEYCODE_DPAD_CENTER,
-            KeyEvent.KEYCODE_ENTER,
-            KeyEvent.KEYCODE_NUMPAD_ENTER -> ControlAction.JUMP
-
-            else -> null
-        }
-    }
-
-    private fun dispatchEvent(type: String, event: Any) {
-        val callbacks = synchronized(listenersByType) { listenersByType[type]?.toList().orEmpty() }
-        callbacks.forEach { callback -> callback(event) }
+        // Android gameplay input is touch-only.
     }
 }

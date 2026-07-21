@@ -105,17 +105,20 @@ abstract class PlatformUiDrawLayer(
                         )
                     )
                 } else {
-                    val scaledWidth = (image.width * density).toInt()
-                    val scaledHeight = (image.height * density).toInt()
+                    val viewportWidth = screenDimensions.width.coerceAtMost(image.width)
+                    val viewportHeight = screenDimensions.height.coerceAtMost(image.height)
+                    val maxSrcX = (image.width - viewportWidth).coerceAtLeast(0)
+                    val maxSrcY = (image.height - viewportHeight).coerceAtLeast(0)
+                    val srcX = offsetX.toInt().coerceIn(0, maxSrcX)
+                    val srcY = offsetY.toInt().coerceIn(0, maxSrcY)
+                    val dstWidth = (screenDimensions.width * density).toInt()
+                    val dstHeight = (screenDimensions.height * density).toInt()
                     drawImage(
                         image = image,
-                        srcOffset = IntOffset.Zero,
-                        srcSize = IntSize(image.width, image.height),
-                        dstOffset = IntOffset(
-                            (-offsetX * density).toInt(),
-                            (-offsetY * density).toInt()
-                        ),
-                        dstSize = IntSize(scaledWidth, scaledHeight)
+                        srcOffset = IntOffset(srcX, srcY),
+                        srcSize = IntSize(viewportWidth, viewportHeight),
+                        dstOffset = IntOffset.Zero,
+                        dstSize = IntSize(dstWidth, dstHeight)
                     )
                 }
             }

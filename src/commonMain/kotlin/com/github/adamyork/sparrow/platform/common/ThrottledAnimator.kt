@@ -6,6 +6,10 @@ package com.github.adamyork.sparrow.platform.common
  */
 interface ThrottledAnimator {
 
+    companion object {
+        private const val MAX_ANIMATION_ELAPSED_MS = 250.0
+    }
+
     val platformInterop: PlatformInterop
     val animationTargetFps: Double
     var animationTickCounter: Int
@@ -21,14 +25,17 @@ interface ThrottledAnimator {
             lastAnimationTickTimeMs = nowMs
             return false
         }
-        val elapsedMs = (nowMs - lastAnimationTickTimeMs).coerceAtLeast(0.0)
+        val elapsedMs = (nowMs - lastAnimationTickTimeMs)
+            .coerceAtLeast(0.0)
+            .coerceAtMost(MAX_ANIMATION_ELAPSED_MS)
         lastAnimationTickTimeMs = nowMs
         animationTickBufferMs += elapsedMs
         animationTickCounter += 1
         if (animationTickBufferMs < animationFrameIntervalMs) {
             return false
         }
-        animationTickBufferMs -= animationFrameIntervalMs
+        // Drop backlog after hitches instead of playing catch-up bursts that look like stutter.
+        animationTickBufferMs %= animationFrameIntervalMs
         animationTickCounter = 0
         return true
     }

@@ -202,10 +202,13 @@ class AndroidEngine(
         val src = if (isFlipped) {
             Rect(0, 0, element.width, element.height)
         } else {
-            val sx = element.frameMetadata.cell.x
-            val sy = element.frameMetadata.cell.y
+            // Clamp frame selection so invalid metadata doesn't result in an empty draw on Android.
+            val sx = element.frameMetadata.cell.x.coerceIn(0, (image.width - element.width).coerceAtLeast(0))
+            val sy = element.frameMetadata.cell.y.coerceIn(0, (image.height - element.height).coerceAtLeast(0))
             Rect(sx, sy, sx + element.width, sy + element.height)
         }
+
+
         canvas.drawBitmap(targetBitmap, src, dst, paint)
     }
 

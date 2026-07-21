@@ -37,8 +37,7 @@ import java.io.File
 @Inject
 class AndroidAssetService(
     httpClient: HttpClient,
-    mapElementFactory: MapElementFactory,
-    private val platformInterop: PlatformInterop
+    mapElementFactory: MapElementFactory
 ) : AbstractPlatformAssetService(httpClient, mapElementFactory) {
 
     private lateinit var backgroundAudio: String
@@ -71,8 +70,15 @@ class AndroidAssetService(
         suspend fun fetchBytes(url: String): ByteArray {
             val response = httpClient.get(url)
             check(response.status.isSuccess()) { "Failed to load $url(status=${response.status})" }
-            val bytes = response.body<ByteArray>()
-            return platformInterop.getBlobFromBytes(bytes) as ByteArray
+            return response.body<ByteArray>()
+        }
+
+        suspend fun persistToTempAudioFile(bytes: ByteArray): String {
+            return withContext(Dispatchers.IO) {
+                val file = File.createTempFile("sparrow-audio-", ".wav")
+                file.writeBytes(bytes)
+                file.absolutePath
+            }
         }
 
         val deferredAudios = audioPathMap.map { (key, path) ->
@@ -81,11 +87,11 @@ class AndroidAssetService(
         val deferredBackground = async { fetchBytes(appProperties.audio.background) }
         deferredAudios.forEach { (key, deferred) ->
             val blob = deferred.await()
-            audioMap[key] = platformInterop.createAudioBlobUri(blob)
+            audioMap[key] = persistToTempAudioFile(blob)
             listener.onTaskCompleted(key.name)
         }
         listener.onTaskCompleted(appProperties.audio.background)
-        backgroundAudio = platformInterop.createAudioBlobUri(deferredBackground.await())
+        backgroundAudio = persistToTempAudioFile(deferredBackground.await())
     }
 
     override fun getBackgroundAudio(): String = backgroundAudio

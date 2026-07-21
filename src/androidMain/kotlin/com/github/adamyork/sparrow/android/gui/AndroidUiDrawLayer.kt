@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.core.graphics.scale
+import androidx.compose.ui.unit.IntSize
 import com.github.adamyork.sparrow.android.engine.data.AndroidPlatformImage
 import com.github.adamyork.sparrow.platform.engine.data.PlatformImage
 import com.github.adamyork.sparrow.platform.gui.PlatformUiDrawLayer
@@ -47,27 +47,36 @@ class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : Pla
         ) {
             image?.let { foreground ->
                 val imageBitmap = when (foreground) {
+                    is AndroidPlatformImage -> foreground.bitmap.asImageBitmap()
                     is android.graphics.Bitmap -> foreground.asImageBitmap()
                     is ImageBitmap -> foreground
                     else -> return@let
                 }
                 drawIntoCanvas { canvas ->
-                    canvas.nativeCanvas.drawBitmap(
-                        ((foreground as? android.graphics.Bitmap) ?: return@drawIntoCanvas).scale(
-                            (imageBitmap.width * density).toInt(),
-                            (imageBitmap.height * density).toInt()
-                        ),
-                        0f,
-                        0f,
-                        null
-                    )
+                    val targetWidth = size.width.toInt()
+                    val targetHeight = size.height.toInt()
+                    val nativeBitmap = when (foreground) {
+                        is AndroidPlatformImage -> foreground.bitmap
+                        is android.graphics.Bitmap -> foreground
+                        else -> null
+                    }
+                    if (nativeBitmap != null) {
+                        val src = android.graphics.Rect(0, 0, nativeBitmap.width, nativeBitmap.height)
+                        val dst = android.graphics.Rect(0, 0, targetWidth, targetHeight)
+                        canvas.nativeCanvas.drawBitmap(nativeBitmap, src, dst, null)
+                    } else {
+                        drawImage(
+                            image = imageBitmap,
+                            dstSize = IntSize(targetWidth, targetHeight)
+                        )
+                    }
                 }
             }
         }
     }
 
     override fun drawForeground(image: PlatformImage) {
-        foregroundBitmap = (image as AndroidPlatformImage).bitmap
+        foregroundBitmap = image
     }
 
     override fun clearAllLayers() {

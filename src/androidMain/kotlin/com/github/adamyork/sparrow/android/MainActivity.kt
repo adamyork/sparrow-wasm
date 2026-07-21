@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.android
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,6 +17,7 @@ private val logger = KotlinLogging.logger {}
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         LogConfig.initialize(minimumLevel = Level.INFO)
         logger.info { "app started" }
         val component = AppConfig::class.create()
@@ -33,4 +35,5 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 }
