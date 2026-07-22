@@ -1,9 +1,8 @@
-package com.github.adamyork.sparrow.wasm.common.data.enemy
+package com.github.adamyork.sparrow.platform.common.data.enemy
 
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.common.data.*
-import com.github.adamyork.sparrow.platform.common.data.enemy.*
 import com.github.adamyork.sparrow.platform.common.data.item.CollectibleItem
 import com.github.adamyork.sparrow.platform.common.data.item.ItemType
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset

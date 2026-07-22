@@ -8,9 +8,9 @@ external interface VisualViewport {
     val width: Double
 }
 
-@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalWasmJsInterop::class)
-fun createBlobFromInt8Array(int8Array: Int8Array): Blob = js("new Blob([int8Array])")
+fun createBlobFromInt8Array(@Suppress("UNUSED_PARAMETER") int8Array: Int8Array): Blob =
+    js("new Blob([int8Array])")
 
 @OptIn(ExperimentalWasmJsInterop::class)
 fun getVisualViewport(): VisualViewport = js(

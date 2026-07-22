@@ -9,8 +9,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 data class ImageAndBytes(val bytes: ByteArray, val imageBitmap: ImageBitmap) {
 
     override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        return other is ImageAndBytes &&
+        return this === other || other is ImageAndBytes &&
                 bytes.contentEquals(other.bytes) &&
                 imageBitmap == other.imageBitmap
     }

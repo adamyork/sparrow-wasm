@@ -21,18 +21,17 @@ fun main() {
     logger.info { "app started" }
     val component = AppConfig::class.create()
     component.platformInterop.onReady {
-        val visibleHeight = component.platformInterop.getWindowHeight()
-        val visibleWidth = component.platformInterop.getWindowWidth()
-        val lockedWidth = visibleWidth.toInt()
-        val lockedHeight = visibleHeight.toInt()
-        component.screenDimensionsService.initialize(lockedWidth, lockedHeight)
+        component.screenDimensionsService.initialize(
+            component.platformInterop.getWindowWidth().toInt(),
+            component.platformInterop.getWindowHeight().toInt()
+        )
         (document.getElementById("ComposeTarget") as? HTMLElement)?.style?.apply {
-            width = "${lockedWidth}px"
-            height = "${lockedHeight}px"
-            minWidth = "${lockedWidth}px"
-            minHeight = "${lockedHeight}px"
-            maxWidth = "${lockedWidth}px"
-            maxHeight = "${lockedHeight}px"
+            width = "${component.platformInterop.getWindowWidth().toInt()}px"
+            height = "${component.platformInterop.getWindowHeight().toInt()}px"
+            minWidth = "${component.platformInterop.getWindowWidth().toInt()}px"
+            minHeight = "${component.platformInterop.getWindowHeight().toInt()}px"
+            maxWidth = "${component.platformInterop.getWindowWidth().toInt()}px"
+            maxHeight = "${component.platformInterop.getWindowHeight().toInt()}px"
         }
         logger.info { "screen dimensions: ${component.screenDimensionsService.getScreenDimensions()}" }
         component.platformInterop.hidePlatformLoader()

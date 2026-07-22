@@ -8,7 +8,7 @@ import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.Physics
 import com.github.adamyork.sparrow.platform.engine.v1.DefaultParticles
 import com.github.adamyork.sparrow.platform.engine.v1.DefaultPhysics
-import com.github.adamyork.sparrow.wasm.common.data.enemy.DefaultMapElementFactory
+import com.github.adamyork.sparrow.platform.common.data.enemy.DefaultMapElementFactory
 import com.github.adamyork.sparrow.wasm.engine.v1.WasmJsCollision
 import com.github.adamyork.sparrow.wasm.engine.v1.WasmJsEngine
 import me.tatarka.inject.annotations.Provides

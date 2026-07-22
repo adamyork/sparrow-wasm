@@ -1,13 +1,8 @@
 package com.github.adamyork.sparrow.platform.common
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import com.github.adamyork.sparrow.platform.common.data.ControlAction
-import com.github.adamyork.sparrow.platform.common.data.ControlType
-import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
 import com.github.adamyork.sparrow.platform.gui.UiController
 import com.github.adamyork.sparrow.platform.service.RuntimeService
-import kotlinx.coroutines.awaitCancellation
 
 interface PlatformInterop {
 
@@ -25,7 +20,7 @@ interface PlatformInterop {
 
     fun createAudioBlobUri(blob: Any): String
 
-    fun isTouchDevice() : Boolean
+    fun isTouchDevice(): Boolean
 
     fun <T> addEventListener(type: String, callback: (T) -> Unit)
 

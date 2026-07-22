@@ -7,7 +7,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontFamily
 import com.github.adamyork.sparrow.platform.AppScope
-import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.common.data.Sounds
 import com.github.adamyork.sparrow.platform.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.platform.service.LoadingProgressListener

@@ -1,7 +1,6 @@
 package com.github.adamyork.sparrow.platform.service
 
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.text.font.Font
 import com.github.adamyork.sparrow.platform.AppProperties
 import com.github.adamyork.sparrow.platform.common.data.Sounds
 import com.github.adamyork.sparrow.platform.common.data.map.GameMap
@@ -9,6 +8,7 @@ import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import com.github.adamyork.sparrow.platform.service.data.ItemPositionAndType
 import com.github.adamyork.sparrow.platform.service.data.TextAsset
+
 /**
  * Author: Adam York
  * Copyright (c) Adam York
