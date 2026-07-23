@@ -2,12 +2,17 @@ package com.github.adamyork.sparrow.platform.common.data
 
 import androidx.compose.ui.geometry.Rect
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
 interface GameElement {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     var x: Int
     var y: Int
@@ -20,6 +25,14 @@ interface GameElement {
     fun getNextFrameMetadataWithState(): Pair<FrameMetadata, FrameMetadataState>
 
     fun nestedDirection(): Direction
+
+    fun logStateChange(previousState: ElementState, nextState: ElementState) {
+        if (previousState != nextState) {
+            logger.debug {
+                "GameElement state changed: $previousState -> $nextState at x=$x y=$y"
+            }
+        }
+    }
 
     fun cullingCheck(viewPort: ViewPort): Boolean {
         return (x + width > viewPort.x) &&

@@ -9,6 +9,7 @@ import com.github.adamyork.sparrow.platform.common.data.enemy.EnemyInteractionSt
 import com.github.adamyork.sparrow.platform.gui.UiController
 import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * Author: Adam York
@@ -19,12 +20,12 @@ class Player(
     override var y: Int,
     override val width: Int,
     override val height: Int,
-    override var state: ElementState,
+    state: ElementState,
     override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
     var vx: Double,
     var vy: Double,
-    var jumping: PlayerJumpingState,
+    jumping: PlayerJumpingState,
     var moving: PlayerMovingState,
     var direction: Direction,
     var colliding: GameElementCollisionState,
@@ -35,6 +36,8 @@ class Player(
     override var lastAnimationTickTimeMs: Double = 0.0,
     override var animationTickBufferMs: Double = 0.0,
 ) : GameElement, ThrottledAnimator {
+
+    private val logger = KotlinLogging.logger {}
 
     companion object {
         const val ANIMATION_MOVING_FRAMES = 4
@@ -115,6 +118,20 @@ class Player(
     var movingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var jumpingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var collisionFrames: HashMap<Int, FrameMetadata> = HashMap()
+
+    override var state: ElementState = state
+        set(value) {
+            logStateChange(field, value)
+            field = value
+        }
+
+    var jumping: PlayerJumpingState = jumping
+        set(value) {
+            if (field != value) {
+                logger.debug { "Player jumping changed: $field -> $value" }
+            }
+            field = value
+        }
 
     init {
         generateAnimationFrameIndex()

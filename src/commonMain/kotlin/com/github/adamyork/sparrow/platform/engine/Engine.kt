@@ -15,7 +15,7 @@ import com.github.adamyork.sparrow.platform.service.data.ImageAsset
  */
 interface Engine {
 
-    fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any)
+    suspend fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any)
 
     fun getCollisionBoundaries(player: Player): CollisionBoundaries
 

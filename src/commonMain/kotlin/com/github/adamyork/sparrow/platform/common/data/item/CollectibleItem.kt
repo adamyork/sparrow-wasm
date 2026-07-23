@@ -22,7 +22,7 @@ class CollectibleItem(
     override var x: Int,
     override var y: Int,
     override val type: ItemType,
-    override var state: ElementState,
+    state: ElementState,
     override val imageAndBytes: ImageAndBytes,
     override var frameMetadata: FrameMetadata,
     override val id: Int,
@@ -40,6 +40,12 @@ class CollectibleItem(
 
     var activeFrames: HashMap<Int, FrameMetadata> = HashMap()
     var deactivatingFrames: HashMap<Int, FrameMetadata> = HashMap()
+
+    override var state: ElementState = state
+        set(value) {
+            logStateChange(field, value)
+            field = value
+        }
 
     init {
         generateAnimationFrameIndex()

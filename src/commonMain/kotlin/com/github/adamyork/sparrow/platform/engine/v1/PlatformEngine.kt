@@ -67,7 +67,7 @@ abstract class PlatformEngine @AppScope @Inject constructor(
 
     abstract fun getOrCreateForegroundSurface(viewPort: ViewPort): Any
 
-    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
+    override suspend fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
         throw Exception("must implemented")
     }
 
@@ -82,6 +82,8 @@ abstract class PlatformEngine @AppScope @Inject constructor(
     }
 
     override fun manageViewport(player: Player, viewPort: ViewPort) {
+        val previousX = viewPort.x
+        val previousY = viewPort.y
         val nextX = when (player.direction) {
             Direction.RIGHT -> {
                 val adjustedX = player.x + player.width
@@ -111,6 +113,9 @@ abstract class PlatformEngine @AppScope @Inject constructor(
         viewPort.y = nextY
         viewPort.lastX = viewPort.x
         viewPort.lastY = viewPort.y
+        if (previousX != nextX || previousY != nextY) {
+            logger.info { "Viewport moved: ($previousX, $previousY) -> ($nextX, $nextY)" }
+        }
     }
 
     override fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort) {
@@ -226,9 +231,13 @@ abstract class PlatformEngine @AppScope @Inject constructor(
     override fun startInput(controlAction: ControlAction, player: Player) {
         when (controlAction) {
             ControlAction.LEFT, ControlAction.RIGHT -> {
+                val previousDirection = player.direction
                 val direction = if (controlAction == ControlAction.LEFT) Direction.LEFT else Direction.RIGHT
                 player.moving = PlayerMovingState.MOVING
                 player.direction = direction
+                if (previousDirection != player.direction) {
+                    logger.debug { "Player direction changed: $previousDirection -> ${player.direction}" }
+                }
                 physics.changeXVelocityIfDirectionChanged(controlAction, player)
             }
 

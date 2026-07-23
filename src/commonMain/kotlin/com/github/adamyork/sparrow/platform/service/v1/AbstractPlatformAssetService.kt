@@ -15,8 +15,10 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 
 abstract class AbstractPlatformAssetService(
     protected val httpClient: HttpClient,
@@ -46,30 +48,29 @@ abstract class AbstractPlatformAssetService(
     protected abstract suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset
 
     override suspend fun initialize(listener: LoadingProgressListener) {
-        //TODO Evaluate Log
-        logger.info { "initialize called loading yaml" }
+        logger.debug { "HTTP GET: application.yml" }
         val response = httpClient.get("application.yml")
         check(response.status.isSuccess()) { "Failed to load application yml (status=${response.status})" }
         val bytes = response.body<ByteArray>()
         finishInit(bytes, listener)
     }
 
-    protected fun finishInit(bytes: ByteArray, listener: LoadingProgressListener){
-        val yamlString = bytes.decodeToString()
+    protected suspend fun finishInit(bytes: ByteArray, listener: LoadingProgressListener){
         listener.onTaskCompleted("app_yaml")
-        appProperties = Yaml.default.decodeFromString(AppProperties.serializer(), yamlString)
-        enemyInfoMap = appProperties.map.enemy.positions.mapIndexed { index, pos ->
-            val dim = appProperties.map.enemy.asset[pos.ref]
-                ?: throw AssetServiceReferenceException("no enemy asset for ${pos.ref}")
-            index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
-        }.toMap(HashMap())
-        itemInfoMap = appProperties.map.item.positions.mapIndexed { index, pos ->
-            val dim = appProperties.map.item.asset[pos.ref]
-                ?: throw AssetServiceReferenceException("no item asset for ${pos.ref}")
-            index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
-        }.toMap(HashMap())
-        //TODO Evaluate Log
-        logger.info { "game config initialized" }
+        withContext(Dispatchers.Default) {
+            val yamlString = bytes.decodeToString()
+            appProperties = Yaml.default.decodeFromString(AppProperties.serializer(), yamlString)
+            enemyInfoMap = appProperties.map.enemy.positions.mapIndexed { index, pos ->
+                val dim = appProperties.map.enemy.asset[pos.ref]
+                    ?: throw AssetServiceReferenceException("no enemy asset for ${pos.ref}")
+                index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
+            }.toMap(HashMap())
+            itemInfoMap = appProperties.map.item.positions.mapIndexed { index, pos ->
+                val dim = appProperties.map.item.asset[pos.ref]
+                    ?: throw AssetServiceReferenceException("no item asset for ${pos.ref}")
+                index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
+            }.toMap(HashMap())
+        }
     }
 
     override suspend fun loadSplash(): ImageAsset {
@@ -89,8 +90,6 @@ abstract class AbstractPlatformAssetService(
     }
 
     override suspend fun loadMap(id: Int, listener: LoadingProgressListener): GameMap = coroutineScope {
-        //TODO Evaluate Log
-        logger.info { "loading map $id" }
         val mapPaths = listOf(appProperties.map.bg, appProperties.map.mg, appProperties.map.fg, appProperties.map.col)
 
         val assets = coroutineScope {

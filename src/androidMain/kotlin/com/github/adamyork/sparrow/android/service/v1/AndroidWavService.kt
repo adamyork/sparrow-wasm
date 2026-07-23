@@ -27,7 +27,12 @@ class AndroidWavService(
 
 	override fun playNext() {
 		val nextSound = audioQueue.queue.firstOrNull() ?: return
-		val availablePlayer = sfxPool.firstOrNull { player -> runCatching { !player.isPlaying }.getOrDefault(false) } ?: return
+		val availablePlayer = sfxPool.firstOrNull { player ->
+			runCatching { !player.isPlaying }.getOrElse { failure ->
+				logger.error(failure) { "Failed to inspect MediaPlayer state" }
+				false
+			}
+		} ?: return
 		runCatching {
 			availablePlayer.reset()
 			availablePlayer.setAudioAttributes(defaultAudioAttributes())
@@ -38,8 +43,7 @@ class AndroidWavService(
 		}.onSuccess {
 			audioQueue.queue.removeFirstOrNull()
 		}.onFailure { error ->
-			//TODO Evaluate Log
-			logger.error(error) { "Failed to play sound: $nextSound" }
+			logger.error(error) { "Failed to play queued sound: $nextSound" }
 		}
 	}
 
@@ -52,7 +56,6 @@ class AndroidWavService(
 			backgroundPlayer.prepare()
 			backgroundPlayer.start()
 		}.onFailure { error ->
-			//TODO Evaluate Log
 			logger.error(error) { "Failed to start background audio" }
 		}
 	}

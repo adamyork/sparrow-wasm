@@ -12,6 +12,7 @@ import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import com.github.adamyork.sparrow.platform.service.data.ItemPositionAndType
 import com.github.adamyork.sparrow.platform.engine.data.Particle
 import com.github.adamyork.sparrow.platform.service.AssetService
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * Author: Adam York
@@ -31,6 +32,8 @@ class GameMap(
     var particles: ArrayList<Particle>,
     val mapElementFactory: MapElementFactory
 ) {
+
+    private val logger = KotlinLogging.logger {}
 
     companion object {
         const val VIEWPORT_HORIZONTAL_FAR_PARALLAX_OFFSET: Int = 4
@@ -109,7 +112,7 @@ class GameMap(
             val position = assetService.getItemPosition(itemIndex)
             val itemType = ItemType.from(position.type)
             val targetImageAsset = if (itemType == ItemType.FINISH) finishItemAsset else collectibleItemAsset
-            items.add(
+            val createdItem =
                 mapElementFactory.createCollectibleItem(
                     targetImageAsset,
                     position,
@@ -119,7 +122,10 @@ class GameMap(
                     itemIndex,
                     animationFps
                 )
-            )
+            items.add(createdItem)
+            logger.debug {
+                "Created map item id=${createdItem.id} type=${createdItem.type} state=${createdItem.state} x=${createdItem.x} y=${createdItem.y}"
+            }
         }
     }
 
@@ -133,7 +139,7 @@ class GameMap(
             } else {
                 shooterEnemyAsset
             }
-            enemies.add(
+            val createdEnemy =
                 mapElementFactory.createEnemy(
                     targetImageAsset,
                     position,
@@ -143,7 +149,10 @@ class GameMap(
                     enemyIndex,
                     animationFps
                 )
-            )
+            enemies.add(createdEnemy)
+            logger.debug {
+                "Created enemy id=${createdEnemy.id} type=${createdEnemy.type} state=${createdEnemy.state} x=${createdEnemy.x} y=${createdEnemy.y}"
+            }
         }
     }
 

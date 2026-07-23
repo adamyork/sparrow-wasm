@@ -30,8 +30,6 @@ class WasmJsInterop : PlatformInterop {
 
     override fun onReady(action: () -> Unit) {
         onWasmReady {
-            //TODO Evaluate Log
-            logger.info { "WASM environment is ready. Building GUI" }
             action()
         }
     }

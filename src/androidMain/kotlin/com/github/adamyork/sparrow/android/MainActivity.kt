@@ -14,7 +14,6 @@ import com.github.adamyork.sparrow.platform.gui.SparrowColorScheme
 import com.github.adamyork.sparrow.platform.gui.UiScaffold
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 private val logger = KotlinLogging.logger {}
@@ -28,15 +27,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         LogConfig.initialize(minimumLevel = Level.INFO)
-        //TODO Evaluate Log
-        logger.info { "app started" }
+        logger.info { "MainActivity onCreate invoked" }
         val component = AppConfig::class.create()
         val gameLayer = component.game
         val sparrowColorScheme = component.sparrowColorScheme
         setContent {
             ScaffoldDelegate(component, gameLayer, sparrowColorScheme)
         }
-        lifecycleScope.launch(Dispatchers.Main) {
+        lifecycleScope.launch {
             component.platformInterop.onReady {
                 component.platformInterop.hidePlatformLoader()
             }
@@ -54,8 +52,6 @@ class MainActivity : ComponentActivity() {
             configuration.screenWidthDp,
             configuration.screenHeightDp
         )
-        //TODO Evaluate Log
-        logger.info { "screen dimensions updated: ${component.screenDimensionsService.getScreenDimensions()}" }
         val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
         if (isPortrait) {
             AndroidPortraitGui().BuildGui()

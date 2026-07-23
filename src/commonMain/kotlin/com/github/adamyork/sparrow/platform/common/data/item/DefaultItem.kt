@@ -18,6 +18,10 @@ class DefaultItem : Item {
     override val height: Int = 0
     override val width: Int = 0
     override var state: ElementState = ElementState.INACTIVE
+        set(value) {
+            logStateChange(field, value)
+            field = value
+        }
     override val imageAndBytes: ImageAndBytes =
         ImageAndBytes(byteArrayOf(), ImageBitmap(1, 1))
 

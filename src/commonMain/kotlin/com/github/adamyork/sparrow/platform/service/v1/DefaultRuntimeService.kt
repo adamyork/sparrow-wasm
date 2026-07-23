@@ -8,6 +8,7 @@ import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
 import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.service.AssetService
 import com.github.adamyork.sparrow.platform.service.RuntimeService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
 
 /**
@@ -20,11 +21,21 @@ class DefaultRuntimeService(
     val assetService: AssetService
 ) : RuntimeService {
 
+    private val logger = KotlinLogging.logger {}
+
     private companion object {
         const val FPS_SAMPLE_WINDOW_MS: Double = 1000.0
     }
 
-    override var lifeCycleState by mutableStateOf(LifeCycleState.INITIALIZING)
+    private var lifeCycleStateState by mutableStateOf(LifeCycleState.INITIALIZING)
+    override var lifeCycleState: LifeCycleState
+        get() = lifeCycleStateState
+        set(value) {
+            if (lifeCycleStateState != value) {
+                logger.info { "LifeCycleState changed: $lifeCycleStateState -> $value" }
+                lifeCycleStateState = value
+            }
+        }
     override var gameMapState by mutableStateOf(GameMapState.COLLECTING)
     override var lastPaintTime: Double = 0.0
 

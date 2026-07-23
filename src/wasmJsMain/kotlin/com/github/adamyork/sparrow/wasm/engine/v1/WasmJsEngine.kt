@@ -92,7 +92,7 @@ class WasmJsEngine(
                 foregroundSurface = it
             }
 
-    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
+    override suspend fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
         flippedFrameCache.values.forEach { (it as WasmJsPlatformImage).image.close() }
         flippedFrameCache.clear()
         this.collision.collisionImage = collisionImageAndBytes

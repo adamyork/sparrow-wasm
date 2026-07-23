@@ -42,19 +42,16 @@ class AndroidAssetService(
     private lateinit var backgroundAudio: String
 
     override suspend fun initialize(listener: LoadingProgressListener) {
-        //TODO Evaluate Log
-        logger.info { "initialize called loading yaml" }
-        val bytes = Res.readBytes("files/application.yml")
+        val bytes = withContext(Dispatchers.IO) {
+            Res.readBytes("files/application.yml")
+        }
         finishInit(bytes = bytes, listener = listener)
     }
 
     override suspend fun loadBufferedImageAsync(file: String): ImageBitmap {
-        //TODO Evaluate Log
-        logger.info { "loadBufferedImageAsync called to load $file" }
+        logger.debug { "HTTP GET: $file" }
         val response = httpClient.get(file)
         check(response.status.isSuccess()) { "Failed to load image from URL: $file (status=${response.status})" }
-        //TODO Evaluate Log
-        logger.info { "image loaded" }
         val bytes = response.body<ByteArray>()
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             ?: error("Failed to decode byte array into Android Bitmap")
@@ -70,6 +67,7 @@ class AndroidAssetService(
         )
 
         suspend fun fetchBytes(url: String): ByteArray {
+            logger.debug { "HTTP GET: $url" }
             val response = httpClient.get(url)
             check(response.status.isSuccess()) { "Failed to load $url(status=${response.status})" }
             return response.body<ByteArray>()
@@ -103,8 +101,7 @@ class AndroidAssetService(
     }
 
     override suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset = withContext(Dispatchers.IO) {
-        //TODO Evaluate Log
-        logger.info { "fetchImageAndBytes for $path" }
+        logger.debug { "HTTP GET: $path" }
         val response = httpClient.get(path)
         val bytes = response.body<ByteArray>()
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
@@ -115,18 +112,18 @@ class AndroidAssetService(
 
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun prepareFont(): Any {
-        val bytes = Res.readBytes("files/roboto_bold.ttf")
-        val tempFile = withContext(Dispatchers.IO) {
-            File.createTempFile("font_temp", ".ttf")
-        }
-        try {
-            tempFile.writeBytes(bytes)
-            val typeface = Typeface.Builder(tempFile).build()
-                ?: throw AssetServiceReferenceException("Could not create typeface from data")
-            return FontFamily(typeface)
-        } finally {
-            if (tempFile.exists()) {
-                tempFile.delete()
+        return withContext(Dispatchers.IO) {
+            val bytes = Res.readBytes("files/roboto_bold.ttf")
+            val tempFile = File.createTempFile("font_temp", ".ttf")
+            try {
+                tempFile.writeBytes(bytes)
+                val typeface = Typeface.Builder(tempFile).build()
+                    ?: throw AssetServiceReferenceException("Could not create typeface from data")
+                FontFamily(typeface)
+            } finally {
+                if (tempFile.exists()) {
+                    tempFile.delete()
+                }
             }
         }
     }

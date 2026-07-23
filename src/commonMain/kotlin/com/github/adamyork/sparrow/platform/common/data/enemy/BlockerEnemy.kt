@@ -21,7 +21,7 @@ class BlockerEnemy(
     override var y: Int,
     override val width: Int,
     override val height: Int,
-    override var state: ElementState,
+    state: ElementState,
     override var frameMetadata: FrameMetadata,
     override val imageAndBytes: ImageAndBytes,
     override val id: Int,
@@ -47,6 +47,12 @@ class BlockerEnemy(
 
     var animatingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var collisionFrames: HashMap<Int, FrameMetadata> = HashMap()
+
+    override var state: ElementState = state
+        set(value) {
+            logStateChange(field, value)
+            field = value
+        }
 
     init {
         generateAnimationFrameIndex()

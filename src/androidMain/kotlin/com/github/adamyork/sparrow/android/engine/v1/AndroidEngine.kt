@@ -25,6 +25,8 @@ import com.github.adamyork.sparrow.platform.service.AssetService
 import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.ScoreService
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
 
 @AppScope
@@ -48,6 +50,11 @@ class AndroidEngine(
     runtimeService,
     platformInterop
 ) {
+
+    private val scratchSpriteDstRect = Rect()
+    private val scratchSpriteSrcRect = Rect()
+    private val scratchParticleSrcRect = Rect()
+    private val scratchParticleRectF = RectF()
 
     override var mapItem: Item = DefaultItem()
     override var mapItemImage: PlatformImage = AndroidPlatformImage(createPlaceholderBitmap())
@@ -85,38 +92,40 @@ class AndroidEngine(
         return foregroundSurface as Bitmap
     }
 
-    override fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
-        flippedFrameCache.clear()
-        this.collision.collisionImage = collisionImageAndBytes
-        this.collision.cacheCollisionPixels()
-        val showItemDots = assetService.appProperties.map.itemDots.visible
-        gameMap.items.forEach { item ->
-            val bitmap = if (showItemDots) {
-                val markedBytes = assetService.drawId(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
-                requireNotNull(BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
-                    "Failed to decode marked item image"
+    override suspend fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
+        withContext(Dispatchers.Default) {
+            flippedFrameCache.clear()
+            this@AndroidEngine.collision.collisionImage = collisionImageAndBytes
+            this@AndroidEngine.collision.cacheCollisionPixels()
+            val showItemDots = assetService.appProperties.map.itemDots.visible
+            gameMap.items.forEach { item ->
+                val bitmap = if (showItemDots) {
+                    val markedBytes = assetService.drawId(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
+                    requireNotNull(BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
+                        "Failed to decode marked item image"
+                    }
+                } else {
+                    item.imageAndBytes.imageBitmap.asAndroidBitmap()
                 }
-            } else {
-                item.imageAndBytes.imageBitmap.asAndroidBitmap()
+                itemImageCache[itemCacheKey(item)] = AndroidPlatformImage(bitmap)
             }
-            itemImageCache[itemCacheKey(item)] = AndroidPlatformImage(bitmap)
-        }
-        gameMap.enemies.forEach { enemy ->
-            val bitmap = if (showItemDots) {
-                val markedBytes =
-                    assetService.drawId(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height, font)
-                requireNotNull(BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
-                    "Failed to decode marked enemy image"
+            gameMap.enemies.forEach { enemy ->
+                val bitmap = if (showItemDots) {
+                    val markedBytes =
+                        assetService.drawId(enemy.imageAndBytes.bytes, enemy.id, enemy.width, enemy.height, font)
+                    requireNotNull(BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
+                        "Failed to decode marked enemy image"
+                    }
+                } else {
+                    enemy.imageAndBytes.imageBitmap.asAndroidBitmap()
                 }
-            } else {
-                enemy.imageAndBytes.imageBitmap.asAndroidBitmap()
+                enemyImageCache[enemyCacheKey(enemy)] = AndroidPlatformImage(bitmap)
             }
-            enemyImageCache[enemyCacheKey(enemy)] = AndroidPlatformImage(bitmap)
+            mapItem = gameMap.items.firstOrNull() ?: DefaultItem()
+            mapItemImage = gameMap.items.firstOrNull()?.let { itemImageCache[itemCacheKey(it)] }
+                ?: AndroidPlatformImage(mapItem.imageAndBytes.imageBitmap.asAndroidBitmap())
+            playerImage = AndroidPlatformImage(player.imageAndBytes.imageBitmap.asAndroidBitmap())
         }
-        mapItem = gameMap.items.firstOrNull() ?: DefaultItem()
-        mapItemImage = gameMap.items.firstOrNull()?.let { itemImageCache[itemCacheKey(it)] }
-            ?: AndroidPlatformImage(mapItem.imageAndBytes.imageBitmap.asAndroidBitmap())
-        playerImage = AndroidPlatformImage(player.imageAndBytes.imageBitmap.asAndroidBitmap())
     }
 
     override fun draw(map: GameMap, viewPort: ViewPort, player: Player, timestamp: Double): DrawResult {
@@ -197,19 +206,18 @@ class AndroidEngine(
         paint: Paint,
         isFlipped: Boolean
     ) {
-        val dst = Rect(localX, localY, localX + element.width, localY + element.height)
+        scratchSpriteDstRect.set(localX, localY, localX + element.width, localY + element.height)
         val targetBitmap = if (isFlipped) getOrCreateFlippedFrame(image, element) else image
-        val src = if (isFlipped) {
-            Rect(0, 0, element.width, element.height)
+        if (isFlipped) {
+            scratchSpriteSrcRect.set(0, 0, element.width, element.height)
         } else {
             // Clamp frame selection so invalid metadata doesn't result in an empty draw on Android.
             val sx = element.frameMetadata.cell.x.coerceIn(0, (image.width - element.width).coerceAtLeast(0))
             val sy = element.frameMetadata.cell.y.coerceIn(0, (image.height - element.height).coerceAtLeast(0))
-            Rect(sx, sy, sx + element.width, sy + element.height)
+            scratchSpriteSrcRect.set(sx, sy, sx + element.width, sy + element.height)
         }
 
-
-        canvas.drawBitmap(targetBitmap, src, dst, paint)
+        canvas.drawBitmap(targetBitmap, scratchSpriteSrcRect, scratchSpriteDstRect, paint)
     }
 
     private fun getOrCreateFlippedFrame(image: Bitmap, element: GameElement): Bitmap {
@@ -250,14 +258,19 @@ class AndroidEngine(
                 if (mapItem != null && mapItemImage is AndroidPlatformImage) {
                     val localX = particle.x.toFloat() - vpX
                     val localY = particle.y.toFloat() - vpY
-                    val src = Rect(0, 0, mapItem.width, mapItem.height)
-                    val dst = RectF(
+                    scratchParticleSrcRect.set(0, 0, mapItem.width, mapItem.height)
+                    scratchParticleRectF.set(
                         localX,
                         localY,
                         localX + particle.width.toFloat(),
                         localY + particle.height.toFloat()
                     )
-                    canvas.drawBitmap(mapItemImage.bitmap, src, dst, mapItemReturnPaint as Paint)
+                    canvas.drawBitmap(
+                        mapItemImage.bitmap,
+                        scratchParticleSrcRect,
+                        scratchParticleRectF,
+                        mapItemReturnPaint as Paint
+                    )
                 }
                 continue
             }
@@ -273,16 +286,11 @@ class AndroidEngine(
             particlePaint.color = particleColorArgb(particle, alphaMultiplier)
             val x = particle.x.toFloat() - vpX
             val y = particle.y.toFloat() - vpY
+            scratchParticleRectF.set(x, y, x + particle.width.toFloat(), y + particle.height.toFloat())
             if (particle.shape == ParticleShape.CIRCLE) {
-                canvas.drawOval(
-                    RectF(x, y, x + particle.width.toFloat(), y + particle.height.toFloat()),
-                    particlePaint
-                )
+                canvas.drawOval(scratchParticleRectF, particlePaint)
             } else {
-                canvas.drawRect(
-                    RectF(x, y, x + particle.width.toFloat(), y + particle.height.toFloat()),
-                    particlePaint
-                )
+                canvas.drawRect(scratchParticleRectF, particlePaint)
             }
         }
     }

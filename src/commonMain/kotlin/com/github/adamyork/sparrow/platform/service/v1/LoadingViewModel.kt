@@ -6,12 +6,15 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.github.adamyork.sparrow.platform.service.LoadingProgressListener
 import com.github.adamyork.sparrow.platform.service.data.LoadingTask
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
 class LoadingViewModel : ViewModel(), LoadingProgressListener {
+
+    private val logger = KotlinLogging.logger {}
 
     companion object {
         fun mapKeyToTaskId(key: String): String {
@@ -68,6 +71,9 @@ class LoadingViewModel : ViewModel(), LoadingProgressListener {
     )
 
     override fun onTaskCompleted(taskId: String) {
+        loadingTasks.firstOrNull { it.id == taskId }?.let { task ->
+            logger.info { "Checklist item completed: ${task.id} (${task.label})" }
+        }
         loadingTasks = loadingTasks.map {
             if (it.id == taskId) it.copy(isCompleted = true) else it
         }

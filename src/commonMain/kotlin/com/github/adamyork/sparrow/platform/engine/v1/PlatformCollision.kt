@@ -172,8 +172,6 @@ abstract class PlatformCollision(
                     closestEnemyRect = enemyRect
                 }
                 if (!isCollisionAnimating) {
-                    //TODO Evaluate Log
-                    logger.info { "collision adding particles" }
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                     applyCollisionAndMapItemReturnParticles(particles, player, managedMapParticles, gameMap)
                 }
@@ -204,6 +202,7 @@ abstract class PlatformCollision(
             managedMapEnemies[enemyIndex] = enemy
         }
         if (playerIsColliding && closestEnemyRect != null) {
+            logger.info { "Player collision detected with enemy at (${closestEnemyRect.left}, ${closestEnemyRect.top})" }
             physics.applyPlayerCollisionPhysics(player, closestEnemyRect, viewPort)
         }
     }
@@ -238,6 +237,7 @@ abstract class PlatformCollision(
         }
         val adjustedTargetRect = targetRect?.inflate(ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD.toFloat())
         if (playerIsColliding && adjustedTargetRect != null) {
+            logger.info { "Player collision detected with projectile at (${adjustedTargetRect.left}, ${adjustedTargetRect.top})" }
             physics.applyPlayerCollisionPhysics(player, adjustedTargetRect, viewPort)
         }
     }

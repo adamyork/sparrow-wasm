@@ -36,16 +36,11 @@ class WasmJsAssetService(
     private lateinit var backgroundAudio: String
 
     override suspend fun loadBufferedImageAsync(file: String): ImageBitmap {
-        //TODO Evaluate Log
-        logger.info { "loadBufferedImageAsync called to load $file" }
+        logger.debug { "HTTP GET: $file" }
         val response = httpClient.get(file)
         check(response.status.isSuccess()) { "Failed to load image from URL: $file (status=${response.status})" }
-        //TODO Evaluate Log
-        logger.info { "image loaded" }
         val skiaImage = Image.makeFromEncoded(response.body<ByteArray>())
         try {
-            //TODO Evaluate Log
-            logger.info { "bitmap created. complete" }
             return skiaImage.toComposeImageBitmap()
         } finally {
             skiaImage.close()
@@ -61,6 +56,7 @@ class WasmJsAssetService(
         )
 
         suspend fun fetchBlob(url: String): Blob {
+            logger.debug { "HTTP GET: $url" }
             val response = httpClient.get(url)
             check(response.status.isSuccess()) { "Failed to load $url(status=${response.status})" }
             val bytes = response.body<ByteArray>()
@@ -87,8 +83,7 @@ class WasmJsAssetService(
     }
 
     override suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset {
-        //TODO Evaluate Log
-        logger.info { "fetchImageAndBytes for $path" }
+        logger.debug { "HTTP GET: $path" }
         val response = httpClient.get(path)
         val bytes = response.body<ByteArray>()
         val skiaImage = Image.makeFromEncoded(bytes)
@@ -101,6 +96,7 @@ class WasmJsAssetService(
     }
 
     override suspend fun prepareFont(): Any {
+        logger.debug { "HTTP GET: roboto_bold.ttf" }
         val response = httpClient.get("roboto_bold.ttf")
         check(response.status.isSuccess()) { "Failed to load application font (status=${response.status})" }
         val bytes = response.body<ByteArray>()

@@ -39,6 +39,8 @@ class UiController(
 
     private val logger = KotlinLogging.logger {}
     private val viewModel = LoadingViewModel()
+    private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var lastLoggedScoreSnapshot: Triple<Int, Int, Int>? = null
 
     val stateElements: StateElements = StateElements.emptyStateElements
     var splashImage: ImageBitmap? by mutableStateOf(null)
@@ -50,8 +52,6 @@ class UiController(
 
     suspend fun initializeGame() {
         runCatching {
-            //TODO Evaluate Log
-            logger.info { "initializing" }
             val screenDimensions = screenDimensionsService.getScreenDimensions()
             assetService.initialize(this)
             val loaders: Map<String, suspend () -> Any> = mapOf(
@@ -68,7 +68,7 @@ class UiController(
             )
             val loadedAssets = coroutineScope {
                 loaders.map { (key, loader) ->
-                    async {
+                    async(Dispatchers.Default) {
                         val value = loader()
                         withContext(Dispatchers.Main) {
                             viewModel.onTaskCompleted(LoadingViewModel.mapKeyToTaskId(key))
@@ -88,6 +88,22 @@ class UiController(
             val shooterAsset = loadedAssets.getValue("shooter enemy") as ImageAsset
             val player = engine.createDefaultPlayer(playerAsset)
             val font = loadedAssets.getValue("font")
+
+            withContext(Dispatchers.Default) {
+                gameMap.generateMapItems(
+                    collectibleAsset,
+                    finishAsset,
+                    assetService
+                )
+                gameMap.generateMapEnemies(
+                    blockerAsset,
+                    shooterAsset,
+                    assetService
+                )
+                engine.initialize(gameMap, gameMap.collisionAsset, player, font)
+                particles.populateColorMap(assetService)
+            }
+
             withContext(Dispatchers.Main) {
                 stateElements.viewPort = viewPort
                 stateElements.player = player
@@ -104,28 +120,13 @@ class UiController(
                 stateElements.scoreLabel = "Score: --"
                 stateElements.totalLabel = "Total: --"
                 stateElements.remainingLabel = "Remaining: --"
-                gameMap.generateMapItems(
-                    stateElements.mapItemCollectibleAsset,
-                    stateElements.mapItemFinishAsset,
-                    assetService
-                )
-                gameMap.generateMapEnemies(
-                    stateElements.mapEnemyBlockerAsset,
-                    stateElements.mapEnemyShooterAsset,
-                    assetService
-                )
-                engine.initialize(gameMap, gameMap.collisionAsset, player, font)
-                particles.populateColorMap(assetService)
                 scoreService.gameMapItem = gameMap.items
                 refreshScoreLabels()
                 runtimeService.gameMapState = gameMap.state
                 runtimeService.lifeCycleState = LifeCycleState.INITIALIZED
-                //TODO Evaluate Log
-                logger.info { "splash loaded and game initialized" }
             }
-        }.onFailure {
-            //TODO Evaluate Log
-            logger.error { "init failed $it" }
+        }.onFailure { failure ->
+            logger.error(failure) { "initializeGame failed" }
         }
     }
 
@@ -133,6 +134,11 @@ class UiController(
         val total = scoreService.getTotal()
         val remaining = scoreService.getRemaining()
         val score = (total - remaining).coerceAtLeast(0)
+        val scoreSnapshot = Triple(score, total, remaining)
+        if (lastLoggedScoreSnapshot != scoreSnapshot) {
+            logger.info { "Score changed: score=$score total=$total remaining=$remaining" }
+            lastLoggedScoreSnapshot = scoreSnapshot
+        }
         stateElements.scoreLabel = "Score: $score"
         stateElements.totalLabel = "Total: $total"
         stateElements.remainingLabel = "Remaining: $remaining"
@@ -140,11 +146,9 @@ class UiController(
 
     override fun onTaskCompleted(taskId: String) {
         val mappedTaskId = LoadingViewModel.mapKeyToTaskId(taskId)
-        //TODO Evaluate Log
-        logger.info { "task id is $taskId" }
-        //TODO Evaluate Log
-        logger.info { "mapped key task is $mappedTaskId" }
-        viewModel.onTaskCompleted(mappedTaskId)
+        uiScope.launch {
+            viewModel.onTaskCompleted(mappedTaskId)
+        }
     }
 
     fun allTasksCompleted(): Boolean = loadingTasks.all { it.isCompleted }
@@ -230,8 +234,6 @@ class UiController(
     }
 
     fun reset() {
-        //TODO Evaluate Log
-        logger.info { "reset game" }
         stateElements.player = engine.createDefaultPlayer(stateElements.playerAsset)
         stateElements.gameMap.reset(
             stateElements.mapItemCollectibleAsset,
