@@ -46,6 +46,7 @@ abstract class AbstractPlatformAssetService(
     protected abstract suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset
 
     override suspend fun initialize(listener: LoadingProgressListener) {
+        //TODO Evaluate Log
         logger.info { "initialize called loading yaml" }
         val response = httpClient.get("application.yml")
         check(response.status.isSuccess()) { "Failed to load application yml (status=${response.status})" }
@@ -67,6 +68,7 @@ abstract class AbstractPlatformAssetService(
                 ?: throw AssetServiceReferenceException("no item asset for ${pos.ref}")
             index to MapElementYamlEntry(dim.path, dim.width, dim.height, pos.x, pos.y, pos.type)
         }.toMap(HashMap())
+        //TODO Evaluate Log
         logger.info { "game config initialized" }
     }
 
@@ -87,6 +89,7 @@ abstract class AbstractPlatformAssetService(
     }
 
     override suspend fun loadMap(id: Int, listener: LoadingProgressListener): GameMap = coroutineScope {
+        //TODO Evaluate Log
         logger.info { "loading map $id" }
         val mapPaths = listOf(appProperties.map.bg, appProperties.map.mg, appProperties.map.fg, appProperties.map.col)
 

@@ -38,19 +38,25 @@ class WasmWavService(
         runCatching { availableAudio.play() }
             .onSuccess { audioQueue.queue.removeFirstOrNull() }
             .onFailure { error ->
+                //TODO Evaluate Log
                 logger.error(error) { "Failed to play sound: $nextSound" }
             }
     }
 
     override fun playBackgroundAudio() {
+        //TODO Evaluate Log
         logger.info { "play background called" }
         val audioTag = document.getElementById(BG_AUDIO_ID) as? HTMLAudioElement ?: run {
+            //TODO Evaluate Log
             logger.warn { "Background audio element not found in DOM" }
             return
         }
         audioTag.src = assetService.getBackgroundAudio()
         runCatching { audioTag.play() }
-            .onFailure { logger.error(it) { "Failed to start background audio" } }
+            .onFailure {
+                //TODO Evaluate Log
+                logger.error(it) { "Failed to start background audio" }
+            }
     }
 
     private fun createSfxAudioElement(): HTMLAudioElement {

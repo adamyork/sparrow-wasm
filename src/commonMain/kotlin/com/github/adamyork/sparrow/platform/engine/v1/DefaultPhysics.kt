@@ -262,6 +262,7 @@ class DefaultPhysics(
         val isChangingToRight = movingRight && player.direction == Direction.LEFT
         val isChangingDirection = isChangingToLeft || isChangingToRight
         if (isChangingDirection) {
+            //TODO Evaluate Log
             logger.info { "direction changed player vx was: ${player.vx} and is now 0" }
             player.vx = 0.0
         }

@@ -6,6 +6,7 @@ import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.engine.Engine
 import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.gui.PlatformGame
+import com.github.adamyork.sparrow.platform.gui.PlatformQuitUi
 import com.github.adamyork.sparrow.platform.gui.ScreenDimensionsService
 import com.github.adamyork.sparrow.platform.gui.UiController
 import com.github.adamyork.sparrow.platform.service.AssetService
@@ -28,7 +29,8 @@ class AndroidGame(
     private val runtimeService: RuntimeService,
     private val wavService: WavService,
     private val screenDimensionsService: ScreenDimensionsService,
-    private val platformInterop: PlatformInterop
+    private val platformInterop: PlatformInterop,
+    private val platformQuitUi: PlatformQuitUi
 ) : PlatformGame {
 
     private val controller = UiController(
@@ -45,7 +47,8 @@ class AndroidGame(
         controller = controller,
         runtimeService = runtimeService,
         screenDimensionsService = screenDimensionsService,
-        platformInterop = platformInterop
+        platformInterop = platformInterop,
+        platformQuitUi = platformQuitUi
     )
 
     @Composable

@@ -32,8 +32,10 @@ object LogConfig {
                             Level.INFO -> "\u001B[32m"
                             else -> "\u001B[36m"
                         }
+                        //TODO Evaluate Log
                         println("$color[$timestamp] [sparrow-wasm] [kotlin] [$level] [$loggerName] -> $message")
                     } catch (e: Exception) {
+                        //TODO Evaluate Log
                         println("\u001B[31mLogging error: ${e.message}\u001B[0m")
                     }
                 }

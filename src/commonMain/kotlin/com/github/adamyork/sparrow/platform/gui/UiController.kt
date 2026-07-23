@@ -52,6 +52,7 @@ class UiController(
 
     suspend fun initializeGame() {
         runCatching {
+            //TODO Evaluate Log
             logger.info { "initializing" }
             val screenDimensions = screenDimensionsService.getScreenDimensions()
             assetService.initialize(this)
@@ -118,8 +119,12 @@ class UiController(
             refreshScoreLabels()
             runtimeService.gameMapState = gameMap.state
             runtimeService.lifeCycleState = LifeCycleState.INITIALIZED
+            //TODO Evaluate Log
             logger.info { "splash loaded and game initialized" }
-        }.onFailure { logger.error { "init failed $it" } }
+        }.onFailure {
+            //TODO Evaluate Log
+            logger.error { "init failed $it" }
+        }
     }
 
     private fun refreshScoreLabels() {
@@ -133,7 +138,9 @@ class UiController(
 
     override fun onTaskCompleted(taskId: String) {
         val mappedTaskId = LoadingViewModel.mapKeyToTaskId(taskId)
+        //TODO Evaluate Log
         logger.info { "task id is $taskId" }
+        //TODO Evaluate Log
         logger.info { "mapped key task is $mappedTaskId" }
         viewModel.onTaskCompleted(mappedTaskId)
     }
@@ -221,6 +228,7 @@ class UiController(
     }
 
     fun reset() {
+        //TODO Evaluate Log
         logger.info { "reset game" }
         stateElements.player = engine.createDefaultPlayer(stateElements.playerAsset)
         stateElements.gameMap.reset(

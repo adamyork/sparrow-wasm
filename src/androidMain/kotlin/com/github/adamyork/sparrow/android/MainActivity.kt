@@ -19,11 +19,16 @@ import kotlinx.coroutines.launch
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Author: Adam York
+ * Copyright (c) Adam York
+ */
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         LogConfig.initialize(minimumLevel = Level.INFO)
+        //TODO Evaluate Log
         logger.info { "app started" }
         val component = AppConfig::class.create()
         val gameLayer = component.game
@@ -49,6 +54,7 @@ class MainActivity : ComponentActivity() {
             configuration.screenWidthDp,
             configuration.screenHeightDp
         )
+        //TODO Evaluate Log
         logger.info { "screen dimensions updated: ${component.screenDimensionsService.getScreenDimensions()}" }
         val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
         if (isPortrait) {

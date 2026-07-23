@@ -18,6 +18,7 @@ private val logger = KotlinLogging.logger {}
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     LogConfig.initialize(minimumLevel = Level.INFO)
+    //TODO Evaluate Log
     logger.info { "app started" }
     val component = AppConfig::class.create()
     component.platformInterop.onReady {
@@ -33,6 +34,7 @@ fun main() {
             maxWidth = "${component.platformInterop.getWindowWidth().toInt()}px"
             maxHeight = "${component.platformInterop.getWindowHeight().toInt()}px"
         }
+        //TODO Evaluate Log
         logger.info { "screen dimensions: ${component.screenDimensionsService.getScreenDimensions()}" }
         component.platformInterop.hidePlatformLoader()
         val gameLayer = component.game

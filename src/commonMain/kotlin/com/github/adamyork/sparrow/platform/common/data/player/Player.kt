@@ -64,6 +64,7 @@ class Player(
                 throw UnsupportedOperationException("Audio URI interop is not available for empty player")
             }
 
+
             override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
                 throw UnsupportedOperationException("Audio URI interop is not available for empty player")
             }

@@ -38,6 +38,7 @@ class AndroidWavService(
 		}.onSuccess {
 			audioQueue.queue.removeFirstOrNull()
 		}.onFailure { error ->
+			//TODO Evaluate Log
 			logger.error(error) { "Failed to play sound: $nextSound" }
 		}
 	}
@@ -51,6 +52,7 @@ class AndroidWavService(
 			backgroundPlayer.prepare()
 			backgroundPlayer.start()
 		}.onFailure { error ->
+			//TODO Evaluate Log
 			logger.error(error) { "Failed to start background audio" }
 		}
 	}

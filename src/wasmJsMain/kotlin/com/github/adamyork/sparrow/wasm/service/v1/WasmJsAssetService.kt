@@ -36,12 +36,15 @@ class WasmJsAssetService(
     private lateinit var backgroundAudio: String
 
     override suspend fun loadBufferedImageAsync(file: String): ImageBitmap {
+        //TODO Evaluate Log
         logger.info { "loadBufferedImageAsync called to load $file" }
         val response = httpClient.get(file)
         check(response.status.isSuccess()) { "Failed to load image from URL: $file (status=${response.status})" }
+        //TODO Evaluate Log
         logger.info { "image loaded" }
         val skiaImage = Image.makeFromEncoded(response.body<ByteArray>())
         try {
+            //TODO Evaluate Log
             logger.info { "bitmap created. complete" }
             return skiaImage.toComposeImageBitmap()
         } finally {
@@ -84,6 +87,7 @@ class WasmJsAssetService(
     }
 
     override suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset {
+        //TODO Evaluate Log
         logger.info { "fetchImageAndBytes for $path" }
         val response = httpClient.get(path)
         val bytes = response.body<ByteArray>()

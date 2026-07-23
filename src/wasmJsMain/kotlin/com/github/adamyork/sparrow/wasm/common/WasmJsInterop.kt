@@ -30,6 +30,7 @@ class WasmJsInterop : PlatformInterop {
 
     override fun onReady(action: () -> Unit) {
         onWasmReady {
+            //TODO Evaluate Log
             logger.info { "WASM environment is ready. Building GUI" }
             action()
         }
@@ -64,6 +65,7 @@ class WasmJsInterop : PlatformInterop {
     override fun isTouchDevice(): Boolean {
         return window.navigator.maxTouchPoints > 0
     }
+
 
     override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
         val nativeCallback: (Event) -> Unit = { event ->

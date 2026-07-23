@@ -44,7 +44,8 @@ abstract class PlatformUiMain(
     val controller: UiController,
     val runtimeService: RuntimeService,
     val screenDimensionsService: ScreenDimensionsService,
-    val platformInterop: PlatformInterop
+    val platformInterop: PlatformInterop,
+    val platformQuitUi: PlatformQuitUi
 ) {
 
     abstract var uiDrawLayer: PlatformUiDrawLayer
@@ -434,6 +435,12 @@ abstract class PlatformUiMain(
                     ) {
                         Text("Reset", color = textMainColor)
                     }
+
+                    platformQuitUi.BuildQuitButton(
+                        focusManager = focusManager,
+                        disabledButtonColors = disabledButtonColors,
+                        textMainColor = textMainColor
+                    )
                 }
             }
         }

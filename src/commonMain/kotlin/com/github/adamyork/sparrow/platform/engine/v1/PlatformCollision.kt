@@ -172,6 +172,7 @@ abstract class PlatformCollision(
                     closestEnemyRect = enemyRect
                 }
                 if (!isCollisionAnimating) {
+                    //TODO Evaluate Log
                     logger.info { "collision adding particles" }
                     audioQueue.queue.add(Sounds.PLAYER_COLLISION)
                     applyCollisionAndMapItemReturnParticles(particles, player, managedMapParticles, gameMap)
