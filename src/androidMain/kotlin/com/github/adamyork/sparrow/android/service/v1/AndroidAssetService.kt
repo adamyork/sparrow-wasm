@@ -102,7 +102,7 @@ class AndroidAssetService(
         return audioMap[sound] ?: throw AssetServiceReferenceException("no audio path for for key $sound")
     }
 
-    override suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset {
+    override suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset = withContext(Dispatchers.IO) {
         //TODO Evaluate Log
         logger.info { "fetchImageAndBytes for $path" }
         val response = httpClient.get(path)
@@ -110,8 +110,7 @@ class AndroidAssetService(
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             ?: error("Failed to decode byte array into Android Bitmap")
         val actual = bitmap.asImageBitmap()
-        return ImageAsset(width, height, ImageAndBytes(bytes, actual))
-
+        ImageAsset(width, height, ImageAndBytes(bytes, actual))
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

@@ -13,17 +13,15 @@ import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.engine.Engine
 import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.data.DrawResult
+import com.github.adamyork.sparrow.platform.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.platform.gui.data.StateElements
 import com.github.adamyork.sparrow.platform.gui.data.UiState
-import com.github.adamyork.sparrow.platform.gui.data.ScreenDimensions
 import com.github.adamyork.sparrow.platform.service.*
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import com.github.adamyork.sparrow.platform.service.data.LoadingTask
 import com.github.adamyork.sparrow.platform.service.v1.LoadingViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.*
 
 /**
  * Author: Adam York
@@ -72,7 +70,9 @@ class UiController(
                 loaders.map { (key, loader) ->
                     async {
                         val value = loader()
-                        viewModel.onTaskCompleted(LoadingViewModel.mapKeyToTaskId(key))
+                        withContext(Dispatchers.Main) {
+                            viewModel.onTaskCompleted(LoadingViewModel.mapKeyToTaskId(key))
+                        }
                         key to value
                     }
                 }.awaitAll().toMap()
@@ -88,39 +88,41 @@ class UiController(
             val shooterAsset = loadedAssets.getValue("shooter enemy") as ImageAsset
             val player = engine.createDefaultPlayer(playerAsset)
             val font = loadedAssets.getValue("font")
-            stateElements.viewPort = viewPort
-            stateElements.player = player
-            stateElements.gameMap = gameMap
-            stateElements.splashImage = splashImage
-            stateElements.endingImage = endingImage
-            this.splashImage = splashImage
-            this.endingImage = endingImage
-            stateElements.playerAsset = playerAsset
-            stateElements.mapItemCollectibleAsset = collectibleAsset
-            stateElements.mapItemFinishAsset = finishAsset
-            stateElements.mapEnemyBlockerAsset = blockerAsset
-            stateElements.mapEnemyShooterAsset = shooterAsset
-            stateElements.scoreLabel = "Score: --"
-            stateElements.totalLabel = "Total: --"
-            stateElements.remainingLabel = "Remaining: --"
-            gameMap.generateMapItems(
-                stateElements.mapItemCollectibleAsset,
-                stateElements.mapItemFinishAsset,
-                assetService
-            )
-            gameMap.generateMapEnemies(
-                stateElements.mapEnemyBlockerAsset,
-                stateElements.mapEnemyShooterAsset,
-                assetService
-            )
-            engine.initialize(gameMap, gameMap.collisionAsset, player, font)
-            particles.populateColorMap(assetService)
-            scoreService.gameMapItem = gameMap.items
-            refreshScoreLabels()
-            runtimeService.gameMapState = gameMap.state
-            runtimeService.lifeCycleState = LifeCycleState.INITIALIZED
-            //TODO Evaluate Log
-            logger.info { "splash loaded and game initialized" }
+            withContext(Dispatchers.Main) {
+                stateElements.viewPort = viewPort
+                stateElements.player = player
+                stateElements.gameMap = gameMap
+                stateElements.splashImage = splashImage
+                stateElements.endingImage = endingImage
+                this@UiController.splashImage = splashImage
+                this@UiController.endingImage = endingImage
+                stateElements.playerAsset = playerAsset
+                stateElements.mapItemCollectibleAsset = collectibleAsset
+                stateElements.mapItemFinishAsset = finishAsset
+                stateElements.mapEnemyBlockerAsset = blockerAsset
+                stateElements.mapEnemyShooterAsset = shooterAsset
+                stateElements.scoreLabel = "Score: --"
+                stateElements.totalLabel = "Total: --"
+                stateElements.remainingLabel = "Remaining: --"
+                gameMap.generateMapItems(
+                    stateElements.mapItemCollectibleAsset,
+                    stateElements.mapItemFinishAsset,
+                    assetService
+                )
+                gameMap.generateMapEnemies(
+                    stateElements.mapEnemyBlockerAsset,
+                    stateElements.mapEnemyShooterAsset,
+                    assetService
+                )
+                engine.initialize(gameMap, gameMap.collisionAsset, player, font)
+                particles.populateColorMap(assetService)
+                scoreService.gameMapItem = gameMap.items
+                refreshScoreLabels()
+                runtimeService.gameMapState = gameMap.state
+                runtimeService.lifeCycleState = LifeCycleState.INITIALIZED
+                //TODO Evaluate Log
+                logger.info { "splash loaded and game initialized" }
+            }
         }.onFailure {
             //TODO Evaluate Log
             logger.error { "init failed $it" }
