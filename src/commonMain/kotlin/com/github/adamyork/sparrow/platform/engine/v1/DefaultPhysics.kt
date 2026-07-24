@@ -74,8 +74,14 @@ class DefaultPhysics(
             else -> 0.0
         }
         val gravityEffect = physicsSettingsService.gravity * deltaTime
-        val nextY = (player.y + gravityEffect - (velocityY * deltaTime)).roundToInt()
+        val nextYUnbounded = (player.y + gravityEffect - (velocityY * deltaTime)).roundToInt()
             .coerceIn(collisionBoundaries.minY, collisionBoundaries.maxY)
+        val jumpApexY = player.originY - physicsSettingsService.jumpDistance.toInt()
+        val nextY = if (player.jumping == PlayerJumpingState.RISING) {
+            nextYUnbounded.coerceAtLeast(jumpApexY)
+        } else {
+            nextYUnbounded
+        }
         val nextJumping = player.getNextJumpState(
             nextY = nextY,
             topBoundary = collisionBoundaries.top,

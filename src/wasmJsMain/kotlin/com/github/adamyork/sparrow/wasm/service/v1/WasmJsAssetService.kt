@@ -68,12 +68,22 @@ class WasmJsAssetService(
         }
         val deferredBackground = async { fetchBlob(appProperties.audio.background) }
         deferredAudios.forEach { (key, deferred) ->
-            val blob = deferred.await()
-            audioMap[key] = platformInterop.createAudioBlobUri(blob)
-            listener.onTaskCompleted(key.name)
+            try {
+                val blob = deferred.await()
+                audioMap[key] = platformInterop.createAudioBlobUri(blob)
+                listener.onTaskCompleted(key.name)
+            } catch (failure: Throwable) {
+                listener.onTaskFailed(key.name, failure)
+                throw failure
+            }
         }
-        listener.onTaskCompleted(appProperties.audio.background)
-        backgroundAudio = platformInterop.createAudioBlobUri(deferredBackground.await())
+        try {
+            backgroundAudio = platformInterop.createAudioBlobUri(deferredBackground.await())
+            listener.onTaskCompleted(appProperties.audio.background)
+        } catch (failure: Throwable) {
+            listener.onTaskFailed(appProperties.audio.background, failure)
+            throw failure
+        }
     }
 
     override fun getBackgroundAudio(): String = backgroundAudio

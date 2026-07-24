@@ -8,4 +8,6 @@ interface LoadingProgressListener {
 
     fun onTaskCompleted(taskId: String)
 
+    fun onTaskFailed(taskId: String, cause: Throwable? = null)
+
 }

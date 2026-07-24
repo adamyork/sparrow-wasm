@@ -118,6 +118,7 @@ class Player(
     var movingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var jumpingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var collisionFrames: HashMap<Int, FrameMetadata> = HashMap()
+    var originY: Int = y
 
     override var state: ElementState = state
         set(value) {
@@ -128,7 +129,13 @@ class Player(
     var jumping: PlayerJumpingState = jumping
         set(value) {
             if (field != value) {
-                logger.debug { "Player jumping changed: $field -> $value" }
+                logger.debug { "Player jumping changed: $field -> $value (x=$x, y=$y)" }
+                if (value == PlayerJumpingState.INITIAL) {
+                    originY = y
+                }
+                if (value == PlayerJumpingState.GROUNDED) {
+                    originY = y
+                }
             }
             field = value
         }
@@ -208,7 +215,8 @@ class Player(
         jumpDistance: Double
     ): PlayerJumpingState {
         val reachedCeiling = nextY <= topBoundary
-        val reachedJumpApex = jumping == PlayerJumpingState.RISING && nextY <= (bottomBoundary - jumpDistance)
+        val jumpApexY = originY - jumpDistance.toInt()
+        val reachedJumpApex = jumping == PlayerJumpingState.RISING && nextY <= jumpApexY
         val hitGround = nextY >= bottomBoundary
         val isDescending = nextY > y
         if (hitGround) return PlayerJumpingState.GROUNDED

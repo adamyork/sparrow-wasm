@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.github.adamyork.sparrow.platform.service.LoadingProgressListener
 import com.github.adamyork.sparrow.platform.service.data.LoadingTask
+import com.github.adamyork.sparrow.platform.service.data.LoadingTaskStatus
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
@@ -71,11 +72,24 @@ class LoadingViewModel : ViewModel(), LoadingProgressListener {
     )
 
     override fun onTaskCompleted(taskId: String) {
+        if (taskId.isBlank()) return
         loadingTasks.firstOrNull { it.id == taskId }?.let { task ->
             logger.info { "Checklist item completed: ${task.id} (${task.label})" }
         }
         loadingTasks = loadingTasks.map {
-            if (it.id == taskId) it.copy(isCompleted = true) else it
+            if (it.id == taskId) it.copy(status = LoadingTaskStatus.COMPLETED) else it
+        }
+    }
+
+    override fun onTaskFailed(taskId: String, cause: Throwable?) {
+        if (taskId.isBlank()) return
+        loadingTasks.firstOrNull { it.id == taskId }?.let { task ->
+            logger.error(cause) {
+                "Checklist item failed: ${task.id} (${task.label}): ${cause?.message ?: "no message"}"
+            }
+        }
+        loadingTasks = loadingTasks.map {
+            if (it.id == taskId) it.copy(status = LoadingTaskStatus.FAILED) else it
         }
     }
 

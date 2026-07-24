@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material3.*
@@ -32,6 +33,7 @@ import com.github.adamyork.sparrow.platform.common.data.ControlType
 import com.github.adamyork.sparrow.platform.common.data.LifeCycleState
 import com.github.adamyork.sparrow.platform.common.data.map.GameMapState
 import com.github.adamyork.sparrow.platform.service.RuntimeService
+import com.github.adamyork.sparrow.platform.service.data.LoadingTaskStatus
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -353,14 +355,24 @@ abstract class PlatformUiMain(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         controller.loadingTasks.forEach { task ->
+                            val statusIcon = when (task.status) {
+                                LoadingTaskStatus.COMPLETED -> Icons.Default.CheckCircle
+                                LoadingTaskStatus.FAILED -> Icons.Default.Cancel
+                                LoadingTaskStatus.PENDING -> Icons.Default.Circle
+                            }
+                            val statusColor = when (task.status) {
+                                LoadingTaskStatus.COMPLETED -> Color.Green
+                                LoadingTaskStatus.FAILED -> Color.Red
+                                LoadingTaskStatus.PENDING -> Color.Gray
+                            }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
-                                    imageVector = if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.Circle,
+                                    imageVector = statusIcon,
                                     contentDescription = null,
-                                    tint = if (task.isCompleted) Color.Green else Color.Gray,
+                                    tint = statusColor,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))

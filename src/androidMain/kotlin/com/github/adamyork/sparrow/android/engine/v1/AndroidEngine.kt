@@ -28,6 +28,7 @@ import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
+import androidx.core.graphics.withScale
 
 @AppScope
 @Inject
@@ -139,9 +140,7 @@ class AndroidEngine(
         val foregroundCanvas = Canvas(foregroundBitmap)
         foregroundCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
         drawMapElements(map.items, viewPort, foregroundCanvas, false)
-        if (hasVisibleActiveElements(map.enemies, viewPort)) {
-            drawMapElements(map.enemies, viewPort, foregroundCanvas, true)
-        }
+        drawMapElements(map.enemies, viewPort, foregroundCanvas, true)
         drawParticles(map, viewPort, foregroundCanvas, mapItem, mapItemImage)
         drawPlayer(player, viewPort, foregroundCanvas, playerImage)
         runtimeService.lastPaintTime = timestamp
@@ -214,36 +213,19 @@ class AndroidEngine(
         isFlipped: Boolean
     ) {
         spriteDstRect.set(localX, localY, localX + element.width, localY + element.height)
-        val targetBitmap = if (isFlipped) getOrCreateFlippedFrame(image, element) else image
-        if (isFlipped) {
-            spriteSrcRect.set(0, 0, element.width, element.height)
-        } else {
-            // Clamp frame selection so invalid metadata doesn't result in an empty draw on Android.
-            val sx = element.frameMetadata.cell.x.coerceIn(0, (image.width - element.width).coerceAtLeast(0))
-            val sy = element.frameMetadata.cell.y.coerceIn(0, (image.height - element.height).coerceAtLeast(0))
-            spriteSrcRect.set(sx, sy, sx + element.width, sy + element.height)
-        }
-        canvas.drawBitmap(targetBitmap, spriteSrcRect, spriteDstRect, paint)
-    }
-
-    private fun getOrCreateFlippedFrame(image: Bitmap, element: GameElement): Bitmap {
         val srcX = element.frameMetadata.cell.x
         val srcY = element.frameMetadata.cell.y
-        val width = element.width
-        val height = element.height
-        val cacheKey = "${image.hashCode()}:$srcX:$srcY:$width:$height"
-        (flippedFrameCache[cacheKey] as? AndroidPlatformImage)?.let { return it.bitmap }
+        val sx = srcX.coerceIn(0, (image.width - element.width).coerceAtLeast(0))
+        val sy = srcY.coerceIn(0, (image.height - element.height).coerceAtLeast(0))
+        spriteSrcRect.set(sx, sy, sx + element.width, sy + element.height)
 
-        val boundedX = srcX.coerceIn(0, (image.width - width).coerceAtLeast(0))
-        val boundedY = srcY.coerceIn(0, (image.height - height).coerceAtLeast(0))
-
-        val frame = Bitmap.createBitmap(image, boundedX, boundedY, width, height)
-        val matrix = Matrix().apply { preScale(-1f, 1f) }
-        val flipped = Bitmap.createBitmap(frame, 0, 0, width, height, matrix, true)
-        frame.recycle()
-        val platformImage = AndroidPlatformImage(flipped)
-        flippedFrameCache[cacheKey] = platformImage
-        return flipped
+        if (isFlipped) {
+            canvas.withScale(-1f, 1f, spriteDstRect.exactCenterX(), spriteDstRect.exactCenterY()) {
+                drawBitmap(image, spriteSrcRect, spriteDstRect, paint)
+            }
+        } else {
+            canvas.drawBitmap(image, spriteSrcRect, spriteDstRect, paint)
+        }
     }
 
     private fun drawParticles(

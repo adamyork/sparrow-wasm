@@ -69,11 +69,24 @@ class UiController(
             val loadedAssets = coroutineScope {
                 loaders.map { (key, loader) ->
                     async(Dispatchers.Default) {
-                        val value = loader()
-                        withContext(Dispatchers.Main) {
-                            viewModel.onTaskCompleted(LoadingViewModel.mapKeyToTaskId(key))
+                        try {
+                            val value = loader()
+                            val mappedTaskId = LoadingViewModel.mapKeyToTaskId(key)
+                            if (mappedTaskId.isNotBlank()) {
+                                withContext(Dispatchers.Main) {
+                                    viewModel.onTaskCompleted(mappedTaskId)
+                                }
+                            }
+                            key to value
+                        } catch (failure: Throwable) {
+                            val mappedTaskId = LoadingViewModel.mapKeyToTaskId(key)
+                            if (mappedTaskId.isNotBlank()) {
+                                withContext(Dispatchers.Main) {
+                                    viewModel.onTaskFailed(mappedTaskId, failure)
+                                }
+                            }
+                            throw failure
                         }
-                        key to value
                     }
                 }.awaitAll().toMap()
             }
@@ -126,7 +139,9 @@ class UiController(
                 runtimeService.lifeCycleState = LifeCycleState.INITIALIZED
             }
         }.onFailure { failure ->
-            logger.error(failure) { "initializeGame failed" }
+            logger.error(failure) {
+                "initializeGame failed: ${failure::class.simpleName}: ${failure.message ?: "no message"}"
+            }
         }
     }
 
@@ -146,8 +161,17 @@ class UiController(
 
     override fun onTaskCompleted(taskId: String) {
         val mappedTaskId = LoadingViewModel.mapKeyToTaskId(taskId)
+        if (mappedTaskId.isBlank()) return
         uiScope.launch {
             viewModel.onTaskCompleted(mappedTaskId)
+        }
+    }
+
+    override fun onTaskFailed(taskId: String, cause: Throwable?) {
+        val mappedTaskId = LoadingViewModel.mapKeyToTaskId(taskId)
+        if (mappedTaskId.isBlank()) return
+        uiScope.launch {
+            viewModel.onTaskFailed(mappedTaskId, cause)
         }
     }
 

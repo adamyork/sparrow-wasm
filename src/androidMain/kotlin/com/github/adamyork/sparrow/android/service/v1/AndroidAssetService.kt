@@ -86,12 +86,22 @@ class AndroidAssetService(
         }
         val deferredBackground = async { fetchBytes(appProperties.audio.background) }
         deferredAudios.forEach { (key, deferred) ->
-            val blob = deferred.await()
-            audioMap[key] = persistToTempAudioFile(blob)
-            listener.onTaskCompleted(key.name)
+            try {
+                val blob = deferred.await()
+                audioMap[key] = persistToTempAudioFile(blob)
+                listener.onTaskCompleted(key.name)
+            } catch (failure: Throwable) {
+                listener.onTaskFailed(key.name, failure)
+                throw failure
+            }
         }
-        listener.onTaskCompleted(appProperties.audio.background)
-        backgroundAudio = persistToTempAudioFile(deferredBackground.await())
+        try {
+            backgroundAudio = persistToTempAudioFile(deferredBackground.await())
+            listener.onTaskCompleted(appProperties.audio.background)
+        } catch (failure: Throwable) {
+            listener.onTaskFailed(appProperties.audio.background, failure)
+            throw failure
+        }
     }
 
     override fun getBackgroundAudio(): String = backgroundAudio
