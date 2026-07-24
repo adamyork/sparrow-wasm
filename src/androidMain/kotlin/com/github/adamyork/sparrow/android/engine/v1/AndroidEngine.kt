@@ -51,11 +51,6 @@ class AndroidEngine(
     platformInterop
 ) {
 
-    private val scratchSpriteDstRect = Rect()
-    private val scratchSpriteSrcRect = Rect()
-    private val scratchParticleSrcRect = Rect()
-    private val scratchParticleRectF = RectF()
-
     override var mapItem: Item = DefaultItem()
     override var mapItemImage: PlatformImage = AndroidPlatformImage(createPlaceholderBitmap())
     override var playerImage: PlatformImage = AndroidPlatformImage(createPlaceholderBitmap())
@@ -84,6 +79,11 @@ class AndroidEngine(
         colorFilter = PorterDuffColorFilter(0x8000FF00.toInt(), PorterDuff.Mode.SRC_ATOP)
     }
 
+    private val spriteDstRect = Rect()
+    private val spriteSrcRect = Rect()
+    private val particleSrcRect = Rect()
+    private val particleRectF = RectF()
+
     override fun getOrCreateForegroundSurface(viewPort: ViewPort): Any {
         val current = foregroundSurface as? Bitmap
         if (current == null || current.width != viewPort.width || current.height != viewPort.height) {
@@ -92,7 +92,12 @@ class AndroidEngine(
         return foregroundSurface as Bitmap
     }
 
-    override suspend fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
+    override suspend fun initialize(
+        gameMap: GameMap,
+        collisionImageAndBytes: ImageAndBytes,
+        player: Player,
+        font: Any
+    ) {
         withContext(Dispatchers.Default) {
             flippedFrameCache.clear()
             this@AndroidEngine.collision.collisionImage = collisionImageAndBytes
@@ -100,7 +105,8 @@ class AndroidEngine(
             val showItemDots = assetService.appProperties.map.itemDots.visible
             gameMap.items.forEach { item ->
                 val bitmap = if (showItemDots) {
-                    val markedBytes = assetService.drawId(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
+                    val markedBytes =
+                        assetService.drawId(item.imageAndBytes.bytes, item.id, item.width, item.height, font)
                     requireNotNull(BitmapFactory.decodeByteArray(markedBytes, 0, markedBytes.size)) {
                         "Failed to decode marked item image"
                     }
@@ -173,7 +179,8 @@ class AndroidEngine(
         canvas: Canvas,
         transformDirection: Boolean
     ) {
-        for (element in elements) {
+        for (i in elements.indices) {
+            val element = elements[i]
             if (element.state != ElementState.INACTIVE && element.cullingCheck(viewPort)) {
                 val localX = element.x - viewPort.x
                 val localY = element.y - viewPort.y
@@ -206,18 +213,17 @@ class AndroidEngine(
         paint: Paint,
         isFlipped: Boolean
     ) {
-        scratchSpriteDstRect.set(localX, localY, localX + element.width, localY + element.height)
+        spriteDstRect.set(localX, localY, localX + element.width, localY + element.height)
         val targetBitmap = if (isFlipped) getOrCreateFlippedFrame(image, element) else image
         if (isFlipped) {
-            scratchSpriteSrcRect.set(0, 0, element.width, element.height)
+            spriteSrcRect.set(0, 0, element.width, element.height)
         } else {
             // Clamp frame selection so invalid metadata doesn't result in an empty draw on Android.
             val sx = element.frameMetadata.cell.x.coerceIn(0, (image.width - element.width).coerceAtLeast(0))
             val sy = element.frameMetadata.cell.y.coerceIn(0, (image.height - element.height).coerceAtLeast(0))
-            scratchSpriteSrcRect.set(sx, sy, sx + element.width, sy + element.height)
+            spriteSrcRect.set(sx, sy, sx + element.width, sy + element.height)
         }
-
-        canvas.drawBitmap(targetBitmap, scratchSpriteSrcRect, scratchSpriteDstRect, paint)
+        canvas.drawBitmap(targetBitmap, spriteSrcRect, spriteDstRect, paint)
     }
 
     private fun getOrCreateFlippedFrame(image: Bitmap, element: GameElement): Bitmap {
@@ -250,16 +256,15 @@ class AndroidEngine(
         val vpX = viewPort.x.toFloat()
         val vpY = viewPort.y.toFloat()
         val particlePaint = particlePaint as Paint
-
-        for (particle in map.particles) {
+        for (i in map.particles.indices) {
+            val particle = map.particles[i]
             if (!particle.cullingCheck(viewPort)) continue
-
             if (particle.type == ParticleType.MAP_ITEM_RETURN) {
                 if (mapItem != null && mapItemImage is AndroidPlatformImage) {
                     val localX = particle.x.toFloat() - vpX
                     val localY = particle.y.toFloat() - vpY
-                    scratchParticleSrcRect.set(0, 0, mapItem.width, mapItem.height)
-                    scratchParticleRectF.set(
+                    particleSrcRect.set(0, 0, mapItem.width, mapItem.height)
+                    particleRectF.set(
                         localX,
                         localY,
                         localX + particle.width.toFloat(),
@@ -267,14 +272,13 @@ class AndroidEngine(
                     )
                     canvas.drawBitmap(
                         mapItemImage.bitmap,
-                        scratchParticleSrcRect,
-                        scratchParticleRectF,
+                        particleSrcRect,
+                        particleRectF,
                         mapItemReturnPaint as Paint
                     )
                 }
                 continue
             }
-
             val lifetime = if (particle.lifetime <= 0) 1 else particle.lifetime
             val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
             val alphaMultiplier = when {
@@ -286,11 +290,11 @@ class AndroidEngine(
             particlePaint.color = particleColorArgb(particle, alphaMultiplier)
             val x = particle.x.toFloat() - vpX
             val y = particle.y.toFloat() - vpY
-            scratchParticleRectF.set(x, y, x + particle.width.toFloat(), y + particle.height.toFloat())
+            particleRectF.set(x, y, x + particle.width.toFloat(), y + particle.height.toFloat())
             if (particle.shape == ParticleShape.CIRCLE) {
-                canvas.drawOval(scratchParticleRectF, particlePaint)
+                canvas.drawOval(particleRectF, particlePaint)
             } else {
-                canvas.drawRect(scratchParticleRectF, particlePaint)
+                canvas.drawRect(particleRectF, particlePaint)
             }
         }
     }
