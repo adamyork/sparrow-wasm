@@ -32,10 +32,10 @@ data class GlobalAssetConfig(val asset: AssetDimensions)
  * Copyright (c) Adam York
  */
 @Serializable
-data class EngineConfig(val fps: FpsTarget)
-
-@Serializable
-data class FpsTarget(val target: Int, val animation: Int = 12)
+data class EngineConfig(
+    val tickTargetPerSec: Int,
+    val spriteAnimationFramePerSec: Int = 12
+)
 
 @Serializable
 data class ViewportConfig(val x: Int, val y: Int, val width: Int, val height: Int)

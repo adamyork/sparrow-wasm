@@ -1,7 +1,6 @@
 engine:
-  fps:
-    target: 60
-    animation: 12
+  tickTargetPerSec: 60
+  spriteAnimationFramePerSec: 12
 viewport:
   x: 0
   y: 768

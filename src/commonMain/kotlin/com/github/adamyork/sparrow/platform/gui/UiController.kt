@@ -22,6 +22,8 @@ import com.github.adamyork.sparrow.platform.service.data.LoadingTask
 import com.github.adamyork.sparrow.platform.service.v1.LoadingViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
+import kotlin.math.round
+import kotlin.time.TimeSource
 
 /**
  * Author: Adam York
@@ -37,10 +39,19 @@ class UiController(
     private val screenDimensionsService: ScreenDimensionsService
 ) : LoadingProgressListener {
 
+    private companion object {
+        const val TICK_TRACE_SAMPLE_FRAMES: Int = 120
+    }
+
     private val logger = KotlinLogging.logger {}
     private val viewModel = LoadingViewModel()
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var lastLoggedScoreSnapshot: Triple<Int, Int, Int>? = null
+    private var tickTraceFrameCount: Int = 0
+    private var tickTraceUpdateMsTotal: Double = 0.0
+    private var tickTraceDrawMsTotal: Double = 0.0
+    private var tickTraceTotalMsTotal: Double = 0.0
+    private var tickTraceMaxTotalMs: Double = 0.0
 
     val stateElements: StateElements = StateElements.emptyStateElements
     var splashImage: ImageBitmap? by mutableStateOf(null)
@@ -186,16 +197,18 @@ class UiController(
     }
 
     fun tick(timestamp: Double): UiState {
-        val currentFps = runtimeService.getFps()
+        val traceEnabled = logger.isTraceEnabled()
+        val tickStartMark = if (traceEnabled) TimeSource.Monotonic.markNow() else null
         val elements = stateElements
         if (runtimeService.lifeCycleState != LifeCycleState.INITIALIZING) {
             runtimeService.gameMapState = elements.gameMap.state
         }
         val statusText = assetService.getTextForGameState(runtimeService.gameMapState)
+        val fpsLabel = { "FPS: ${runtimeService.getFps().toInt()}" }
         if (runtimeService.lifeCycleState != LifeCycleState.RUNNING || runtimeService.lifeCycleState == LifeCycleState.INITIALIZING) {
             return UiState(
                 drawResult = DrawResult.EMPTY_DRAW_RESULT,
-                fpsLabel = "FPS: ${currentFps.toInt()}",
+                fpsLabel = fpsLabel(),
                 gameStatusLabel = statusText.message,
                 gameStatusLabelColor = statusText.color,
                 scoreLabel = elements.scoreLabel,
@@ -205,6 +218,7 @@ class UiController(
                 completionTransitionRequested = false
             )
         }
+        val updateStartMark = if (traceEnabled) TimeSource.Monotonic.markNow() else null
         val collisionBoundaries = engine.getCollisionBoundaries(elements.player)
         engine.managePlayer(elements.player, collisionBoundaries)
         engine.manageViewport(elements.player, elements.viewPort)
@@ -213,16 +227,20 @@ class UiController(
 
         scoreService.gameMapItem = elements.gameMap.items
         refreshScoreLabels()
+        val updateMs = updateStartMark?.let { nanosToMs(it.elapsedNow().inWholeNanoseconds) } ?: 0.0
+
+        val drawStartMark = if (traceEnabled) TimeSource.Monotonic.markNow() else null
         val drawResult = engine.draw(elements.gameMap, elements.viewPort, elements.player, timestamp)
+        val drawMs = drawStartMark?.let { nanosToMs(it.elapsedNow().inWholeNanoseconds) } ?: 0.0
         wavService.playNext()
         val currentGameState = elements.gameMap.state
         runtimeService.gameMapState = currentGameState
         if (currentGameState == GameMapState.COMPLETED && runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
             pause()
         }
-        return UiState(
+        val uiState = UiState(
             drawResult = drawResult,
-            fpsLabel = "FPS: ${currentFps.toInt()}",
+            fpsLabel = fpsLabel(),
             gameStatusLabel = statusText.message,
             gameStatusLabelColor = statusText.color,
             scoreLabel = elements.scoreLabel,
@@ -231,6 +249,42 @@ class UiController(
             gameMapState = currentGameState,
             completionTransitionRequested = currentGameState == GameMapState.COMPLETED
         )
+        if (traceEnabled && tickStartMark != null) {
+            val totalTickMs = nanosToMs(tickStartMark.elapsedNow().inWholeNanoseconds)
+            recordTickTrace(updateMs = updateMs, drawMs = drawMs, totalTickMs = totalTickMs)
+        }
+        return uiState
+    }
+
+    private fun recordTickTrace(updateMs: Double, drawMs: Double, totalTickMs: Double) {
+        tickTraceFrameCount += 1
+        tickTraceUpdateMsTotal += updateMs
+        tickTraceDrawMsTotal += drawMs
+        tickTraceTotalMsTotal += totalTickMs
+        tickTraceMaxTotalMs = tickTraceMaxTotalMs.coerceAtLeast(totalTickMs)
+        if (tickTraceFrameCount < TICK_TRACE_SAMPLE_FRAMES) {
+            return
+        }
+        val sampleFrames = tickTraceFrameCount.toDouble()
+        logger.trace {
+            "TickTiming frames=$tickTraceFrameCount " +
+                "avgMs(update=${formatTraceMs(tickTraceUpdateMsTotal / sampleFrames)}, " +
+                "draw=${formatTraceMs(tickTraceDrawMsTotal / sampleFrames)}, " +
+                "total=${formatTraceMs(tickTraceTotalMsTotal / sampleFrames)}) " +
+                "maxTotalMs=${formatTraceMs(tickTraceMaxTotalMs)}"
+        }
+        tickTraceFrameCount = 0
+        tickTraceUpdateMsTotal = 0.0
+        tickTraceDrawMsTotal = 0.0
+        tickTraceTotalMsTotal = 0.0
+        tickTraceMaxTotalMs = 0.0
+    }
+
+    private fun nanosToMs(valueNanos: Long): Double = valueNanos.toDouble() / 1_000_000.0
+
+    private fun formatTraceMs(value: Double): String {
+        val roundedValue = round(value * 1000.0) / 1000.0
+        return roundedValue.toString()
     }
 
     fun applyInput(controlType: ControlType, controlAction: ControlAction) {

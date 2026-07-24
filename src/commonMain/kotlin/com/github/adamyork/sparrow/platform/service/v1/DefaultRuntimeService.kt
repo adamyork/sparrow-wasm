@@ -47,7 +47,7 @@ class DefaultRuntimeService(
     private var currentFrameTime: Double = 0.0
 
     override fun getDeltaTimeCoefficient(): Double {
-        val targetFps = assetService.appProperties.engine.fps.target.toDouble()
+        val targetFps = assetService.appProperties.engine.tickTargetPerSec.toDouble()
         val targetDeltaTimeMs = 1000.0 / targetFps
         if (lastPaintTime <= 0.0 || currentFrameTime <= 0.0) {
             return 1.0

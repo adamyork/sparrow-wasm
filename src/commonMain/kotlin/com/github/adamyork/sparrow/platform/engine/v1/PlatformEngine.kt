@@ -31,6 +31,8 @@ import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import com.github.adamyork.sparrow.platform.service.data.ImageAsset
 import io.github.oshai.kotlinlogging.KotlinLogging
 import me.tatarka.inject.annotations.Inject
+import kotlin.math.round
+import kotlin.time.TimeSource
 
 /**
  * Author: Adam York
@@ -47,7 +49,19 @@ abstract class PlatformEngine @AppScope @Inject constructor(
     val platformInterop: PlatformInterop
 ) : Engine {
 
+    private companion object {
+        const val COLLISION_TRACE_SAMPLE_FRAMES: Int = 120
+    }
+
     private val logger = KotlinLogging.logger {}
+    private var pendingBoundaryCollisionMs: Double = 0.0
+    private var collisionTraceFrameCount: Int = 0
+    private var collisionTraceBoundaryMsTotal: Double = 0.0
+    private var collisionTraceItemMsTotal: Double = 0.0
+    private var collisionTraceEnemyMsTotal: Double = 0.0
+    private var collisionTraceProjectileMsTotal: Double = 0.0
+    private var collisionTraceTotalMsTotal: Double = 0.0
+    private var collisionTraceMaxTotalMs: Double = 0.0
 
     protected open var mapItem: Item = DefaultItem()
     abstract var mapItemImage: PlatformImage
@@ -76,8 +90,15 @@ abstract class PlatformEngine @AppScope @Inject constructor(
         throw Exception("must implemented")
     }
 
-    override fun getCollisionBoundaries(player: Player): CollisionBoundaries =
-        collision.getCollisionBoundaries(player)
+    override fun getCollisionBoundaries(player: Player): CollisionBoundaries {
+        if (!logger.isTraceEnabled()) {
+            return collision.getCollisionBoundaries(player)
+        }
+        val boundaryStartMark = TimeSource.Monotonic.markNow()
+        val boundaries = collision.getCollisionBoundaries(player)
+        pendingBoundaryCollisionMs = nanosToMs(boundaryStartMark.elapsedNow().inWholeNanoseconds)
+        return boundaries
+    }
 
     override fun managePlayer(player: Player, collisionBoundaries: CollisionBoundaries) {
         physics.applyPlayerPhysics(player, collisionBoundaries, collision)
@@ -127,7 +148,7 @@ abstract class PlatformEngine @AppScope @Inject constructor(
         viewPort.lastX = viewPort.x
         viewPort.lastY = viewPort.y
         if (previousX != nextX || previousY != nextY) {
-            logger.info { "Viewport moved: ($previousX, $previousY) -> ($nextX, $nextY)" }
+            logger.debug { "Viewport moved: ($previousX, $previousY) -> ($nextX, $nextY)" }
         }
     }
 
@@ -150,13 +171,86 @@ abstract class PlatformEngine @AppScope @Inject constructor(
     }
 
     override fun manageEnemyAndItemCollision(player: Player, map: GameMap, viewPort: ViewPort) {
+        if (!logger.isTraceEnabled()) {
+            collision.applyAllItemCollision(player, map, audioQueue)
+            collision.applyEnemyAndProximityCollision(player, map, viewPort, audioQueue, particles)
+            collision.applyProjectileCollision(player, map, viewPort, audioQueue, particles)
+            if (player.colliding == GameElementCollisionState.COLLIDING) {
+                adjustMapAfterItemCollision(map)
+            }
+            return
+        }
+
+        val itemCollisionStartMark = TimeSource.Monotonic.markNow()
         collision.applyAllItemCollision(player, map, audioQueue)
+        val itemCollisionMs = nanosToMs(itemCollisionStartMark.elapsedNow().inWholeNanoseconds)
+
+        val enemyCollisionStartMark = TimeSource.Monotonic.markNow()
         collision.applyEnemyAndProximityCollision(player, map, viewPort, audioQueue, particles)
+        val enemyCollisionMs = nanosToMs(enemyCollisionStartMark.elapsedNow().inWholeNanoseconds)
+
+        val projectileCollisionStartMark = TimeSource.Monotonic.markNow()
         collision.applyProjectileCollision(player, map, viewPort, audioQueue, particles)
+        val projectileCollisionMs = nanosToMs(projectileCollisionStartMark.elapsedNow().inWholeNanoseconds)
+
         if (player.colliding == GameElementCollisionState.COLLIDING) {
             adjustMapAfterItemCollision(map)
         }
+
+        recordCollisionTrace(
+            boundaryMs = pendingBoundaryCollisionMs,
+            itemMs = itemCollisionMs,
+            enemyMs = enemyCollisionMs,
+            projectileMs = projectileCollisionMs
+        )
+        pendingBoundaryCollisionMs = 0.0
     }
+
+    private fun recordCollisionTrace(
+        boundaryMs: Double,
+        itemMs: Double,
+        enemyMs: Double,
+        projectileMs: Double
+    ) {
+        collisionTraceFrameCount += 1
+        collisionTraceBoundaryMsTotal += boundaryMs
+        collisionTraceItemMsTotal += itemMs
+        collisionTraceEnemyMsTotal += enemyMs
+        collisionTraceProjectileMsTotal += projectileMs
+        val totalMs = boundaryMs + itemMs + enemyMs + projectileMs
+        collisionTraceTotalMsTotal += totalMs
+        collisionTraceMaxTotalMs = collisionTraceMaxTotalMs.coerceAtLeast(totalMs)
+        if (collisionTraceFrameCount < COLLISION_TRACE_SAMPLE_FRAMES) {
+            return
+        }
+
+        val sampleFrames = collisionTraceFrameCount.toDouble()
+        logger.trace {
+            "CollisionTiming[${collision::class.simpleName}] " +
+                "frames=$collisionTraceFrameCount " +
+                "avgMs(boundary=${formatTraceMs(collisionTraceBoundaryMsTotal / sampleFrames)}, " +
+                "item=${formatTraceMs(collisionTraceItemMsTotal / sampleFrames)}, " +
+                "enemy=${formatTraceMs(collisionTraceEnemyMsTotal / sampleFrames)}, " +
+                "projectile=${formatTraceMs(collisionTraceProjectileMsTotal / sampleFrames)}, " +
+                "total=${formatTraceMs(collisionTraceTotalMsTotal / sampleFrames)}) " +
+                "maxTotalMs=${formatTraceMs(collisionTraceMaxTotalMs)}"
+        }
+
+        collisionTraceFrameCount = 0
+        collisionTraceBoundaryMsTotal = 0.0
+        collisionTraceItemMsTotal = 0.0
+        collisionTraceEnemyMsTotal = 0.0
+        collisionTraceProjectileMsTotal = 0.0
+        collisionTraceTotalMsTotal = 0.0
+        collisionTraceMaxTotalMs = 0.0
+    }
+
+    private fun formatTraceMs(value: Double): String {
+        val roundedValue = round(value * 1000.0) / 1000.0
+        return roundedValue.toString()
+    }
+
+    private fun nanosToMs(valueNanos: Long): Double = valueNanos.toDouble() / 1_000_000.0
 
     protected fun manageMapItems(gameMap: GameMap) {
         for ((index, item) in gameMap.items.withIndex()) {
@@ -237,7 +331,7 @@ abstract class PlatformEngine @AppScope @Inject constructor(
             GameElementCollisionState.FREE,
             platformInterop,
             0,
-            assetService.appProperties.engine.fps.animation.toDouble()
+            assetService.appProperties.engine.spriteAnimationFramePerSec.toDouble()
         )
     }
 

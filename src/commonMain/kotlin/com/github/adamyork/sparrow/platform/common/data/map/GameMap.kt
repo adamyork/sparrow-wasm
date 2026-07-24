@@ -107,7 +107,7 @@ class GameMap(
     }
 
     fun generateMapItems(collectibleItemAsset: ImageAsset, finishItemAsset: ImageAsset, assetService: AssetService) {
-        val animationFps = assetService.appProperties.engine.fps.animation.toDouble()
+        val animationFps = assetService.appProperties.engine.spriteAnimationFramePerSec.toDouble()
         for (itemIndex in 0..<assetService.getTotalItems()) {
             val position = assetService.getItemPosition(itemIndex)
             val itemType = ItemType.from(position.type)
@@ -130,7 +130,7 @@ class GameMap(
     }
 
     fun generateMapEnemies(blockerEnemyAsset: ImageAsset, shooterEnemyAsset: ImageAsset, assetService: AssetService) {
-        val animationFps = assetService.appProperties.engine.fps.animation.toDouble()
+        val animationFps = assetService.appProperties.engine.spriteAnimationFramePerSec.toDouble()
         for (enemyIndex in 0..<assetService.getTotalEnemies()) {
             val enemyType = EnemyType.from(assetService.getEnemyPosition(enemyIndex).type)
             val position = assetService.getEnemyPosition(enemyIndex)

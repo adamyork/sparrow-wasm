@@ -94,6 +94,12 @@ class AndroidJsInterop : PlatformInterop {
     override fun requestAnimationFrame(callback: (Double) -> Unit): Int {
         val frameId = frameIdCounter.getAndIncrement()
         val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
+            val shouldInvoke = synchronized(frameCallbacks) {
+                frameCallbacks.remove(frameId) != null
+            }
+            if (!shouldInvoke) {
+                return@FrameCallback
+            }
             val frameTimeMs = frameTimeNanos / 1_000_000.0
             lastFrameTimeMs = frameTimeMs
             callback(frameTimeMs)
