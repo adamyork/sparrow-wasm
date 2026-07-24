@@ -13,7 +13,7 @@ player:
   width: 128
   height: 128
   x: 0
-  y: 1408
+  y: 1350
 global:
     splash:
         asset:

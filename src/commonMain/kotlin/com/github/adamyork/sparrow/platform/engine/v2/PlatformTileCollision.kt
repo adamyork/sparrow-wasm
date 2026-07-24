@@ -37,7 +37,6 @@ abstract class PlatformTileCollision(
     companion object {
         const val COLLISION_COLOR_VALUE: Int = -16711906
         private const val TILE_SIZE: Int = 16
-        private const val SOLID_THRESHOLD_RATIO: Float = 0.20f // Lowered slightly to ensure thin lines/edges catch
         private const val SHOOTER_PROXIMITY_THRESHOLD_SQUARED: Int =
             ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD * ShooterEnemy.PLAYER_PROXIMITY_THRESHOLD
     }
@@ -57,13 +56,19 @@ abstract class PlatformTileCollision(
     private var cachedBoundaries: CollisionBoundaries? = null
 
     override fun cacheCollisionPixels() {
-        bitmapWidth = collisionImage.imageBitmap.width
-        bitmapHeight = collisionImage.imageBitmap.height
+        throw RuntimeException("Must Implement")
+    }
+
+    protected fun populateTileMapFromPixelSource(
+        width: Int,
+        height: Int,
+        isCollisionPixel: (Int, Int) -> Boolean
+    ) {
+        bitmapWidth = width
+        bitmapHeight = height
         tilesColumns = (bitmapWidth + TILE_SIZE - 1) / TILE_SIZE
         tilesRows = (bitmapHeight + TILE_SIZE - 1) / TILE_SIZE
         solidTileMap = BooleanArray(tilesColumns * tilesRows)
-
-        val bytes = collisionImage.bytes
 
         for (row in 0 until tilesRows) {
             for (col in 0 until tilesColumns) {
@@ -72,29 +77,17 @@ abstract class PlatformTileCollision(
                 val endX = (startX + TILE_SIZE).coerceAtMost(bitmapWidth)
                 val endY = (startY + TILE_SIZE).coerceAtMost(bitmapHeight)
 
-                var matchCount = 0
-                val totalPixelsInTile = (endX - startX) * (endY - startY)
-
+                var tileIsSolid = false
                 for (y in startY until endY) {
-                    val rowOffset = y * bitmapWidth
                     for (x in startX until endX) {
-                        val pixelIndex = (rowOffset + x) * 4
-                        if (pixelIndex + 3 < bytes.size) {
-                            val b1 = bytes[pixelIndex].toInt() and 0xFF
-                            val b2 = bytes[pixelIndex + 1].toInt() and 0xFF
-                            val b3 = bytes[pixelIndex + 2].toInt() and 0xFF
-                            val b4 = bytes[pixelIndex + 3].toInt() and 0xFF
-                            val pixelColor = (b4 shl 24) or (b3 shl 16) or (b2 shl 8) or b1
-
-                            if (pixelColor == COLLISION_COLOR_VALUE) {
-                                matchCount++
-                            }
+                        if (isCollisionPixel(x, y)) {
+                            tileIsSolid = true
+                            break
                         }
                     }
+                    if (tileIsSolid) break
                 }
-
-                val density = matchCount.toFloat() / totalPixelsInTile
-                solidTileMap[row * tilesColumns + col] = density >= SOLID_THRESHOLD_RATIO
+                solidTileMap[row * tilesColumns + col] = tileIsSolid
             }
         }
     }
@@ -118,7 +111,8 @@ abstract class PlatformTileCollision(
         player: Player,
         collisionBoundaries: CollisionBoundaries
     ) {
-        // Intentionally left as a no-op per requirements
+        collisionBoundaries.left = findEdgeTile(player.x, player, Direction.LEFT)
+        collisionBoundaries.right = findEdgeTile(player.x, player, Direction.RIGHT)
     }
 
     private fun findFloorTile(startY: Int, player: Player): Int {

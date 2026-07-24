@@ -9,7 +9,7 @@ import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.Physics
 import com.github.adamyork.sparrow.platform.engine.v1.DefaultParticles
 import com.github.adamyork.sparrow.platform.engine.v1.DefaultPhysics
-import com.github.adamyork.sparrow.wasm.engine.v1.WasmJsCollisionV2
+import com.github.adamyork.sparrow.wasm.engine.v2.WasmJsTileCollision
 import com.github.adamyork.sparrow.wasm.engine.v1.WasmJsEngine
 import me.tatarka.inject.annotations.Provides
 
@@ -25,7 +25,7 @@ interface EngineConfig {
 
     @AppScope
     @Provides
-    fun provideCollision(impl: WasmJsCollisionV2): Collision = impl
+    fun provideCollision(impl: WasmJsTileCollision): Collision = impl
 
     @AppScope
     @Provides
