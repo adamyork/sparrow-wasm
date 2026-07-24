@@ -67,7 +67,12 @@ abstract class PlatformEngine @AppScope @Inject constructor(
 
     abstract fun getOrCreateForegroundSurface(viewPort: ViewPort): Any
 
-    override suspend fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
+    override suspend fun initialize(
+        gameMap: GameMap,
+        collisionImageAndBytes: ImageAndBytes,
+        player: Player,
+        font: Any
+    ) {
         throw Exception("must implemented")
     }
 
@@ -101,11 +106,19 @@ abstract class PlatformEngine @AppScope @Inject constructor(
                 } else viewPort.x
             }
         }
+        val viewPortTopBoundary = viewPort.y + (viewPort.height * 0.3f)
+        val viewPortBottomBoundary = viewPort.y + (viewPort.height * 0.7f)
+
         val nextY = when {
-            player.y < viewPort.y -> (viewPort.y - (viewPort.y - player.y)).coerceAtLeast(0)
-            (player.y + player.height) > (viewPort.y + viewPort.height) -> (viewPort.y + (player.y - viewPort.y)).coerceAtMost(
-                collision.collisionImage.imageBitmap.height - viewPort.height
-            )
+            player.y < viewPortTopBoundary -> {
+                (viewPort.y - (viewPortTopBoundary - player.y))
+                    .coerceAtLeast(0F).toInt()
+            }
+
+            (player.y + player.height) > viewPortBottomBoundary -> {
+                (viewPort.y + ((player.y + player.height) - viewPortBottomBoundary))
+                    .coerceAtMost((collision.collisionImage.imageBitmap.height - viewPort.height).toFloat()).toInt()
+            }
 
             else -> viewPort.y
         }
