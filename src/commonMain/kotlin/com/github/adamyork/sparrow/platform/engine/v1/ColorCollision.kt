@@ -15,6 +15,7 @@ import com.github.adamyork.sparrow.platform.engine.Collision
 import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.Physics
 import com.github.adamyork.sparrow.platform.engine.data.CollisionBoundaries
+import com.github.adamyork.sparrow.platform.engine.data.CollisionEdgeInfo
 import com.github.adamyork.sparrow.platform.engine.data.Particle
 import com.github.adamyork.sparrow.platform.engine.data.ParticleType
 import com.github.adamyork.sparrow.platform.service.ScoreService
@@ -29,7 +30,7 @@ import kotlin.math.absoluteValue
  */
 @AppScope
 @Inject
-abstract class PlatformCollision(
+abstract class ColorCollision(
     private val physics: Physics,
     private val scoreService: ScoreService
 ) : Collision {
@@ -78,6 +79,18 @@ abstract class PlatformCollision(
         collisionBoundaries.right = findEdgeIterative(player.x, player, Direction.RIGHT)
     }
 
+    protected fun getCollisionEdgeInfo(startX: Int, player: Player, direction: Direction): CollisionEdgeInfo {
+        val movementDelta = player.vx.absoluteValue.toInt()
+        val maxLookAhead = movementDelta + 2
+        val maxPossibleX = bitmapWidth - player.width
+        val range = if (direction == Direction.RIGHT) {
+            startX until (startX + maxLookAhead).coerceAtMost(maxPossibleX)
+        } else {
+            startX downTo (startX - maxLookAhead).coerceAtLeast(0)
+        }
+        return CollisionEdgeInfo(movementDelta, maxLookAhead, maxPossibleX, range)
+    }
+
     private fun findFloorIterative(startY: Int, player: Player): Int {
         for (y in startY until bitmapHeight) {
             if (testMaskCollision(player.x, y, player.width, 1)) return y - player.height
@@ -93,22 +106,16 @@ abstract class PlatformCollision(
     }
 
     private fun findEdgeIterative(startX: Int, player: Player, direction: Direction): Int {
-        val movementDelta = player.vx.absoluteValue.toInt()
-        val maxLookAhead = movementDelta + 2
-        val maxPossibleX = bitmapWidth - player.width
-        val range = if (direction == Direction.RIGHT) {
-            startX until (startX + maxLookAhead).coerceAtMost(maxPossibleX)
-        } else {
-            startX downTo (startX - maxLookAhead).coerceAtLeast(0)
-        }
-        for (x in range) {
+        val collisionEdgeInfo = getCollisionEdgeInfo(startX, player, direction)
+        for (x in collisionEdgeInfo.range) {
             val checkX = if (direction == Direction.RIGHT) x + player.width - 1 else x
             if (testMaskCollision(checkX.coerceIn(0, bitmapWidth - 1), player.y, 1, player.height)) {
                 return if (direction == Direction.RIGHT) x - 1 else x + 1
             }
         }
-        val endPosition = if (direction == Direction.RIGHT) startX + maxLookAhead else startX - maxLookAhead
-        return endPosition.coerceIn(0, maxPossibleX)
+        val endPosition =
+            if (direction == Direction.RIGHT) startX + collisionEdgeInfo.maxLookAhead else startX - collisionEdgeInfo.maxLookAhead
+        return endPosition.coerceIn(0, collisionEdgeInfo.maxPossibleX)
     }
 
     private fun testMaskCollision(x: Int, y: Int, width: Int, height: Int): Boolean {

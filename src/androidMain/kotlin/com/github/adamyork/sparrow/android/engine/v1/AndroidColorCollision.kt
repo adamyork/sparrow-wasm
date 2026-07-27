@@ -3,7 +3,7 @@ package com.github.adamyork.sparrow.android.engine.v1
 import android.graphics.BitmapFactory
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.engine.Physics
-import com.github.adamyork.sparrow.platform.engine.v1.PlatformCollision
+import com.github.adamyork.sparrow.platform.engine.v1.ColorCollision
 import com.github.adamyork.sparrow.platform.service.ScoreService
 import me.tatarka.inject.annotations.Inject
 
@@ -13,10 +13,10 @@ import me.tatarka.inject.annotations.Inject
  */
 @AppScope
 @Inject
-class AndroidCollision(
+class AndroidColorCollision(
     physics: Physics,
     scoreService: ScoreService
-) : PlatformCollision(physics, scoreService) {
+) : ColorCollision(physics, scoreService) {
 
     override fun cacheCollisionPixels() {
         val bitmap = BitmapFactory.decodeByteArray(collisionImage.bytes, 0, collisionImage.bytes.size)
