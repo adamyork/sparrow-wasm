@@ -8,16 +8,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.unit.IntSize
-import com.github.adamyork.sparrow.android.engine.data.AndroidPlatformImage
-import com.github.adamyork.sparrow.platform.engine.data.PlatformImage
-import com.github.adamyork.sparrow.platform.gui.PlatformUiDrawLayer
+import com.github.adamyork.sparrow.android.engine.data.AndroidImage
+import com.github.adamyork.sparrow.platform.engine.data.CommonImage
+import com.github.adamyork.sparrow.platform.gui.UiDrawLayer
 import com.github.adamyork.sparrow.platform.gui.ScreenDimensionsService
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : PlatformUiDrawLayer(
+class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : UiDrawLayer(
     screenDimensionsService
 ) {
 
@@ -47,7 +47,7 @@ class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : Pla
         ) {
             image?.let { foreground ->
                 val imageBitmap = when (foreground) {
-                    is AndroidPlatformImage -> foreground.bitmap.asImageBitmap()
+                    is AndroidImage -> foreground.bitmap.asImageBitmap()
                     is android.graphics.Bitmap -> foreground.asImageBitmap()
                     is ImageBitmap -> foreground
                     else -> return@let
@@ -56,7 +56,7 @@ class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : Pla
                     val targetWidth = size.width.toInt()
                     val targetHeight = size.height.toInt()
                     val nativeBitmap = when (foreground) {
-                        is AndroidPlatformImage -> foreground.bitmap
+                        is AndroidImage -> foreground.bitmap
                         is android.graphics.Bitmap -> foreground
                         else -> null
                     }
@@ -75,7 +75,7 @@ class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : Pla
         }
     }
 
-    override fun drawForeground(image: PlatformImage) {
+    override fun drawForeground(image: CommonImage) {
         foregroundBitmap = image
     }
 

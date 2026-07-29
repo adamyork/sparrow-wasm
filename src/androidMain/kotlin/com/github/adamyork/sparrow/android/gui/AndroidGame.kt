@@ -5,8 +5,8 @@ import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.engine.Engine
 import com.github.adamyork.sparrow.platform.engine.Particles
-import com.github.adamyork.sparrow.platform.gui.PlatformGame
-import com.github.adamyork.sparrow.platform.gui.PlatformQuitUi
+import com.github.adamyork.sparrow.platform.gui.Game
+import com.github.adamyork.sparrow.platform.gui.QuitUi
 import com.github.adamyork.sparrow.platform.gui.ScreenDimensionsService
 import com.github.adamyork.sparrow.platform.gui.UiController
 import com.github.adamyork.sparrow.platform.service.AssetService
@@ -30,8 +30,8 @@ class AndroidGame(
     private val wavService: WavService,
     private val screenDimensionsService: ScreenDimensionsService,
     private val platformInterop: PlatformInterop,
-    private val platformQuitUi: PlatformQuitUi
-) : PlatformGame {
+    private val platformQuitUi: QuitUi
+) : Game {
 
     private val controller = UiController(
         assetService = assetService,

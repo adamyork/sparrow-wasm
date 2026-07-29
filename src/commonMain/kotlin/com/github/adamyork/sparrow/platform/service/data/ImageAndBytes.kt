@@ -1,12 +1,18 @@
 package com.github.adamyork.sparrow.platform.service.data
 
 import androidx.compose.ui.graphics.ImageBitmap
+import com.github.adamyork.sparrow.platform.service.AbstractPlatformAssetService
 
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
 data class ImageAndBytes(val bytes: ByteArray, val imageBitmap: ImageBitmap) {
+
+    companion object {
+        fun getTmpImageAndBytes(): ImageAndBytes =
+            ImageAndBytes(byteArrayOf(), AbstractPlatformAssetService.getTmpImageBitmap())
+    }
 
     override fun equals(other: Any?): Boolean {
         return this === other || other is ImageAndBytes &&

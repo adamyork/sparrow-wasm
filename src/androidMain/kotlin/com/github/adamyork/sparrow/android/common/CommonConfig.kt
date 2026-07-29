@@ -3,7 +3,7 @@ package com.github.adamyork.sparrow.android.common
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.common.AudioQueue
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
-import com.github.adamyork.sparrow.platform.common.v1.DefaultAudioQueue
+import com.github.adamyork.sparrow.platform.common.CommonAudioQueue
 import me.tatarka.inject.annotations.Provides
 
 /**
@@ -16,10 +16,10 @@ interface CommonConfig {
 
     @AppScope
     @Provides
-    fun provideAudioQueue(impl: DefaultAudioQueue): AudioQueue = impl
+    fun provideAudioQueue(impl: CommonAudioQueue): AudioQueue = impl
 
     @AppScope
     @Provides
-    fun providePlatformInterop(impl: AndroidJsInterop): PlatformInterop = impl
+    fun providePlatformInterop(impl: AndroidInterop): PlatformInterop = impl
 
 }

@@ -1,12 +1,10 @@
 package com.github.adamyork.sparrow.android.service
 
-import com.github.adamyork.sparrow.android.service.v1.AndroidAssetService
-import com.github.adamyork.sparrow.android.service.v1.AndroidWavService
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.service.*
-import com.github.adamyork.sparrow.platform.service.v1.DefaultPhysicsSettingsService
-import com.github.adamyork.sparrow.platform.service.v1.DefaultRuntimeService
-import com.github.adamyork.sparrow.platform.service.v1.DefaultScoreService
+import com.github.adamyork.sparrow.platform.service.CommonPhysicsSettingsService
+import com.github.adamyork.sparrow.platform.service.CommonRuntimeService
+import com.github.adamyork.sparrow.platform.service.CommonScoreService
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
@@ -24,11 +22,11 @@ interface ServiceConfig {
 
     @AppScope
     @Provides
-    fun providePhysicsSettingsService(impl: DefaultPhysicsSettingsService): PhysicsSettingsService = impl
+    fun providePhysicsSettingsService(impl: CommonPhysicsSettingsService): PhysicsSettingsService = impl
 
     @AppScope
     @Provides
-    fun provideScoreService(impl: DefaultScoreService): ScoreService = impl
+    fun provideScoreService(impl: CommonScoreService): ScoreService = impl
 
     @AppScope
     @Provides
@@ -46,7 +44,7 @@ interface ServiceConfig {
 
     @AppScope
     @Provides
-    fun provideRuntimeService(impl: DefaultRuntimeService): RuntimeService = impl
+    fun provideRuntimeService(impl: CommonRuntimeService): RuntimeService = impl
 
 
 }

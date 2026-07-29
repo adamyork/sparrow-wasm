@@ -41,10 +41,10 @@ class Particle(
 
     fun cullingCheck(viewPort: ViewPort): Boolean {
         val localCord = viewPort.globalToLocal(x, y)
-        return localCord.second < viewPort.height &&
-            localCord.second > -VISIBILITY_BUFFER &&
-            localCord.first > -VISIBILITY_BUFFER &&
-            localCord.first < viewPort.width + VISIBILITY_BUFFER
+        return localCord.y < viewPort.height &&
+            localCord.y > -VISIBILITY_BUFFER &&
+            localCord.x > -VISIBILITY_BUFFER &&
+            localCord.x < viewPort.width + VISIBILITY_BUFFER
     }
 
     fun isActiveVisibleCollisionParticle(viewPort: ViewPort): Boolean {

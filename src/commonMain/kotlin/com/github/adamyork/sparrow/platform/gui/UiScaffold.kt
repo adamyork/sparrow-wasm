@@ -20,7 +20,7 @@ class UiScaffold {
 
     @Composable
     fun BuildGui(
-        game: PlatformGame,
+        game: Game,
         sparrowColorScheme: SparrowColorScheme
     ) {
         MaterialTheme(

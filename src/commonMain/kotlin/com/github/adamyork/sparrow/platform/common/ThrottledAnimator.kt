@@ -34,7 +34,6 @@ interface ThrottledAnimator {
         if (animationTickBufferMs < animationFrameIntervalMs) {
             return false
         }
-        // Drop backlog after hitches instead of playing catch-up bursts that look like stutter.
         animationTickBufferMs %= animationFrameIntervalMs
         animationTickCounter = 0
         return true

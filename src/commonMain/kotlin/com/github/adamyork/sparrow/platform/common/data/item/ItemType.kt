@@ -20,6 +20,7 @@ enum class ItemType {
                 }
 
                 else -> {
+                    // TODO custom error
                     throw IllegalArgumentException("Unknown map item type $literalValue")
                 }
             }

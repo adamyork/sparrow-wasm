@@ -1,13 +1,15 @@
 package com.github.adamyork.sparrow.platform.common.data
 
+import androidx.compose.ui.unit.IntOffset
+
 /**
  * Author: Adam York
  * Copyright (c) Adam York
  */
 class ViewPort(var x: Int, var y: Int, var lastX: Int, var lastY: Int, val width: Int, val height: Int) {
 
-    fun globalToLocal(x: Int, y: Int): Pair<Int, Int> {
-        return Pair(x - this.x, y - this.y)
+    fun globalToLocal(x: Int, y: Int): IntOffset {
+        return IntOffset(x - this.x, y - this.y)
     }
 
 }

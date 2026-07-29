@@ -22,7 +22,6 @@ interface PlatformInterop {
 
     fun isTouchDevice(): Boolean
 
-
     fun <T> addEventListener(type: String, callback: (T) -> Unit)
 
     fun <T> removeEventListener(type: String, callback: (T) -> Unit)

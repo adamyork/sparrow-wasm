@@ -6,11 +6,9 @@ import com.github.adamyork.sparrow.platform.service.PhysicsSettingsService
 import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.ScoreService
 import com.github.adamyork.sparrow.platform.service.WavService
-import com.github.adamyork.sparrow.platform.service.v1.DefaultPhysicsSettingsService
-import com.github.adamyork.sparrow.platform.service.v1.DefaultRuntimeService
-import com.github.adamyork.sparrow.platform.service.v1.DefaultScoreService
-import com.github.adamyork.sparrow.wasm.service.v1.WasmJsAssetService
-import com.github.adamyork.sparrow.wasm.service.v1.WasmWavService
+import com.github.adamyork.sparrow.platform.service.CommonPhysicsSettingsService
+import com.github.adamyork.sparrow.platform.service.CommonRuntimeService
+import com.github.adamyork.sparrow.platform.service.CommonScoreService
 import io.ktor.client.*
 import io.ktor.client.engine.js.*
 import io.ktor.client.plugins.*
@@ -28,11 +26,11 @@ interface ServiceConfig {
 
     @AppScope
     @Provides
-    fun providePhysicsSettingsService(impl: DefaultPhysicsSettingsService): PhysicsSettingsService = impl
+    fun providePhysicsSettingsService(impl: CommonPhysicsSettingsService): PhysicsSettingsService = impl
 
     @AppScope
     @Provides
-    fun provideScoreService(impl: DefaultScoreService): ScoreService = impl
+    fun provideScoreService(impl: CommonScoreService): ScoreService = impl
 
     @AppScope
     @Provides
@@ -50,7 +48,7 @@ interface ServiceConfig {
 
     @AppScope
     @Provides
-    fun provideRuntimeService(impl: DefaultRuntimeService): RuntimeService = impl
+    fun provideRuntimeService(impl: CommonRuntimeService): RuntimeService = impl
 
 
 }

@@ -10,26 +10,26 @@ import me.tatarka.inject.annotations.Provides
  */
 interface GuiConfig {
 
-    val game: PlatformGame
-    val platformQuitUi: PlatformQuitUi
+    val game: Game
+    val platformQuitUi: QuitUi
     val sparrowColorScheme: SparrowColorScheme
     val screenDimensionsService: ScreenDimensionsService
 
     @AppScope
     @Provides
-    fun provideGameLayer(impl: AndroidGame): PlatformGame = impl
+    fun provideGameLayer(impl: AndroidGame): Game = impl
 
     @AppScope
     @Provides
-    fun providePlatformQuitUi(impl: AndroidPlatformQuitUi): PlatformQuitUi = impl
+    fun providePlatformQuitUi(impl: AndroidPlatformQuitUi): QuitUi = impl
 
 
     @AppScope
     @Provides
-    fun provideSparrowColorScheme(impl: DefaultSparrowColorScheme): SparrowColorScheme = impl
+    fun provideSparrowColorScheme(impl: CommonSparrowColorScheme): SparrowColorScheme = impl
 
     @AppScope
     @Provides
-    fun provideScreenDimensionsService(impl: DefaultScreenDimensionsService): ScreenDimensionsService = impl
+    fun provideScreenDimensionsService(impl: CommonScreenDimensionsService): ScreenDimensionsService = impl
 
 }

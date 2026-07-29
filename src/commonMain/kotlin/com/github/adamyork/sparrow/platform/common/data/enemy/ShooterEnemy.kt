@@ -88,6 +88,7 @@ class ShooterEnemy(
         if (!shouldAdvanceAnimationFrame()) {
             return Pair(frameMetadata, FrameMetadataState(this.colliding, this.interacting, state))
         }
+        // TODO custom error
         var metadata = animatingFrames[1] ?: throw AnimationFrameException(animatingFrames.toString(), 1)
         var metadataState = FrameMetadataState(this.colliding, this.interacting, state)
         if (this.interacting == EnemyInteractionState.INTERACTING) {
@@ -96,6 +97,7 @@ class ShooterEnemy(
                 return Pair(metadata, metadataState)
             } else {
                 val nextFrame = frameMetadata.frame + 1
+                // TODO custom error
                 metadata = interactingFrames[nextFrame] ?: throw AnimationFrameException(
                     interactingFrames.toString(),
                     nextFrame

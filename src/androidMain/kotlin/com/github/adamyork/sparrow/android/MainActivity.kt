@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.android
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,7 +10,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.lifecycleScope
 import com.github.adamyork.sparrow.android.gui.AndroidPortraitGui
 import com.github.adamyork.sparrow.platform.LogConfig
-import com.github.adamyork.sparrow.platform.gui.PlatformGame
+import com.github.adamyork.sparrow.platform.gui.Game
 import com.github.adamyork.sparrow.platform.gui.SparrowColorScheme
 import com.github.adamyork.sparrow.platform.gui.UiScaffold
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -41,10 +42,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("ConfigurationScreenWidthHeight")
     @Composable
     private fun ScaffoldDelegate(
         component: AppConfig,
-        gameLayer: PlatformGame,
+        gameLayer: Game,
         sparrowColorScheme: SparrowColorScheme
     ) {
         val configuration = LocalConfiguration.current

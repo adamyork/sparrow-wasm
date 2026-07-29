@@ -12,10 +12,10 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.skiaCanvas
-import com.github.adamyork.sparrow.platform.engine.data.PlatformImage
-import com.github.adamyork.sparrow.platform.gui.PlatformUiDrawLayer
+import com.github.adamyork.sparrow.platform.engine.data.CommonImage
+import com.github.adamyork.sparrow.platform.gui.UiDrawLayer
 import com.github.adamyork.sparrow.platform.gui.ScreenDimensionsService
-import com.github.adamyork.sparrow.wasm.engine.data.WasmJsPlatformImage
+import com.github.adamyork.sparrow.wasm.engine.data.WasmJsImage
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.Rect
 import org.jetbrains.skia.SamplingMode
@@ -25,7 +25,7 @@ import org.jetbrains.skia.Image as SkiaImage
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class WasmJsUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : PlatformUiDrawLayer(
+class WasmJsUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : UiDrawLayer(
     screenDimensionsService
 ) {
 
@@ -74,9 +74,9 @@ class WasmJsUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : Plat
         }
     }
 
-    override fun drawForeground(image: PlatformImage) {
+    override fun drawForeground(image: CommonImage) {
         (foregroundBitmap as SkiaImage?)?.close()
-        foregroundBitmap = (image as WasmJsPlatformImage).image
+        foregroundBitmap = (image as WasmJsImage).image
     }
 
     override fun clearAllLayers() {

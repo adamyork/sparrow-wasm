@@ -1,6 +1,5 @@
 package com.github.adamyork.sparrow.platform.common.data.map
 
-import androidx.compose.ui.graphics.ImageBitmap
 import com.github.adamyork.sparrow.platform.common.data.ViewPort
 import com.github.adamyork.sparrow.platform.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.platform.common.data.enemy.EnemyType
@@ -47,7 +46,10 @@ class GameMap(
                 height: Int,
                 id: Int,
                 animationFps: Double
-            ) = throw UnsupportedOperationException("Empty GameMap does not create map elements")
+            ) = run {
+                // TODO custom error
+                throw UnsupportedOperationException("Empty GameMap does not create map elements")
+            }
 
             override fun createEnemy(
                 imageAsset: ImageAsset,
@@ -57,29 +59,17 @@ class GameMap(
                 height: Int,
                 id: Int,
                 animationFps: Double
-            ) = throw UnsupportedOperationException("Empty GameMap does not create map elements")
+            ) = run {
+                // TODO custom error
+                throw UnsupportedOperationException("Empty GameMap does not create map elements")
+            }
         }
         val emptyGameMap: GameMap = GameMap(
             state = GameMapState.COLLECTING,
-            farGroundAsset = ImageAsset(
-                1,
-                1,
-                ImageAndBytes(byteArrayOf(), ImageBitmap(1, 1))
-            ),
-            midGroundAsset = ImageAsset(
-                1,
-                1,
-                ImageAndBytes(byteArrayOf(), ImageBitmap(1, 1))
-            ),
-            nearFieldAsset = ImageAsset(
-                1,
-                1,
-                ImageAndBytes(byteArrayOf(), ImageBitmap(1, 1))
-            ),
-            collisionAsset = ImageAndBytes(
-                byteArrayOf(),
-                ImageBitmap(1, 1)
-            ),
+            farGroundAsset = ImageAsset.getTmpImageAsset(),
+            midGroundAsset = ImageAsset.getTmpImageAsset(),
+            nearFieldAsset = ImageAsset.getTmpImageAsset(),
+            collisionAsset = ImageAndBytes.getTmpImageAndBytes(),
             width = 1,
             height = 1,
             items = arrayListOf(),

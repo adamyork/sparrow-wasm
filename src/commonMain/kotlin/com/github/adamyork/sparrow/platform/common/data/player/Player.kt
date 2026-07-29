@@ -1,13 +1,10 @@
 package com.github.adamyork.sparrow.platform.common.data.player
 
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.ImageBitmap
+import com.github.adamyork.sparrow.platform.common.NullPlatformInterop
 import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.common.ThrottledAnimator
 import com.github.adamyork.sparrow.platform.common.data.*
 import com.github.adamyork.sparrow.platform.common.data.enemy.EnemyInteractionState
-import com.github.adamyork.sparrow.platform.gui.UiController
-import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.data.ImageAndBytes
 import io.github.oshai.kotlinlogging.KotlinLogging
 
@@ -44,54 +41,6 @@ class Player(
         const val ANIMATION_JUMPING_FRAMES = 8
         const val ANIMATION_COLLISION_FRAMES = 8
         const val IMMUNITY_TICKS_ON_HIT = 120
-        private val EMPTY_PLATFORM_INTEROP = object : PlatformInterop {
-            override fun onReady(action: () -> Unit) = Unit
-
-            override fun getWindowHeight(): Double = 0.0
-
-            override fun getWindowWidth(): Double = 0.0
-
-            override fun hidePlatformLoader() = Unit
-
-            override fun getPlatformNowTime(): Double = 0.0
-
-            override fun getBlobFromBytes(bytes: ByteArray): Any {
-                throw UnsupportedOperationException("Blob interop is not available for empty player")
-            }
-
-            override fun createAudioBlobUri(blob: Any): String {
-                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
-            }
-
-            override fun isTouchDevice(): Boolean {
-                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
-            }
-
-
-            override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
-                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
-            }
-
-            override fun <T> removeEventListener(type: String, callback: (T) -> Unit) {
-                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
-            }
-
-            override fun requestAnimationFrame(callback: (Double) -> Unit): Int {
-                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
-            }
-
-            override fun cancelAnimationFrame(handle: Int) {
-                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
-            }
-
-            @Composable
-            override fun InsertInputHandlers(
-                controller: UiController,
-                runtimeService: RuntimeService
-            ) {
-                throw UnsupportedOperationException("Audio URI interop is not available for empty player")
-            }
-        }
         val emptyPlayer: Player = Player(
             x = 0,
             y = 0,
@@ -99,14 +48,14 @@ class Player(
             height = 1,
             state = ElementState.INACTIVE,
             frameMetadata = FrameMetadata(1, Cell(1, 1, 1, 1)),
-            imageAndBytes = ImageAndBytes(byteArrayOf(), ImageBitmap(1, 1)),
+            imageAndBytes = ImageAndBytes.getTmpImageAndBytes(),
             vx = 0.0,
             vy = 0.0,
             jumping = PlayerJumpingState.GROUNDED,
             moving = PlayerMovingState.STATIONARY,
             direction = Direction.RIGHT,
             colliding = GameElementCollisionState.FREE,
-            platformInterop = EMPTY_PLATFORM_INTEROP,
+            platformInterop = NullPlatformInterop,
             immunityTicks = 0,
             animationTargetFps = 12.0,
             animationTickCounter = 0,
@@ -119,13 +68,11 @@ class Player(
     var jumpingFrames: HashMap<Int, FrameMetadata> = HashMap()
     var collisionFrames: HashMap<Int, FrameMetadata> = HashMap()
     var originY: Int = y
-
     override var state: ElementState = state
         set(value) {
             logStateChange(field, value)
             field = value
         }
-
     var jumping: PlayerJumpingState = jumping
         set(value) {
             if (field != value) {

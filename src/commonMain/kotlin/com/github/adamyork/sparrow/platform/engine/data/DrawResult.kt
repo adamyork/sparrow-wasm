@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
  * Copyright (c) Adam York
  */
 data class DrawResult(
-    val foregroundImage: PlatformImage?,
+    val foregroundImage: CommonImage?,
     val farGroundBitmap: ImageBitmap?,
     val farGroundOffsetX: Float,
     val farGroundOffsetY: Float,
