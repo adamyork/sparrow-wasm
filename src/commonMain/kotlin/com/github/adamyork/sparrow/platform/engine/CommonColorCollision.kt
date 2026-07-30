@@ -27,8 +27,7 @@ abstract class CommonColorCollision(
     private var cachedBoundaries: CollisionBoundaries? = null
 
     override fun cacheCollisionPixels() {
-        // TODO custom error
-        throw RuntimeException("Must Implement")
+        throw EngineException("Must Implement")
     }
 
     override fun getCollisionBoundaries(player: Player): CollisionBoundaries {

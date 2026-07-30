@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.github.adamyork.sparrow.platform.engine.EngineException
 import com.github.adamyork.sparrow.platform.engine.data.CommonImage
 import com.github.adamyork.sparrow.platform.gui.data.ScreenDimensions
 
@@ -147,8 +148,7 @@ abstract class UiDrawLayer(
     }
 
     open fun drawForeground(image: CommonImage) {
-        // TODO custom error
-        throw RuntimeException("must implement")
+        throw EngineException("must implement")
     }
 
     fun drawNearField(image: ImageBitmap, offsetX: Float = 0F, offsetY: Float = 0F) {
@@ -164,8 +164,7 @@ abstract class UiDrawLayer(
     }
 
     open fun clearAllLayers() {
-        // TODO custom error
-        throw RuntimeException("must implement")
+        throw EngineException("must implement")
     }
 
 }

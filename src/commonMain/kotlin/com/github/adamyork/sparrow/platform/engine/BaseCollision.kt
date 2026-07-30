@@ -176,8 +176,7 @@ abstract class BaseCollision(
         if (scoreService.getTotal() != scoreService.getRemaining()) {
             val firstMapItem =
                 gameMap.items.firstOrNull { it.type == ItemType.COLLECTABLE && it.state == ElementState.INACTIVE }
-                    // TODO custom error
-                    ?: throw IllegalStateException("needs to be at least one map item")
+                    ?: throw EngineException("needs to be at least one map item")
             particles.applyMapItemReturnParticle(player, firstMapItem, particleList)
         }
     }

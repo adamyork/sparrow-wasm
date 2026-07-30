@@ -25,13 +25,16 @@ fun main() {
             component.platformInterop.getWindowWidth().toInt(),
             component.platformInterop.getWindowHeight().toInt()
         )
-        (document.getElementById("ComposeTarget") as? HTMLElement)?.style?.apply {
-            width = "${component.platformInterop.getWindowWidth().toInt()}px"
-            height = "${component.platformInterop.getWindowHeight().toInt()}px"
-            minWidth = "${component.platformInterop.getWindowWidth().toInt()}px"
-            minHeight = "${component.platformInterop.getWindowHeight().toInt()}px"
-            maxWidth = "${component.platformInterop.getWindowWidth().toInt()}px"
-            maxHeight = "${component.platformInterop.getWindowHeight().toInt()}px"
+        (document.getElementById("ComposeTarget") as? HTMLElement)?.apply {
+            setAttribute("tabindex", "0")
+            style.apply {
+                width = "${component.platformInterop.getWindowWidth().toInt()}px"
+                height = "${component.platformInterop.getWindowHeight().toInt()}px"
+                minWidth = "${component.platformInterop.getWindowWidth().toInt()}px"
+                minHeight = "${component.platformInterop.getWindowHeight().toInt()}px"
+                maxWidth = "${component.platformInterop.getWindowWidth().toInt()}px"
+                maxHeight = "${component.platformInterop.getWindowHeight().toInt()}px"
+            }
         }
         component.platformInterop.hidePlatformLoader()
         val gameLayer = component.game
@@ -39,5 +42,6 @@ fun main() {
         ComposeViewport(viewportContainerId = "ComposeTarget") {
             UiScaffold().BuildGui(gameLayer, sparrowColorScheme)
         }
+        component.platformInterop.requestKeyboardFocus()
     }
 }

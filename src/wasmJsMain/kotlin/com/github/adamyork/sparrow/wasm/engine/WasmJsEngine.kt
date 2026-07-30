@@ -18,6 +18,7 @@ import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.Physics
 import com.github.adamyork.sparrow.platform.engine.data.*
 import com.github.adamyork.sparrow.platform.engine.CommonEngine
+import com.github.adamyork.sparrow.platform.engine.EngineException
 import com.github.adamyork.sparrow.platform.service.AssetService
 import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.ScoreService
@@ -178,8 +179,7 @@ class WasmJsEngine(
                     is Item -> itemImageCache[itemCacheKey(element)]
                     else -> null
                 }
-                // TODO custom error
-                val resolvedElementImage = elementImage ?: throw IllegalStateException("No image found for element")
+                val resolvedElementImage = elementImage ?: throw EngineException("No image found for element")
                 val isFlipped = transformDirection && element.nestedDirection() == Direction.LEFT
                 drawSprite(
                     canvas,

@@ -3,6 +3,7 @@ package com.github.adamyork.sparrow.wasm.engine
 import com.github.adamyork.sparrow.platform.AppScope
 import com.github.adamyork.sparrow.platform.engine.Physics
 import com.github.adamyork.sparrow.platform.engine.CommonTileCollision
+import com.github.adamyork.sparrow.platform.engine.EngineException
 import com.github.adamyork.sparrow.platform.service.ScoreService
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.skia.Bitmap
@@ -23,8 +24,7 @@ class WasmJsTileCollision(
         val image = Image.makeFromEncoded(collisionImage.bytes)
         val bitmap = Bitmap.makeFromImage(image)
         try {
-            // TODO custom error
-            val pixelMap = bitmap.peekPixels() ?: throw IllegalStateException("Failed to peek pixels")
+            val pixelMap = bitmap.peekPixels() ?: throw EngineException("Failed to peek pixels")
             populateTileMapFromPixelSource(bitmap.width, bitmap.height) { x, y ->
                 pixelMap.getColor(x, y) == COLLISION_COLOR_VALUE
             }

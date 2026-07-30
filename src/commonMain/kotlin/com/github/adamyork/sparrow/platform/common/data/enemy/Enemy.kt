@@ -30,7 +30,6 @@ interface Enemy : GameElement {
         animatingFrames: HashMap<Int, FrameMetadata>,
         collisionFrames: HashMap<Int, FrameMetadata>,
     ): Pair<FrameMetadata, FrameMetadataState> {
-        // TODO custom error
         var metadata = animatingFrames[1] ?: throw AnimationFrameException(animatingFrames.toString(), 1)
         var metadataState = FrameMetadataState(this.colliding, this.interacting, state)
         if (colliding == GameElementCollisionState.COLLIDING) {
@@ -40,7 +39,6 @@ interface Enemy : GameElement {
             } else {
                 val nextFrame = frameMetadata.frame + 1
                 metadata =
-                    // TODO custom error
                     collisionFrames[nextFrame] ?: throw AnimationFrameException(collisionFrames.toString(), nextFrame)
                 return Pair(metadata, metadataState)
             }

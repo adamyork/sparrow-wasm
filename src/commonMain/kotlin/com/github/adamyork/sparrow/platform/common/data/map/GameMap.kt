@@ -1,5 +1,6 @@
 package com.github.adamyork.sparrow.platform.common.data.map
 
+import com.github.adamyork.sparrow.platform.common.GameDataIntegrityException
 import com.github.adamyork.sparrow.platform.common.data.ViewPort
 import com.github.adamyork.sparrow.platform.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.platform.common.data.enemy.EnemyType
@@ -47,8 +48,7 @@ class GameMap(
                 id: Int,
                 animationFps: Double
             ) = run {
-                // TODO custom error
-                throw UnsupportedOperationException("Empty GameMap does not create map elements")
+                throw GameDataIntegrityException("Empty GameMap does not create map elements")
             }
 
             override fun createEnemy(
@@ -60,8 +60,7 @@ class GameMap(
                 id: Int,
                 animationFps: Double
             ) = run {
-                // TODO custom error
-                throw UnsupportedOperationException("Empty GameMap does not create map elements")
+                throw GameDataIntegrityException("Empty GameMap does not create map elements")
             }
         }
         val emptyGameMap: GameMap = GameMap(

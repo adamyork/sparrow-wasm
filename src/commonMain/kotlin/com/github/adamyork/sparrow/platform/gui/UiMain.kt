@@ -180,6 +180,7 @@ abstract class UiMain(
             if (gameLifeCycleState == LifeCycleState.RUNNING) {
                 // Force-clear any focused control so mobile button chrome is not retained in gameplay.
                 focusManager.clearFocus(force = true)
+                platformInterop.requestKeyboardFocus()
             }
         }
 
@@ -407,6 +408,7 @@ abstract class UiMain(
                         onClick = {
                             controller.start()
                             focusManager.clearFocus(force = true)
+                            platformInterop.requestKeyboardFocus()
                         },
                         enabled = gameLifeCycleState != LifeCycleState.RUNNING || gameLifeCycleState == LifeCycleState.COMPLETED,
                         colors = disabledButtonColors,

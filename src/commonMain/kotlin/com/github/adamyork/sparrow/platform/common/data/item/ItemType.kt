@@ -1,5 +1,7 @@
 package com.github.adamyork.sparrow.platform.common.data.item
 
+import com.github.adamyork.sparrow.platform.common.GameDataIntegrityException
+
 /**
  * Author: Adam York
  * Copyright (c) Adam York
@@ -20,8 +22,7 @@ enum class ItemType {
                 }
 
                 else -> {
-                    // TODO custom error
-                    throw IllegalArgumentException("Unknown map item type $literalValue")
+                    throw GameDataIntegrityException("Unknown map item type $literalValue")
                 }
             }
         }

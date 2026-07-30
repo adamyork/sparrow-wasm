@@ -69,8 +69,7 @@ abstract class CommonEngine @AppScope @Inject constructor(
         player: Player,
         font: Any
     ) {
-        // TODO custom error
-        throw Exception("must implemented")
+        throw EngineException("must implemented")
     }
 
     override fun getCollisionBoundaries(player: Player): CollisionBoundaries {
@@ -216,7 +215,6 @@ abstract class CommonEngine @AppScope @Inject constructor(
     }
 
     override fun draw(map: GameMap, viewPort: ViewPort, player: Player, timestamp: Double): DrawResult {
-        // TODO custom error
         throw Exception("must be implemented")
     }
 
