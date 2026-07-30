@@ -28,6 +28,8 @@ class WasmJsInterop : PlatformInterop {
 
     private val logger = KotlinLogging.logger {}
 
+    private val eventListenerWrappers = mutableMapOf<Pair<String, Any>, (Event) -> Unit>()
+
     override fun onReady(action: () -> Unit) {
         onWasmReady {
             action()
@@ -66,19 +68,26 @@ class WasmJsInterop : PlatformInterop {
 
 
     override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
-        val nativeCallback: (Event) -> Unit = { event ->
-            @Suppress("UNCHECKED_CAST")
-            callback(event as T)
+        logger.debug { "add event listener $type" }
+        val callbackKey = callback as Any
+        val listenerKey = type to callbackKey
+        val nativeCallback = eventListenerWrappers.getOrPut(listenerKey) {
+            { event ->
+                @Suppress("UNCHECKED_CAST")
+                callback(event as T)
+            }
         }
         window.addEventListener(type, nativeCallback)
     }
 
     override fun <T> removeEventListener(type: String, callback: (T) -> Unit) {
-        val nativeCallback: (Event) -> Unit = { event ->
-            @Suppress("UNCHECKED_CAST")
-            callback(event as T)
+        logger.debug { "remove event listener $type" }
+        val callbackKey = callback as Any
+        val listenerKey = type to callbackKey
+        val nativeCallback = eventListenerWrappers.remove(listenerKey)
+        if (nativeCallback != null) {
+            window.removeEventListener(type, nativeCallback)
         }
-        window.removeEventListener(type, nativeCallback)
     }
 
     override fun requestAnimationFrame(callback: (Double) -> Unit): Int {
@@ -97,41 +106,63 @@ class WasmJsInterop : PlatformInterop {
         runtimeService: RuntimeService
     ) {
         return LaunchedEffect(Unit) {
-            fun toControlAction(event: KeyboardEvent): ControlAction? {
-                return when (event.key.lowercase()) {
-                    "arrowleft" -> ControlAction.LEFT
-                    "arrowright" -> ControlAction.RIGHT
-                    " ", "space", "spacebar" -> ControlAction.JUMP
-                    else -> null
+            val activeKeys = mutableSetOf<String>()
+
+            fun evaluateInputs() {
+                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING) {
+                    val moveLeft = activeKeys.contains("arrowleft")
+                    val moveRight = activeKeys.contains("arrowright")
+                    val doJump = activeKeys.contains("space") || activeKeys.contains(" ") || activeKeys.contains("spacebar")
+
+                    controller.applyInput(if (moveLeft) ControlType.START else ControlType.STOP, ControlAction.LEFT)
+                    controller.applyInput(if (moveRight) ControlType.START else ControlType.STOP, ControlAction.RIGHT)
+                    controller.applyInput(if (doJump) ControlType.START else ControlType.STOP, ControlAction.JUMP)
                 }
             }
 
             val keyDownListener: (Event) -> Unit = { event ->
-                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
-                    val action = toControlAction(event)
-                    if (action != null) {
+                if (event is KeyboardEvent) {
+                    val code = event.code.lowercase()
+                    val key = event.key.lowercase()
+                    if (code == "arrowleft" || code == "arrowright" || code == "space" || key == " ") {
                         event.preventDefault()
-                        controller.applyInput(ControlType.START, action)
                     }
+                    activeKeys.add(code)
+                    activeKeys.add(key)
+                    evaluateInputs()
                 }
             }
 
             val keyUpListener: (Event) -> Unit = { event ->
-                if (runtimeService.lifeCycleState == LifeCycleState.RUNNING && event is KeyboardEvent) {
-                    val action = toControlAction(event)
-                    if (action != null) {
-                        event.preventDefault()
-                        controller.applyInput(ControlType.STOP, action)
-                    }
+                if (event is KeyboardEvent) {
+                    val code = event.code.lowercase()
+                    val key = event.key.lowercase()
+                    activeKeys.remove(code)
+                    activeKeys.remove(key)
+                    evaluateInputs()
                 }
             }
+
+            val resetAll: (Event) -> Unit = {
+                activeKeys.clear()
+                controller.applyInput(ControlType.STOP, ControlAction.LEFT)
+                controller.applyInput(ControlType.STOP, ControlAction.RIGHT)
+                controller.applyInput(ControlType.STOP, ControlAction.JUMP)
+            }
+
+            // Hooking into your existing global wrapper mechanism
             addEventListener("keydown", keyDownListener)
             addEventListener("keyup", keyUpListener)
+            addEventListener("blur", resetAll)
+            addEventListener("visibilitychange", resetAll)
+
             try {
                 awaitCancellation()
             } finally {
                 removeEventListener("keydown", keyDownListener)
                 removeEventListener("keyup", keyUpListener)
+                removeEventListener("blur", resetAll)
+                removeEventListener("visibilitychange", resetAll)
             }
         }
     }
