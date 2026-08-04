@@ -55,6 +55,7 @@ import org.khronos.webgl.DataView
 import org.khronos.webgl.toInt8Array
 import org.w3c.dom.HTMLCanvasElement
 import kotlin.math.ceil
+import kotlin.math.max
 
 /**
  * WebGPU collision-particle renderer used by the wasm GPU engine.
@@ -85,6 +86,9 @@ class WasmJsGpuParticleRenderer {
     private var context: GPUCanvasContext? = null
     private var queue: GPUQueue? = null
     private var presentationFormat: String = ""
+    private var computeWorkgroupCount: Int = 1
+    private var lastConfiguredCanvasWidth: Int = -1
+    private var lastConfiguredCanvasHeight: Int = -1
 
     private var stateBufferA: GPUBuffer? = null
     private var stateBufferB: GPUBuffer? = null
@@ -101,6 +105,11 @@ class WasmJsGpuParticleRenderer {
     private var computeBindGroupBtoA: GPUBindGroup? = null
     private var renderBindGroupA: GPUBindGroup? = null
     private var renderBindGroupB: GPUBindGroup? = null
+
+    private val computeUniformData = FloatArray(COMPUTE_UNIFORM_FLOATS)
+    private val renderUniformData = FloatArray(RENDER_UNIFORM_FLOATS)
+    private var uploadScratchBuffer: ArrayBuffer? = null
+    private var uploadScratchView: DataView? = null
 
     suspend fun initialize(
         maxParticleCapacity: Int,
@@ -138,6 +147,7 @@ class WasmJsGpuParticleRenderer {
         val particleBufferSize = maxParticles * FLOATS_PER_PARTICLE * BYTES_PER_FLOAT
         val computeUniformBytes = COMPUTE_UNIFORM_FLOATS * BYTES_PER_FLOAT
         val renderUniformBytes = RENDER_UNIFORM_FLOATS * BYTES_PER_FLOAT
+        computeWorkgroupCount = ceil(maxParticles.toDouble() / WORKGROUP_SIZE.toDouble()).toInt().coerceAtLeast(1)
 
         val createdStateA = createStorageBuffer(gpuDevice, particleBufferSize)
         val createdStateB = createStorageBuffer(gpuDevice, particleBufferSize)
@@ -227,6 +237,7 @@ class WasmJsGpuParticleRenderer {
     fun updateGpuParticleBuffer(
         activeParticleCount: Int,
         sourceBuffer: FloatArray,
+        dirtySlotRanges: List<IntRange>,
         deltaTimeSeconds: Float,
         gravity: Float,
         tickTargetPerSecond: Int,
@@ -246,39 +257,52 @@ class WasmJsGpuParticleRenderer {
         if (bindGroup == null) return
 
         val clampedSpawnCount = activeParticleCount.coerceIn(0, maxParticles)
-        writeFloatArrayBuffer(gpuQueue, spawn, sourceBuffer)
+        for (slotRange in dirtySlotRanges) {
+            val clampedStartSlot = slotRange.first.coerceIn(0, maxParticles)
+            val clampedEndExclusive = (slotRange.last + 1).coerceIn(clampedStartSlot, maxParticles)
+            val slotCount = clampedEndExclusive - clampedStartSlot
+            if (slotCount <= 0) continue
+            val rangeStartFloat = clampedStartSlot * FLOATS_PER_PARTICLE
+            val rangeFloatCount = slotCount * FLOATS_PER_PARTICLE
+            val targetOffsetBytes = rangeStartFloat * BYTES_PER_FLOAT
+            writeFloatArrayBufferRange(
+                queue = gpuQueue,
+                targetBuffer = spawn,
+                data = sourceBuffer,
+                sourceStartFloat = rangeStartFloat,
+                floatCount = rangeFloatCount,
+                targetOffsetBytes = targetOffsetBytes
+            )
+        }
 
         val tunedSpeed = speedCoefficient.coerceAtLeast(0.05f)
         val simulationSpeed = (1f + (tunedSpeed * 8f)).coerceAtLeast(1f)
         val gravityBoost = (1.5f + (tunedSpeed * 6f)).coerceAtLeast(1f)
         val lifetimeDecay = (1f + (tunedSpeed * 6f)).coerceAtLeast(1f)
         val dustGrowthPerTick = dustSpeedCoefficient.coerceAtLeast(0f)
-        val computeUniformData = floatArrayOf(
-            deltaTimeSeconds.coerceAtLeast(0.0001f),
-            gravity,
-            clampedSpawnCount.toFloat(),
-            maxParticles.toFloat(),
-            tickTargetPerSecond.coerceAtLeast(1).toFloat(),
-            simulationSpeed,
-            gravityBoost,
-            lifetimeDecay,
-            dustGrowthPerTick,
-            projectileSpeed.coerceAtLeast(0f),
-            mapItemReturnSpeed.coerceAtLeast(0f),
-            mapItemReturnMinTravelDist.coerceAtLeast(0f),
-            0f,
-            0f,
-            0f,
-            0f
-        )
+        computeUniformData[0] = deltaTimeSeconds.coerceAtLeast(0.0001f)
+        computeUniformData[1] = gravity
+        computeUniformData[2] = clampedSpawnCount.toFloat()
+        computeUniformData[3] = maxParticles.toFloat()
+        computeUniformData[4] = tickTargetPerSecond.coerceAtLeast(1).toFloat()
+        computeUniformData[5] = simulationSpeed
+        computeUniformData[6] = gravityBoost
+        computeUniformData[7] = lifetimeDecay
+        computeUniformData[8] = dustGrowthPerTick
+        computeUniformData[9] = projectileSpeed.coerceAtLeast(0f)
+        computeUniformData[10] = mapItemReturnSpeed.coerceAtLeast(0f)
+        computeUniformData[11] = mapItemReturnMinTravelDist.coerceAtLeast(0f)
+        computeUniformData[12] = 0f
+        computeUniformData[13] = 0f
+        computeUniformData[14] = 0f
+        computeUniformData[15] = 0f
         writeFloatArrayBuffer(gpuQueue, computeUniform, computeUniformData)
 
         val encoder: GPUCommandEncoder = createCommandEncoder(gpuDevice)
         val computePass: GPUComputePassEncoder = beginComputePass(encoder)
         setComputePipeline(computePass, pipeline)
         setComputeBindGroup(computePass, bindGroup)
-        val workgroups = ceil(maxParticles.toDouble() / WORKGROUP_SIZE.toDouble()).toInt().coerceAtLeast(1)
-        dispatchCompute(computePass, workgroups)
+        dispatchCompute(computePass, computeWorkgroupCount)
         endComputePass(computePass)
 
         val commandBuffer: GPUCommandBuffer = finishCommandEncoder(encoder)
@@ -294,19 +318,21 @@ class WasmJsGpuParticleRenderer {
         val pipeline = renderPipeline ?: return
         val targetCanvas = canvas ?: return
         if (targetCanvas.width <= 0 || targetCanvas.height <= 0) return
-        configureWebGpuContext(webGpuContext, gpuDevice, presentationFormat)
+        if (targetCanvas.width != lastConfiguredCanvasWidth || targetCanvas.height != lastConfiguredCanvasHeight) {
+            configureWebGpuContext(webGpuContext, gpuDevice, presentationFormat)
+            lastConfiguredCanvasWidth = targetCanvas.width
+            lastConfiguredCanvasHeight = targetCanvas.height
+        }
 
         val sizeScale = (sizeMultiplier.coerceAtLeast(1).toFloat() / 14f).coerceAtLeast(0.1f)
-        val renderUniformData = floatArrayOf(
-            viewPort.x.toFloat(),
-            viewPort.y.toFloat(),
-            targetCanvas.width.toFloat(),
-            targetCanvas.height.toFloat(),
-            getRenderScale(),
-            sizeScale,
-            0f,
-            0f
-        )
+        renderUniformData[0] = viewPort.x.toFloat()
+        renderUniformData[1] = viewPort.y.toFloat()
+        renderUniformData[2] = targetCanvas.width.toFloat()
+        renderUniformData[3] = targetCanvas.height.toFloat()
+        renderUniformData[4] = getRenderScale()
+        renderUniformData[5] = sizeScale
+        renderUniformData[6] = 0f
+        renderUniformData[7] = 0f
         val renderUniform = renderUniformBuffer ?: return
         writeFloatArrayBuffer(gpuQueue, renderUniform, renderUniformData)
 
@@ -326,16 +352,48 @@ class WasmJsGpuParticleRenderer {
     }
 
     private fun writeFloatArrayBuffer(queue: GPUQueue, targetBuffer: GPUBuffer, data: FloatArray) {
-        val buffer = ArrayBuffer(data.size * BYTES_PER_FLOAT)
-        val view = DataView(buffer)
-        var i = 0
-        while (i < data.size) {
-            view.setFloat32(i * BYTES_PER_FLOAT, data[i], true)
-            i++
-        }
-        queueWriteBuffer(queue, targetBuffer, buffer)
+        writeFloatArrayBufferRange(
+            queue = queue,
+            targetBuffer = targetBuffer,
+            data = data,
+            sourceStartFloat = 0,
+            floatCount = data.size,
+            targetOffsetBytes = 0
+        )
     }
 
+    private fun writeFloatArrayBufferRange(
+        queue: GPUQueue,
+        targetBuffer: GPUBuffer,
+        data: FloatArray,
+        sourceStartFloat: Int,
+        floatCount: Int,
+        targetOffsetBytes: Int
+    ) {
+        if (floatCount <= 0 || sourceStartFloat < 0 || (sourceStartFloat + floatCount) > data.size) return
+        val requiredBytes = floatCount * BYTES_PER_FLOAT
+        val (buffer, view) = getOrCreateUploadScratch(requiredBytes)
+        var i = 0
+        while (i < floatCount) {
+            view.setFloat32(i * BYTES_PER_FLOAT, data[sourceStartFloat + i], true)
+            i++
+        }
+        queueWriteBuffer(queue, targetBuffer, targetOffsetBytes, buffer, requiredBytes)
+    }
+
+    // Reuse host upload memory to avoid per-frame ArrayBuffer/DataView allocations.
+    private fun getOrCreateUploadScratch(requiredBytes: Int): Pair<ArrayBuffer, DataView> {
+        val currentBuffer = uploadScratchBuffer
+        val currentView = uploadScratchView
+        if (currentBuffer != null && currentView != null && currentBuffer.byteLength >= requiredBytes) {
+            return currentBuffer to currentView
+        }
+        val resizedBuffer = ArrayBuffer(max(requiredBytes, 1))
+        val resizedView = DataView(resizedBuffer)
+        uploadScratchBuffer = resizedBuffer
+        uploadScratchView = resizedView
+        return resizedBuffer to resizedView
+    }
 
     private fun getRenderScale(): Float = window.devicePixelRatio.toFloat().coerceAtLeast(1f)
 

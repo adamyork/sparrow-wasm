@@ -69,6 +69,7 @@ class WasmJsGpuEngine(
     private val gpuParticleSpawnBuffer = commonParticles.createGpuParticleComputeBuffer(gpuParticleBufferCapacity)
     private var gpuRendererReady: Boolean = false
     private var nextGpuSpawnSlot: Int = 0
+    private var previousGpuWrittenSlots: List<Int> = emptyList()
 
     override suspend fun initialize(
         gameMap: GameMap,
@@ -107,23 +108,24 @@ class WasmJsGpuEngine(
             else -> gameMap.state
         }
         ensureGpuRenderer()
-        val spawnedParticleCount = commonParticles.writeGpuParticleSpawnBuffer(
+        val spawnWriteResult = commonParticles.writeGpuParticleSpawnBuffer(
             gameMap.particles,
             gpuParticleSpawnBuffer,
             gpuParticleBufferCapacity,
-            startSlot = nextGpuSpawnSlot
+            startSlot = nextGpuSpawnSlot,
+            previouslyWrittenSlots = previousGpuWrittenSlots
         )
+        val spawnedParticleCount = spawnWriteResult.activeCount
+        previousGpuWrittenSlots = spawnWriteResult.writtenSlots
         if (spawnedParticleCount > 0) {
             nextGpuSpawnSlot = (nextGpuSpawnSlot + spawnedParticleCount) % gpuParticleBufferCapacity
-        }
-        if (spawnedParticleCount > 0) {
-            logger.debug { "Queued $spawnedParticleCount collision+dust+projectile+map-item-return particles for WebGPU" }
         }
         gameMap.particles.clear()
         val deltaTimeSeconds = runtimeService.getDeltaTimeSeconds()
         gpuParticleRenderer.updateGpuParticleBuffer(
             activeParticleCount = spawnedParticleCount,
             sourceBuffer = gpuParticleSpawnBuffer,
+            dirtySlotRanges = spawnWriteResult.dirtySlotRanges,
             deltaTimeSeconds = deltaTimeSeconds,
             gravity = physicsSettingsService.gravity.toFloat(),
             tickTargetPerSecond = assetService.appProperties.engine.tickTargetPerSec,

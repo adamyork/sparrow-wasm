@@ -154,9 +154,11 @@ fun getGpuQueue(@Suppress("UNUSED_PARAMETER") device: GPUDevice): GPUQueue = js(
 fun queueWriteBuffer(
     @Suppress("UNUSED_PARAMETER") queue: GPUQueue,
     @Suppress("UNUSED_PARAMETER") buffer: GPUBuffer,
-    @Suppress("UNUSED_PARAMETER") data: ArrayBuffer
+    @Suppress("UNUSED_PARAMETER") bufferOffsetBytes: Int,
+    @Suppress("UNUSED_PARAMETER") data: ArrayBuffer,
+    @Suppress("UNUSED_PARAMETER") dataSizeBytes: Int
 ) {
-    js("queue.writeBuffer(buffer, 0, data)")
+    js("queue.writeBuffer(buffer, bufferOffsetBytes, data, 0, dataSizeBytes)")
 }
 
 fun createCommandEncoder(@Suppress("UNUSED_PARAMETER") device: GPUDevice): GPUCommandEncoder =

@@ -7,6 +7,7 @@ import com.github.adamyork.sparrow.platform.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.platform.common.data.item.Item
 import com.github.adamyork.sparrow.platform.common.data.player.Player
 import com.github.adamyork.sparrow.platform.engine.data.Particle
+import com.github.adamyork.sparrow.platform.engine.data.ParticleWriteResult
 import com.github.adamyork.sparrow.platform.engine.data.ParticleShape
 import com.github.adamyork.sparrow.platform.engine.data.ParticleType
 import com.github.adamyork.sparrow.platform.service.AssetService
@@ -25,6 +26,7 @@ import kotlin.random.Random
 @AppScope
 @Inject
 class CommonParticles : Particles {
+
 
     companion object {
         const val MAX_SQUARE_RADIAL_RADIUS: Int = 45
@@ -189,17 +191,27 @@ class CommonParticles : Particles {
         mapParticles: List<Particle>,
         targetBuffer: FloatArray,
         maxParticles: Int = DEFAULT_GPU_PARTICLE_CAPACITY,
-        startSlot: Int = 0
-    ): Int {
+        startSlot: Int = 0,
+        previouslyWrittenSlots: List<Int> = emptyList()
+    ): ParticleWriteResult {
         var activeCount = 0
         val clampedMaxParticles = maxParticles.coerceAtLeast(0)
         val floatsPerParticle = GPU_COMPUTE_FLOATS_PER_PARTICLE
-        if (clampedMaxParticles == 0) return 0
+        if (clampedMaxParticles == 0) {
+            return ParticleWriteResult(activeCount = 0, dirtySlotRanges = emptyList(), writtenSlots = emptyList())
+        }
 
-        var clearIndex = 0
-        val maxFloatCount = clampedMaxParticles * floatsPerParticle
-        while (clearIndex < maxFloatCount && clearIndex < targetBuffer.size) {
-            targetBuffer[clearIndex++] = 0f
+        val dirtySlotFlags = BooleanArray(clampedMaxParticles)
+        val writtenSlotFlags = BooleanArray(clampedMaxParticles)
+        for (slotIndex in previouslyWrittenSlots) {
+            if (slotIndex < 0 || slotIndex >= clampedMaxParticles) continue
+            dirtySlotFlags[slotIndex] = true
+            val baseIndex = slotIndex * floatsPerParticle
+            var floatOffset = 0
+            while (floatOffset < floatsPerParticle && (baseIndex + floatOffset) < targetBuffer.size) {
+                targetBuffer[baseIndex + floatOffset] = 0f
+                floatOffset++
+            }
         }
 
         val reservedProjectileSlots = MAX_ACTIVE_PROJECTILES.coerceAtMost(clampedMaxParticles)
@@ -212,12 +224,6 @@ class CommonParticles : Particles {
         var slot = if (ringBufferCapacity > 0) startSlot.mod(ringBufferCapacity) else 0
         for (particle in mapParticles) {
             if (activeCount >= clampedMaxParticles) break
-            if (
-                particle.type != ParticleType.COLLISION &&
-                particle.type != ParticleType.DUST &&
-                particle.type != ParticleType.PROJECTILE &&
-                particle.type != ParticleType.MAP_ITEM_RETURN
-            ) continue
 
             val isProjectile = particle.type == ParticleType.PROJECTILE
             val isMapItemReturn = particle.type == ParticleType.MAP_ITEM_RETURN
@@ -288,12 +294,41 @@ class CommonParticles : Particles {
             targetBuffer[writeIndex++] = if (particle.shape == ParticleShape.CIRCLE) 1f else 0f
             targetBuffer[writeIndex++] = if (isMapItemReturn) spriteHeight else 0f
             targetBuffer[writeIndex] = 0f
+            dirtySlotFlags[slotIndex] = true
+            writtenSlotFlags[slotIndex] = true
             activeCount++
             if (!isProjectile && !isMapItemReturn && ringBufferCapacity > 0) {
                 slot = (slot + 1) % ringBufferCapacity
             }
         }
-        return activeCount
+
+        val dirtySlotRanges = mutableListOf<IntRange>()
+        var rangeStart = -1
+        for (slotIndex in dirtySlotFlags.indices) {
+            if (dirtySlotFlags[slotIndex]) {
+                if (rangeStart == -1) {
+                    rangeStart = slotIndex
+                }
+            } else if (rangeStart != -1) {
+                dirtySlotRanges.add(rangeStart..(slotIndex - 1))
+                rangeStart = -1
+            }
+        }
+        if (rangeStart != -1) {
+            dirtySlotRanges.add(rangeStart..dirtySlotFlags.lastIndex)
+        }
+
+        val writtenSlots = mutableListOf<Int>()
+        for (slotIndex in writtenSlotFlags.indices) {
+            if (!writtenSlotFlags[slotIndex]) continue
+            writtenSlots.add(slotIndex)
+        }
+
+        return ParticleWriteResult(
+            activeCount = activeCount,
+            dirtySlotRanges = dirtySlotRanges,
+            writtenSlots = writtenSlots
+        )
     }
 
     private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int {
