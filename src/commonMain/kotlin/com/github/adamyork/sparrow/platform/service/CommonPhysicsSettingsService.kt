@@ -25,6 +25,7 @@ class CommonPhysicsSettingsService : PhysicsSettingsService {
     override var minActiveVelocity: Double = 0.5
     override var collisionKnockbackStrength: Int = 15
     override var collisionParticleSpeedCoefficient: Double = .25
+    override var collisionParticleFrameGrowthMultiplier: Double = 1.0
     override var collisionParticleSizeMultiplier: Int = 10
     override var mapItemReturnParticleMinTravelDist: Double = 5.0
     override var mapItemReturnParticleSpeed: Double = 30.0

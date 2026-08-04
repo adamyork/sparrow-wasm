@@ -152,7 +152,9 @@ class CommonPhysics(
         for (particleIndex in mapParticles.indices.reversed()) {
             val particle = mapParticles[particleIndex]
             if (particle.type == ParticleType.COLLISION) {
-                particle.frame += (1.0 * deltaTimeCoefficient * speed).toInt().coerceAtLeast(1)
+                particle.frame += (
+                    physicsSettingsService.collisionParticleFrameGrowthMultiplier * deltaTimeCoefficient * speed
+                ).toInt().coerceAtLeast(1)
                 if (particle.radius < CommonParticles.MAX_SQUARE_RADIAL_RADIUS) {
                     particle.radius =
                         (particle.radius + (physicsSettingsService.collisionParticleSizeMultiplier * deltaTimeCoefficient * speed)).toInt()

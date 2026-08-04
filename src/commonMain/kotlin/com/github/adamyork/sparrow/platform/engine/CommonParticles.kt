@@ -11,6 +11,11 @@ import com.github.adamyork.sparrow.platform.engine.data.ParticleShape
 import com.github.adamyork.sparrow.platform.engine.data.ParticleType
 import com.github.adamyork.sparrow.platform.service.AssetService
 import me.tatarka.inject.annotations.Inject
+import kotlin.math.max
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.PI
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 /**
@@ -23,8 +28,11 @@ class CommonParticles : Particles {
 
     companion object {
         const val MAX_SQUARE_RADIAL_RADIUS: Int = 45
+        const val GPU_COMPUTE_FLOATS_PER_PARTICLE: Int = 16
+        const val DEFAULT_GPU_PARTICLE_CAPACITY: Int = 4096
         private const val MAX_ACTIVE_PROJECTILES: Int = 1
-        private const val COLLISION_PARTICLE_COUNT: Int = 360
+        private const val MAX_ACTIVE_MAP_ITEM_RETURN_PARTICLES: Int = 1
+        private const val COLLISION_PARTICLE_COUNT: Int = 1024
         private const val PROJECTILE_SIZE: Int = 24
         private const val BASE_DIAMETER_MULTIPLIER = 3
         private const val BASE_DIAMETER_MULTIPLIER_BUFFER = 6
@@ -171,6 +179,121 @@ class CommonParticles : Particles {
                 assetService.appProperties.particle.enemy.projectile.color.a.toFloat() / 255f
             )
         )
+    }
+
+    fun createGpuParticleComputeBuffer(maxParticles: Int = DEFAULT_GPU_PARTICLE_CAPACITY): FloatArray {
+        return FloatArray(maxParticles * GPU_COMPUTE_FLOATS_PER_PARTICLE)
+    }
+
+    fun writeGpuParticleSpawnBuffer(
+        mapParticles: List<Particle>,
+        targetBuffer: FloatArray,
+        maxParticles: Int = DEFAULT_GPU_PARTICLE_CAPACITY,
+        startSlot: Int = 0
+    ): Int {
+        var activeCount = 0
+        val clampedMaxParticles = maxParticles.coerceAtLeast(0)
+        val floatsPerParticle = GPU_COMPUTE_FLOATS_PER_PARTICLE
+        if (clampedMaxParticles == 0) return 0
+
+        var clearIndex = 0
+        val maxFloatCount = clampedMaxParticles * floatsPerParticle
+        while (clearIndex < maxFloatCount && clearIndex < targetBuffer.size) {
+            targetBuffer[clearIndex++] = 0f
+        }
+
+        val reservedProjectileSlots = MAX_ACTIVE_PROJECTILES.coerceAtMost(clampedMaxParticles)
+        val remainingAfterProjectile = (clampedMaxParticles - reservedProjectileSlots).coerceAtLeast(0)
+        val reservedMapItemReturnSlots =
+            MAX_ACTIVE_MAP_ITEM_RETURN_PARTICLES.coerceAtMost(remainingAfterProjectile)
+        val firstMapItemReturnSlot = clampedMaxParticles - reservedMapItemReturnSlots
+        val firstProjectileSlot = firstMapItemReturnSlot - reservedProjectileSlots
+        val ringBufferCapacity = firstProjectileSlot.coerceAtLeast(0)
+        var slot = if (ringBufferCapacity > 0) startSlot.mod(ringBufferCapacity) else 0
+        for (particle in mapParticles) {
+            if (activeCount >= clampedMaxParticles) break
+            if (
+                particle.type != ParticleType.COLLISION &&
+                particle.type != ParticleType.DUST &&
+                particle.type != ParticleType.PROJECTILE &&
+                particle.type != ParticleType.MAP_ITEM_RETURN
+            ) continue
+
+            val isProjectile = particle.type == ParticleType.PROJECTILE
+            val isMapItemReturn = particle.type == ParticleType.MAP_ITEM_RETURN
+            val slotIndex = if (isProjectile && reservedProjectileSlots > 0) {
+                val projectileSlotOffset = (particle.id - 1).coerceAtLeast(0) % reservedProjectileSlots
+                firstProjectileSlot + projectileSlotOffset
+            } else if (isMapItemReturn && reservedMapItemReturnSlots > 0) {
+                val mapItemReturnSlotOffset = (particle.id - 1).coerceAtLeast(0) % reservedMapItemReturnSlots
+                firstMapItemReturnSlot + mapItemReturnSlotOffset
+            } else {
+                slot
+            }
+            val baseIndex = slotIndex * floatsPerParticle
+            if (baseIndex + (floatsPerParticle - 1) >= targetBuffer.size) {
+                break
+            }
+
+            val isDust = particle.type == ParticleType.DUST
+            val angle = particle.id.toFloat() * (PI.toFloat() / 180f)
+            val baseVelocity = 70f
+            val jitterScale = 0.8f
+            val projectileDirectionX = (particle.originX - particle.xJitter).toFloat()
+            val projectileDirectionY = (particle.originY - particle.yJitter).toFloat()
+            val projectileLength = sqrt((projectileDirectionX * projectileDirectionX) + (projectileDirectionY * projectileDirectionY))
+            val projectileUnitX = if (projectileLength > 0f) projectileDirectionX / projectileLength else 1f
+            val projectileUnitY = if (projectileLength > 0f) projectileDirectionY / projectileLength else 0f
+            val mapItemTargetX = particle.originX.toFloat()
+            val mapItemTargetY = particle.originY.toFloat()
+            val velocityX = when {
+                isDust -> 0f
+                isProjectile -> projectileUnitX
+                isMapItemReturn -> mapItemTargetX
+                else -> (cos(angle) * baseVelocity) + (particle.xJitter - 25f) * jitterScale
+            }
+            val velocityY = when {
+                isDust -> 0f
+                isProjectile -> projectileUnitY
+                isMapItemReturn -> mapItemTargetY
+                else -> (sin(angle) * baseVelocity) + (particle.yJitter - 25f) * jitterScale
+            }
+            val size = max(particle.width, particle.height).toFloat()
+            val spriteWidth = particle.width.toFloat().coerceAtLeast(1f)
+            val spriteHeight = particle.height.toFloat().coerceAtLeast(1f)
+            val usesCenterAnchor = particle.shape == ParticleShape.CIRCLE
+            val spawnX = if (usesCenterAnchor) particle.x.toFloat() + (size * 0.5f) else particle.x.toFloat()
+            val spawnY = if (usesCenterAnchor) particle.y.toFloat() + (size * 0.5f) else particle.y.toFloat()
+
+            var writeIndex = baseIndex
+            targetBuffer[writeIndex++] = spawnX
+            targetBuffer[writeIndex++] = spawnY
+            targetBuffer[writeIndex++] = velocityX
+            targetBuffer[writeIndex++] = velocityY
+            targetBuffer[writeIndex++] = particle.frame.toFloat().coerceAtLeast(0f)
+            targetBuffer[writeIndex++] = particle.lifetime.toFloat().coerceAtLeast(1f)
+            targetBuffer[writeIndex++] = if (isMapItemReturn) spriteWidth else size
+            targetBuffer[writeIndex++] = 1f
+            targetBuffer[writeIndex++] = particle.color.red.coerceIn(0f, 1f)
+            targetBuffer[writeIndex++] = particle.color.green.coerceIn(0f, 1f)
+            targetBuffer[writeIndex++] = particle.color.blue.coerceIn(0f, 1f)
+            targetBuffer[writeIndex++] = particle.color.alpha.coerceIn(0f, 1f)
+            val particleKind = when (particle.type) {
+                ParticleType.DUST -> 1f
+                ParticleType.PROJECTILE -> 2f
+                ParticleType.MAP_ITEM_RETURN -> 3f
+                else -> 0f
+            }
+            targetBuffer[writeIndex++] = particleKind
+            targetBuffer[writeIndex++] = if (particle.shape == ParticleShape.CIRCLE) 1f else 0f
+            targetBuffer[writeIndex++] = if (isMapItemReturn) spriteHeight else 0f
+            targetBuffer[writeIndex] = 0f
+            activeCount++
+            if (!isProjectile && !isMapItemReturn && ringBufferCapacity > 0) {
+                slot = (slot + 1) % ringBufferCapacity
+            }
+        }
+        return activeCount
     }
 
     private fun getActiveProjectileCount(particles: ArrayList<Particle>): Int {

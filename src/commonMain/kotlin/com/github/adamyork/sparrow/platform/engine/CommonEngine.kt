@@ -18,8 +18,8 @@ import com.github.adamyork.sparrow.platform.common.data.player.Player
 import com.github.adamyork.sparrow.platform.common.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.platform.common.data.player.PlayerMovingState
 import com.github.adamyork.sparrow.platform.engine.data.CollisionBoundaries
-import com.github.adamyork.sparrow.platform.engine.data.DrawResult
 import com.github.adamyork.sparrow.platform.engine.data.CommonImage
+import com.github.adamyork.sparrow.platform.engine.data.DrawResult
 import com.github.adamyork.sparrow.platform.service.AssetService
 import com.github.adamyork.sparrow.platform.service.RuntimeService
 import com.github.adamyork.sparrow.platform.service.ScoreService
@@ -131,13 +131,17 @@ abstract class CommonEngine @AppScope @Inject constructor(
     override fun manageMap(player: Player, gameMap: GameMap, viewPort: ViewPort) {
         manageMapItems(gameMap)
         manageMapEnemies(gameMap, player)
+        manageMapParticles(player, gameMap, viewPort)
+    }
+
+    protected open fun manageMapParticles(player: Player, gameMap: GameMap, viewPort: ViewPort) {
         physics.applyCollisionParticlePhysics(gameMap.particles, viewPort)
-        physics.applyMapItemReturnParticlePhysics(gameMap.particles, viewPort)
         if (player.moving == PlayerMovingState.MOVING && player.jumping == PlayerJumpingState.GROUNDED) {
             particles.applyDustParticles(player, gameMap.particles)
         }
         physics.applyDustParticlePhysics(gameMap.particles)
         physics.applyProjectileParticlePhysics(gameMap.particles, viewPort)
+        physics.applyMapItemReturnParticlePhysics(gameMap.particles, viewPort)
         val allCollectiblesFound = scoreService.allFound()
         gameMap.state = when (gameMap.state) {
             GameMapState.COLLECTING if allCollectiblesFound -> GameMapState.COMPLETING

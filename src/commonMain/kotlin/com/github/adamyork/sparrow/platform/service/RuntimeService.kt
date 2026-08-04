@@ -15,6 +15,8 @@ interface RuntimeService {
 
     fun getDeltaTimeCoefficient(): Double
 
+    fun getDeltaTimeSeconds(): Float
+
     fun getFps(): Double
 
     fun setCurrentFrameTime(timestamp: Double)

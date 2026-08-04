@@ -20,6 +20,7 @@ interface PhysicsSettingsService {
     var minActiveVelocity: Double
     var collisionKnockbackStrength: Int
     var collisionParticleSpeedCoefficient: Double
+    var collisionParticleFrameGrowthMultiplier: Double
     var collisionParticleSizeMultiplier: Int
     var mapItemReturnParticleMinTravelDist: Double
     var mapItemReturnParticleSpeed: Double

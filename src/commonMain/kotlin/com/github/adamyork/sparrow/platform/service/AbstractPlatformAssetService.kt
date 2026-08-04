@@ -39,6 +39,7 @@ abstract class AbstractPlatformAssetService(
     override lateinit var appProperties: AppProperties
     override var backgroundMusicBytesMap: HashMap<Int, ByteArray> = HashMap()
     override lateinit var applicationYamlFile: String
+    override var particleShaderSource: String = ""
 
     protected val mapAssetMap: HashMap<Int, ImageAsset> = HashMap()
     protected var enemyInfoMap: HashMap<Int, MapElementYamlEntry> = HashMap()

@@ -36,7 +36,7 @@ import kotlin.collections.iterator
  */
 @AppScope
 @Inject
-class WasmJsEngine(
+open class WasmJsEngine(
     physics: Physics,
     collision: Collision,
     particles: Particles,
@@ -154,7 +154,7 @@ class WasmJsEngine(
         )
     }
 
-    private fun drawPlayer(player: Player, viewPort: ViewPort, canvas: Canvas, image: CommonImage) {
+    protected open fun drawPlayer(player: Player, viewPort: ViewPort, canvas: Canvas, image: CommonImage) {
         val localX = player.x - viewPort.x
         val localY = player.y - viewPort.y
         val shouldShowTint = player.immunityTicks > 0 && (player.immunityTicks / 8) % 2 == 0
@@ -164,7 +164,7 @@ class WasmJsEngine(
         drawSprite(canvas, (image as WasmJsImage).image, player, localX, localY, activePlayerPaint, isFlipped)
     }
 
-    private fun drawMapElements(
+    protected open fun drawMapElements(
         elements: ArrayList<out GameElement>,
         viewPort: ViewPort,
         canvas: Canvas,
@@ -194,7 +194,7 @@ class WasmJsEngine(
         }
     }
 
-    private fun drawSprite(
+    protected open fun drawSprite(
         canvas: Canvas,
         image: Image,
         element: GameElement,
@@ -226,7 +226,7 @@ class WasmJsEngine(
         )
     }
 
-    private fun getOrCreateFlippedFrame(image: Image, element: GameElement): Image {
+    protected open fun getOrCreateFlippedFrame(image: Image, element: GameElement): Image {
         val srcX = element.frameMetadata.cell.x
         val srcY = element.frameMetadata.cell.y
         val width = element.width
@@ -261,70 +261,89 @@ class WasmJsEngine(
         }
     }
 
-    private fun drawParticles(
+    protected open fun drawParticles(
         map: GameMap,
         viewPort: ViewPort,
         canvas: Canvas,
         mapItem: Item?,
         mapItemImage: CommonImage?
     ) {
+        val particles = map.particles
         val vpX = viewPort.x.toFloat()
         val vpY = viewPort.y.toFloat()
-        val groups = mutableMapOf<Int, MutableList<Particle>>()
+        fun drawGrouped(includeCollision: Boolean) {
+            val groups = mutableMapOf<Int, MutableList<Particle>>()
+            for (particle in particles) {
+                if (!particle.cullingCheck(viewPort) || particle.type == ParticleType.MAP_ITEM_RETURN) {
+                    continue
+                }
+                if (includeCollision != (particle.type == ParticleType.COLLISION)) {
+                    continue
+                }
+                val lifetime = if (particle.lifetime <= 0) 1 else particle.lifetime
+                val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
+                val alphaMultiplier = when {
+                    particle.type == ParticleType.PROJECTILE -> 1.0f
+                    ageProgress < 0.33f -> 1.0f
+                    ageProgress < 0.66f -> 0.66f
+                    else -> 0.33f
+                }
+                val alpha = (particle.color.alpha.coerceIn(0f, 1f) * alphaMultiplier * 255f).toInt().coerceIn(0, 255)
+                val color = Color.makeARGB(
+                    alpha,
+                    (particle.color.red * 255).toInt(),
+                    (particle.color.green * 255).toInt(),
+                    (particle.color.blue * 255).toInt()
+                )
+                groups.getOrPut(color) { mutableListOf() }.add(particle)
+            }
 
-        for (particle in map.particles) {
-            if (!particle.cullingCheck(viewPort)) continue
-            if (particle.type == ParticleType.MAP_ITEM_RETURN) {
-                if (mapItem != null && mapItemImage != null) {
-                    val localX = particle.x.toFloat() - vpX
-                    val localY = particle.y.toFloat() - vpY
-                    canvas.drawImageRect(
-                        image = (mapItemImage as WasmJsImage).image,
-                        srcLeft = 0f, srcTop = 0f,
-                        srcRight = mapItem.width.toFloat(), srcBottom = mapItem.height.toFloat(),
-                        dstLeft = localX, dstTop = localY,
-                        dstRight = localX + particle.width.toFloat(),
-                        dstBottom = localY + particle.height.toFloat(),
-                        samplingMode = SamplingMode.LINEAR,
-                        paint = mapItemReturnPaint,
-                        strict = true
-                    )
+            for ((color, particleList) in groups) {
+                val builder = PathBuilder()
+                for (particle in particleList) {
+                    val x = particle.x.toFloat() - vpX
+                    val y = particle.y.toFloat() - vpY
+                    if (particle.shape == ParticleShape.CIRCLE) {
+                        builder.addOval(Rect.makeXYWH(x, y, particle.width.toFloat(), particle.height.toFloat()))
+                    } else {
+                        builder.addRect(Rect.makeXYWH(x, y, particle.width.toFloat(), particle.height.toFloat()))
+                    }
                 }
-                continue
+                val batchPath = builder.detach()
+                particlePaint.color = color
+                canvas.drawPath(batchPath, particlePaint)
+                batchPath.close()
             }
-            val lifetime = if (particle.lifetime <= 0) 1 else particle.lifetime
-            val ageProgress = (particle.frame.toFloat() / lifetime.toFloat()).coerceIn(0f, 1f)
-            val alphaMultiplier = when {
-                particle.type == ParticleType.PROJECTILE -> 1.0f
-                ageProgress < 0.33f -> 1.0f
-                ageProgress < 0.66f -> 0.66f
-                else -> 0.33f
-            }
-            val alpha = (particle.color.alpha.coerceIn(0f, 1f) * alphaMultiplier * 255f).toInt().coerceIn(0, 255)
-            val color = Color.makeARGB(
-                alpha,
-                (particle.color.red * 255).toInt(),
-                (particle.color.green * 255).toInt(),
-                (particle.color.blue * 255).toInt()
-            )
-            groups.getOrPut(color) { mutableListOf() }.add(particle)
         }
-        for ((color, particleList) in groups) {
-            val builder = PathBuilder()
-            for (particle in particleList) {
-                val x = particle.x.toFloat() - vpX
-                val y = particle.y.toFloat() - vpY
-                if (particle.shape == ParticleShape.CIRCLE) {
-                    builder.addOval(Rect.makeXYWH(x, y, particle.width.toFloat(), particle.height.toFloat()))
-                } else {
-                    builder.addRect(Rect.makeXYWH(x, y, particle.width.toFloat(), particle.height.toFloat()))
+
+        drawGrouped(includeCollision = false)
+
+        if (mapItem != null && mapItemImage != null) {
+            val mapItemSkia = (mapItemImage as WasmJsImage).image
+            for (particle in particles) {
+                if (particle.type != ParticleType.MAP_ITEM_RETURN || !particle.cullingCheck(viewPort)) {
+                    continue
                 }
+                val localX = particle.x.toFloat() - vpX
+                val localY = particle.y.toFloat() - vpY
+                canvas.drawImageRect(
+                    image = mapItemSkia,
+                    srcLeft = 0f,
+                    srcTop = 0f,
+                    srcRight = mapItem.width.toFloat(),
+                    srcBottom = mapItem.height.toFloat(),
+                    dstLeft = localX,
+                    dstTop = localY,
+                    dstRight = localX + particle.width.toFloat(),
+                    dstBottom = localY + particle.height.toFloat(),
+                    samplingMode = SamplingMode.LINEAR,
+                    paint = mapItemReturnPaint,
+                    strict = true
+                )
             }
-            val batchPath = builder.detach()
-            particlePaint.color = color
-            canvas.drawPath(batchPath, particlePaint)
-            batchPath.close()
         }
+
+        drawGrouped(includeCollision = true)
     }
 
 }

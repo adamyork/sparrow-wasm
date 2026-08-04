@@ -18,6 +18,7 @@ interface AssetService {
     var backgroundMusicBytesMap: HashMap<Int, ByteArray>
     var applicationYamlFile: String
     var appProperties: AppProperties
+    var particleShaderSource: String
 
     suspend fun initialize(listener: LoadingProgressListener)
 
@@ -36,6 +37,8 @@ interface AssetService {
     suspend fun loadEnemy(id: Int): ImageAsset
 
     suspend fun loadAudio(listener: LoadingProgressListener)
+
+    suspend fun loadParticleShader(): String
 
     fun getTotalEnemies(): Int
 

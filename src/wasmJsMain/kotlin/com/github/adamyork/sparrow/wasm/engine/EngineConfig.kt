@@ -19,7 +19,7 @@ interface EngineConfig {
 
     @AppScope
     @Provides
-    fun provideEngine(impl: WasmJsEngine): Engine = impl
+    fun provideEngine(impl: WasmJsGpuEngine): Engine = impl
 
     @AppScope
     @Provides

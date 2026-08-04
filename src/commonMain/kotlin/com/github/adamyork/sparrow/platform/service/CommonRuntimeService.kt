@@ -23,6 +23,8 @@ class CommonRuntimeService(
 
     private companion object {
         const val FPS_SAMPLE_WINDOW_MS: Double = 1000.0
+        const val MIN_DELTA_SECONDS: Float = 1f / 240f
+        const val MAX_DELTA_SECONDS: Float = 1f / 15f
     }
 
     private var lifeCycleStateState by mutableStateOf(LifeCycleState.INITIALIZING)
@@ -53,6 +55,17 @@ class CommonRuntimeService(
         val actualDeltaTimeMs = currentFrameTime - lastPaintTime
         val coefficient = actualDeltaTimeMs / targetDeltaTimeMs
         return coefficient.coerceIn(0.5, 2.0)
+    }
+
+    override fun getDeltaTimeSeconds(): Float {
+        val measuredDeltaSeconds = if (currentFrameTime > 0.0 && lastPaintTime > 0.0) {
+            ((currentFrameTime - lastPaintTime) / 1000.0).toFloat()
+        } else {
+            0f
+        }
+        val fallbackDeltaSeconds = 1f / assetService.appProperties.engine.tickTargetPerSec.toFloat().coerceAtLeast(1f)
+        val resolvedDeltaSeconds = if (measuredDeltaSeconds > 0f) measuredDeltaSeconds else fallbackDeltaSeconds
+        return resolvedDeltaSeconds.coerceIn(MIN_DELTA_SECONDS, MAX_DELTA_SECONDS)
     }
 
     override fun getFps(): Double {

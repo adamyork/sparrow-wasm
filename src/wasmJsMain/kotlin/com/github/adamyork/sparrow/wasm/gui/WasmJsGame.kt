@@ -29,6 +29,7 @@ class WasmJsGame(
     private val runtimeService: RuntimeService,
     private val wavService: WavService,
     private val screenDimensionsService: ScreenDimensionsService,
+    private val particleLayer: WasmJsUiParticleLayer,
     private val platformInterop: PlatformInterop,
     private val platformQuitUi: QuitUi
 ) : Game {
@@ -48,7 +49,8 @@ class WasmJsGame(
         runtimeService = runtimeService,
         screenDimensionsService = screenDimensionsService,
         platformInterop = platformInterop,
-        platformQuitUi = platformQuitUi
+        platformQuitUi = platformQuitUi,
+        particleLayer = particleLayer
     )
 
     @Composable

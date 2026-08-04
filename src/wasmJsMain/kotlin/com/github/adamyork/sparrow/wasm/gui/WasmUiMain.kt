@@ -14,9 +14,10 @@ class WasmUiMain(
     runtimeService: RuntimeService,
     screenDimensionsService: ScreenDimensionsService,
     platformInterop: PlatformInterop,
-    platformQuitUi: QuitUi
+    platformQuitUi: QuitUi,
+    particleLayer: WasmJsUiParticleLayer
 ) : UiMain(controller, runtimeService, screenDimensionsService, platformInterop, platformQuitUi) {
-    override var uiDrawLayer: UiDrawLayer = WasmJsUiDrawLayer(screenDimensionsService)
+    override var uiDrawLayer: UiDrawLayer = WasmJsUiDrawLayer(screenDimensionsService, particleLayer)
     override val centerHudWithinViewport: Boolean = true
     override val hudTopInset = 20.dp
     override val hudOverlayTopPadding = 0.dp

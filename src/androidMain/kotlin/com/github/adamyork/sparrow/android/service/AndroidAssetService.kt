@@ -104,6 +104,15 @@ class AndroidAssetService(
         }
     }
 
+    override suspend fun loadParticleShader(): String {
+        val bytes = withContext(Dispatchers.IO) {
+            Res.readBytes("files/particles.wgsl")
+        }
+        val source = bytes.decodeToString()
+        particleShaderSource = source
+        return source
+    }
+
     override fun getBackgroundAudio(): String = backgroundAudio
 
     override fun getAudioPath(sound: Sounds): String {

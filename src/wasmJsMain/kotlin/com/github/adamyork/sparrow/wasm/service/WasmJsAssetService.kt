@@ -86,6 +86,15 @@ class WasmJsAssetService(
         }
     }
 
+    override suspend fun loadParticleShader(): String {
+        logger.debug { "HTTP GET: particles.wgsl" }
+        val response = httpClient.get("particles.wgsl")
+        check(response.status.isSuccess()) { "Failed to load particle shader (status=${response.status})" }
+        val source = response.body<ByteArray>().decodeToString()
+        particleShaderSource = source
+        return source
+    }
+
     override fun getBackgroundAudio(): String = backgroundAudio
 
     override fun getAudioPath(sound: Sounds): String {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,9 +26,13 @@ import org.jetbrains.skia.Image as SkiaImage
  * Author: Adam York
  * Copyright (c) Adam York
  */
-class WasmJsUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : UiDrawLayer(
+class WasmJsUiDrawLayer(
+    screenDimensionsService: ScreenDimensionsService,
+    private val particleLayer: WasmJsUiParticleLayer
+) : UiDrawLayer(
     screenDimensionsService
 ) {
+
 
     override var foregroundPaint: Any = Paint().apply {
         isAntiAlias = true
@@ -50,6 +55,15 @@ class WasmJsUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : UiDr
 
     @Composable
     override fun ForegroundLayerCanvas(image: Any?) {
+        val screenDimensions = screenDimensionsService.getScreenDimensions()
+        var overlayInitialized by remember { mutableStateOf(false) }
+        if (!overlayInitialized) {
+            particleLayer.initializeOverlayCanvas(
+                expectedWidth = screenDimensions.width,
+                expectedHeight = screenDimensions.height
+            )
+            overlayInitialized = true
+        }
         Canvas(
             modifier = Modifier.fillMaxSize()
                 .clip(RectangleShape)
