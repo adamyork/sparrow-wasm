@@ -11,7 +11,7 @@ import com.github.adamyork.sparrow.platform.common.data.player.Player
 import com.github.adamyork.sparrow.platform.common.data.player.PlayerJumpingState
 import com.github.adamyork.sparrow.platform.common.data.player.PlayerMovingState
 import com.github.adamyork.sparrow.platform.engine.Collision
-import com.github.adamyork.sparrow.platform.engine.CommonParticles
+import com.github.adamyork.sparrow.platform.engine.EngineException
 import com.github.adamyork.sparrow.platform.engine.Particles
 import com.github.adamyork.sparrow.platform.engine.Physics
 import com.github.adamyork.sparrow.platform.engine.data.CommonImage
@@ -38,7 +38,6 @@ class WasmJsGpuEngine(
     physics: Physics,
     collision: Collision,
     particles: Particles,
-    private val commonParticles: CommonParticles,
     private val particleLayer: WasmJsUiParticleLayer,
     private val physicsSettingsService: PhysicsSettingsService,
     audioQueue: AudioQueue,
@@ -65,8 +64,8 @@ class WasmJsGpuEngine(
     private val logger = KotlinLogging.logger {}
 
     private val gpuParticleRenderer = WasmJsGpuParticleRenderer()
-    private val gpuParticleBufferCapacity = CommonParticles.DEFAULT_GPU_PARTICLE_CAPACITY
-    private val gpuParticleSpawnBuffer = commonParticles.createGpuParticleComputeBuffer(gpuParticleBufferCapacity)
+    private val gpuParticleBufferCapacity = Particles.DEFAULT_GPU_PARTICLE_CAPACITY
+    private val gpuParticleSpawnBuffer = particles.createGpuParticleComputeBuffer(gpuParticleBufferCapacity)
     private var gpuRendererReady: Boolean = false
     private var nextGpuSpawnSlot: Int = 0
     private var previousGpuWrittenSlots: List<Int> = emptyList()
@@ -84,12 +83,14 @@ class WasmJsGpuEngine(
             maxParticleCapacity = gpuParticleBufferCapacity,
             particlesShaderSource = assetService.particleShaderSource,
             overlayCanvas = overlayCanvas,
-            mapItemTextureBytes = gameMap.items.firstOrNull()?.imageAndBytes?.bytes ?: byteArrayOf()
+            mapItemTextureBytes = gameMap.items.firstOrNull()?.imageAndBytes?.bytes ?: byteArrayOf(),
+            mapItemFirstCellWidth = gameMap.items.firstOrNull()?.width ?: 1,
+            mapItemFirstCellHeight = gameMap.items.firstOrNull()?.height ?: 1
         )
         if (!gpuRendererReady) {
             val dpr = window.devicePixelRatio
             val userAgent = window.navigator.userAgent
-            throw IllegalStateException(
+            throw EngineException(
                 "WebGPU particle renderer failed to initialize; WasmJsGpuEngine requires WebGPU. " +
                         "dpr=$dpr, userAgent=$userAgent"
             )
@@ -107,8 +108,8 @@ class WasmJsGpuEngine(
             GameMapState.COMPLETING if !allCollectiblesFound -> GameMapState.COLLECTING
             else -> gameMap.state
         }
-        ensureGpuRenderer()
-        val spawnWriteResult = commonParticles.writeGpuParticleSpawnBuffer(
+        val spawnWriteResult = particles.writeGpuParticleSpawnBuffer(
+            player,
             gameMap.particles,
             gpuParticleSpawnBuffer,
             gpuParticleBufferCapacity,
@@ -127,6 +128,16 @@ class WasmJsGpuEngine(
             sourceBuffer = gpuParticleSpawnBuffer,
             dirtySlotRanges = spawnWriteResult.dirtySlotRanges,
             deltaTimeSeconds = deltaTimeSeconds,
+            player = player,
+            gameMap = gameMap,
+            viewPort = viewPort,
+            collision = collision,
+            audioQueue = audioQueue,
+            particles = particles,
+            playerX = player.x.toFloat(),
+            playerY = player.y.toFloat(),
+            playerWidth = player.width.toFloat(),
+            playerHeight = player.height.toFloat(),
             gravity = physicsSettingsService.gravity.toFloat(),
             tickTargetPerSecond = assetService.appProperties.engine.tickTargetPerSec,
             speedCoefficient = physicsSettingsService.collisionParticleSpeedCoefficient.toFloat(),
@@ -144,19 +155,12 @@ class WasmJsGpuEngine(
         mapItem: Item?,
         mapItemImage: CommonImage?
     ) {
-        ensureGpuRenderer()
         gpuParticleRenderer.draw(
             viewPort = viewPort,
             sizeMultiplier = physicsSettingsService.collisionParticleSizeMultiplier
         )
     }
 
-
-    private fun ensureGpuRenderer() {
-        check(gpuRendererReady) {
-            "GPU particle renderer is not ready; WasmJsGpuEngine requires successful WebGPU initialization"
-        }
-    }
 
     private suspend fun waitForOverlayCanvasReady(): HTMLCanvasElement? {
         val deadline = window.performance.now() + OVERLAY_CANVAS_WAIT_TIMEOUT_MS

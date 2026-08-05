@@ -7,16 +7,12 @@ import com.github.adamyork.sparrow.platform.common.data.enemy.Enemy
 import com.github.adamyork.sparrow.platform.common.data.item.Item
 import com.github.adamyork.sparrow.platform.common.data.player.Player
 import com.github.adamyork.sparrow.platform.engine.data.Particle
-import com.github.adamyork.sparrow.platform.engine.data.ParticleWriteResult
 import com.github.adamyork.sparrow.platform.engine.data.ParticleShape
 import com.github.adamyork.sparrow.platform.engine.data.ParticleType
+import com.github.adamyork.sparrow.platform.engine.data.ParticleWriteResult
 import com.github.adamyork.sparrow.platform.service.AssetService
 import me.tatarka.inject.annotations.Inject
-import kotlin.math.max
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.PI
-import kotlin.math.sqrt
+import kotlin.math.*
 import kotlin.random.Random
 
 /**
@@ -27,11 +23,9 @@ import kotlin.random.Random
 @Inject
 class CommonParticles : Particles {
 
-
     companion object {
         const val MAX_SQUARE_RADIAL_RADIUS: Int = 45
         const val GPU_COMPUTE_FLOATS_PER_PARTICLE: Int = 16
-        const val DEFAULT_GPU_PARTICLE_CAPACITY: Int = 4096
         private const val MAX_ACTIVE_PROJECTILES: Int = 1
         private const val MAX_ACTIVE_MAP_ITEM_RETURN_PARTICLES: Int = 1
         private const val COLLISION_PARTICLE_COUNT: Int = 1024
@@ -39,6 +33,7 @@ class CommonParticles : Particles {
         private const val BASE_DIAMETER_MULTIPLIER = 3
         private const val BASE_DIAMETER_MULTIPLIER_BUFFER = 6
         private const val DUST_Y_OFFSET = 10
+        private const val GPU_DUST_X_OVERLAY_OFFSET = 30f
         private const val DIAMETER_MAX = 30
     }
 
@@ -183,16 +178,17 @@ class CommonParticles : Particles {
         )
     }
 
-    fun createGpuParticleComputeBuffer(maxParticles: Int = DEFAULT_GPU_PARTICLE_CAPACITY): FloatArray {
+    override fun createGpuParticleComputeBuffer(maxParticles: Int): FloatArray {
         return FloatArray(maxParticles * GPU_COMPUTE_FLOATS_PER_PARTICLE)
     }
 
-    fun writeGpuParticleSpawnBuffer(
+    override fun writeGpuParticleSpawnBuffer(
+        player: Player,
         mapParticles: List<Particle>,
         targetBuffer: FloatArray,
-        maxParticles: Int = DEFAULT_GPU_PARTICLE_CAPACITY,
-        startSlot: Int = 0,
-        previouslyWrittenSlots: List<Int> = emptyList()
+        maxParticles: Int,
+        startSlot: Int,
+        previouslyWrittenSlots: List<Int>
     ): ParticleWriteResult {
         var activeCount = 0
         val clampedMaxParticles = maxParticles.coerceAtLeast(0)
@@ -204,7 +200,7 @@ class CommonParticles : Particles {
         val dirtySlotFlags = BooleanArray(clampedMaxParticles)
         val writtenSlotFlags = BooleanArray(clampedMaxParticles)
         for (slotIndex in previouslyWrittenSlots) {
-            if (slotIndex < 0 || slotIndex >= clampedMaxParticles) continue
+            if (slotIndex !in 0 until clampedMaxParticles) continue
             dirtySlotFlags[slotIndex] = true
             val baseIndex = slotIndex * floatsPerParticle
             var floatOffset = 0
@@ -221,6 +217,7 @@ class CommonParticles : Particles {
         val firstMapItemReturnSlot = clampedMaxParticles - reservedMapItemReturnSlots
         val firstProjectileSlot = firstMapItemReturnSlot - reservedProjectileSlots
         val ringBufferCapacity = firstProjectileSlot.coerceAtLeast(0)
+
         var slot = if (ringBufferCapacity > 0) startSlot.mod(ringBufferCapacity) else 0
         for (particle in mapParticles) {
             if (activeCount >= clampedMaxParticles) break
@@ -247,7 +244,8 @@ class CommonParticles : Particles {
             val jitterScale = 0.8f
             val projectileDirectionX = (particle.originX - particle.xJitter).toFloat()
             val projectileDirectionY = (particle.originY - particle.yJitter).toFloat()
-            val projectileLength = sqrt((projectileDirectionX * projectileDirectionX) + (projectileDirectionY * projectileDirectionY))
+            val projectileLength =
+                sqrt((projectileDirectionX * projectileDirectionX) + (projectileDirectionY * projectileDirectionY))
             val projectileUnitX = if (projectileLength > 0f) projectileDirectionX / projectileLength else 1f
             val projectileUnitY = if (projectileLength > 0f) projectileDirectionY / projectileLength else 0f
             val mapItemTargetX = particle.originX.toFloat()
@@ -268,7 +266,17 @@ class CommonParticles : Particles {
             val spriteWidth = particle.width.toFloat().coerceAtLeast(1f)
             val spriteHeight = particle.height.toFloat().coerceAtLeast(1f)
             val usesCenterAnchor = particle.shape == ParticleShape.CIRCLE
-            val spawnX = if (usesCenterAnchor) particle.x.toFloat() + (size * 0.5f) else particle.x.toFloat()
+            val rawSpawnX = if (usesCenterAnchor) particle.x.toFloat() + (size * 0.5f) else particle.x.toFloat()
+            val dustOverlayOffset = if (isDust) {
+                if (player.direction == Direction.LEFT) {
+                    GPU_DUST_X_OVERLAY_OFFSET
+                } else {
+                    -GPU_DUST_X_OVERLAY_OFFSET
+                }
+            } else {
+                0f
+            }
+            val spawnX = rawSpawnX + dustOverlayOffset
             val spawnY = if (usesCenterAnchor) particle.y.toFloat() + (size * 0.5f) else particle.y.toFloat()
 
             var writeIndex = baseIndex
@@ -310,7 +318,7 @@ class CommonParticles : Particles {
                     rangeStart = slotIndex
                 }
             } else if (rangeStart != -1) {
-                dirtySlotRanges.add(rangeStart..(slotIndex - 1))
+                dirtySlotRanges.add(rangeStart..<slotIndex)
                 rangeStart = -1
             }
         }

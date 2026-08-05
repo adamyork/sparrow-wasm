@@ -2,6 +2,13 @@ struct ParticleBuffer {
   data: array<vec4<f32>>,
 };
 
+struct CollisionSignalBuffer {
+  projectileHitCount: atomic<u32>,
+  projectileHitXBits: atomic<u32>,
+  projectileHitYBits: atomic<u32>,
+  projectileHitSizeBits: atomic<u32>,
+};
+
 struct ComputeUniforms {
   deltaTime: f32,
   gravity: f32,
@@ -15,16 +22,17 @@ struct ComputeUniforms {
   projectileSpeed: f32,
   mapItemReturnSpeed: f32,
   mapItemReturnMinTravelDist: f32,
-  _pad1: f32,
-  _pad2: f32,
-  _pad3: f32,
-  _pad4: f32,
+  playerX: f32,
+  playerY: f32,
+  playerWidth: f32,
+  playerHeight: f32,
 };
 
 @group(0) @binding(0) var<storage, read> computeSrcParticles: ParticleBuffer;
 @group(0) @binding(1) var<storage, read_write> computeDstParticles: ParticleBuffer;
 @group(0) @binding(2) var<storage, read> computeSpawnParticles: ParticleBuffer;
 @group(0) @binding(3) var<uniform> computeUniforms: ComputeUniforms;
+@group(0) @binding(4) var<storage, read_write> collisionSignal: CollisionSignalBuffer;
 
 @compute @workgroup_size(64)
 fn computeMain(@builtin(global_invocation_id) gid: vec3<u32>) {
@@ -86,6 +94,27 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3<u32>) {
         let projectileStep = computeUniforms.projectileSpeed * computeUniforms.deltaTime * computeUniforms.tickRate;
         p0.x = p0.x + (p0.z * projectileStep);
         p0.y = p0.y + (p0.w * projectileStep);
+
+        // Stage 1: GPU-side projectile/player collision check.
+        let playerMinX = computeUniforms.playerX;
+        let playerMinY = computeUniforms.playerY;
+        let playerMaxX = playerMinX + max(computeUniforms.playerWidth, 1.0);
+        let playerMaxY = playerMinY + max(computeUniforms.playerHeight, 1.0);
+        let nearestX = clamp(p0.x, playerMinX, playerMaxX);
+        let nearestY = clamp(p0.y, playerMinY, playerMaxY);
+        let dx = p0.x - nearestX;
+        let dy = p0.y - nearestY;
+        let projectileRadius = max(p1.z * 0.5, 1.0);
+        if ((dx * dx) + (dy * dy) <= (projectileRadius * projectileRadius)) {
+          // For now mark projectile inactive when a hit is detected.
+          p1.w = 0.0;
+          let previousHitCount = atomicAdd(&collisionSignal.projectileHitCount, 1u);
+          if (previousHitCount == 0u) {
+            atomicStore(&collisionSignal.projectileHitXBits, bitcast<u32>(p0.x));
+            atomicStore(&collisionSignal.projectileHitYBits, bitcast<u32>(p0.y));
+            atomicStore(&collisionSignal.projectileHitSizeBits, bitcast<u32>(max(p1.z, 1.0)));
+          }
+        }
       }
     } else if (particleKind > 0.5) {
       let dustStep = computeUniforms.deltaTime * computeUniforms.tickRate;
@@ -198,26 +227,57 @@ fn vertexMain(
   out.color = vec4<f32>(p2.x, p2.y, p2.z, p2.w * alphaMultiplier);
   out.quadCoord = corner;
   out.shapeFlag = p3.y;
-  out.uv = vec2<f32>((corner.x + 1.0) * 0.5, 1.0 - ((corner.y + 1.0) * 0.5));
+  out.uv = vec2<f32>((corner.x + 1.0) * 0.5, (corner.y + 1.0) * 0.5);
   out.particleKind = particleKind;
   return out;
 }
 
+fn shouldDiscardCircle(shapeFlag: f32, quadCoord: vec2<f32>) -> bool {
+  return shapeFlag > 0.5 && dot(quadCoord, quadCoord) > 1.0;
+}
+
 @fragment
-fn fragmentMain(
+fn fragmentMainNonDust(
   @location(0) color: vec4<f32>,
   @location(1) quadCoord: vec2<f32>,
   @location(2) shapeFlag: f32,
   @location(3) uv: vec2<f32>,
   @location(4) particleKind: f32
 ) -> @location(0) vec4<f32> {
+  let isDust = particleKind > 0.5 && particleKind <= 1.5;
+  if (isDust) {
+    return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+  }
   if (particleKind > 2.5) {
     let sampled = textureSampleLevel(renderTexture, renderSampler, uv, 0.0);
     return sampled * color;
   }
-  if (shapeFlag > 0.5 && dot(quadCoord, quadCoord) > 1.0) {
+  if (shouldDiscardCircle(shapeFlag, quadCoord)) {
     return vec4<f32>(0.0, 0.0, 0.0, 0.0);
   }
   return color;
+}
+
+@fragment
+fn fragmentMainDust(
+  @location(0) color: vec4<f32>,
+  @location(1) quadCoord: vec2<f32>,
+  @location(2) shapeFlag: f32,
+  @location(3) uv: vec2<f32>,
+  @location(4) particleKind: f32
+) -> @location(0) vec4<f32> {
+  // Keep texture/sampler bindings in this entry point so render bind group layout
+  // remains consistent with the non-dust pipeline layout.
+  let _layoutAnchorSample = textureSampleLevel(renderTexture, renderSampler, uv, 0.0);
+  let isDust = particleKind > 0.5 && particleKind <= 1.5;
+  if (!isDust) {
+    return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+  }
+  if (shouldDiscardCircle(shapeFlag, quadCoord)) {
+    return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+  }
+  // Dust uses max blending in a separate pass; return premultiplied color so
+  // low-alpha dust does not appear as fully saturated opaque color.
+  return vec4<f32>(color.rgb * color.a, color.a);
 }
 

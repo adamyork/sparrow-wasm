@@ -1,6 +1,15 @@
 package com.github.adamyork.sparrow.wasm.engine
 
+import androidx.compose.ui.graphics.Color
+import com.github.adamyork.sparrow.platform.common.AudioQueue
 import com.github.adamyork.sparrow.platform.common.data.ViewPort
+import com.github.adamyork.sparrow.platform.common.data.map.GameMap
+import com.github.adamyork.sparrow.platform.common.data.player.Player
+import com.github.adamyork.sparrow.platform.engine.Collision
+import com.github.adamyork.sparrow.platform.engine.Particles
+import com.github.adamyork.sparrow.platform.engine.data.Particle
+import com.github.adamyork.sparrow.platform.engine.data.ParticleShape
+import com.github.adamyork.sparrow.platform.engine.data.ParticleType
 import com.github.adamyork.sparrow.wasm.common.GPUBindGroup
 import com.github.adamyork.sparrow.wasm.common.GPUBuffer
 import com.github.adamyork.sparrow.wasm.common.GPUCanvasContext
@@ -17,11 +26,14 @@ import com.github.adamyork.sparrow.wasm.common.GPUTextureView
 import com.github.adamyork.sparrow.wasm.common.beginComputePass
 import com.github.adamyork.sparrow.wasm.common.beginRenderPass
 import com.github.adamyork.sparrow.wasm.common.configureWebGpuContext
+import com.github.adamyork.sparrow.wasm.common.copyBufferToBuffer
 import com.github.adamyork.sparrow.wasm.common.createCommandEncoder
 import com.github.adamyork.sparrow.wasm.common.createComputeBindGroup
 import com.github.adamyork.sparrow.wasm.common.createLinearSampler
 import com.github.adamyork.sparrow.wasm.common.createComputePipeline
+import com.github.adamyork.sparrow.wasm.common.createReadbackBuffer
 import com.github.adamyork.sparrow.wasm.common.createRenderBindGroup
+import com.github.adamyork.sparrow.wasm.common.createRenderPipelineMaxBlend
 import com.github.adamyork.sparrow.wasm.common.createRenderPipeline
 import com.github.adamyork.sparrow.wasm.common.createShaderModule
 import com.github.adamyork.sparrow.wasm.common.createSolidTextureView
@@ -40,6 +52,7 @@ import com.github.adamyork.sparrow.wasm.common.getPreferredCanvasFormat
 import com.github.adamyork.sparrow.wasm.common.getWebGpuContext
 import com.github.adamyork.sparrow.wasm.common.hasWebGpuSupport
 import com.github.adamyork.sparrow.wasm.common.queueWriteBuffer
+import com.github.adamyork.sparrow.wasm.common.readProjectileHitSnapshotFromReadback
 import com.github.adamyork.sparrow.wasm.common.requestGpuAdapter
 import com.github.adamyork.sparrow.wasm.common.requestGpuDevice
 import com.github.adamyork.sparrow.wasm.common.setComputeBindGroup
@@ -66,13 +79,16 @@ class WasmJsGpuParticleRenderer {
 
     companion object {
         private const val WORKGROUP_SIZE = 64
+        private const val COLLISION_SIGNAL_UINT_COUNT = 4
+        private const val COLLISION_SIGNAL_BYTES = COLLISION_SIGNAL_UINT_COUNT * 4
         private const val FLOATS_PER_PARTICLE = 16
         private const val BYTES_PER_FLOAT = 4
         private const val COMPUTE_UNIFORM_FLOATS = 16
         private const val RENDER_UNIFORM_FLOATS = 8
         private const val COMPUTE_ENTRY_POINT = "computeMain"
         private const val VERTEX_ENTRY_POINT = "vertexMain"
-        private const val FRAGMENT_ENTRY_POINT = "fragmentMain"
+        private const val FRAGMENT_ENTRY_POINT_NON_DUST = "fragmentMainNonDust"
+        private const val FRAGMENT_ENTRY_POINT_DUST = "fragmentMainDust"
     }
 
     private val logger = KotlinLogging.logger {}
@@ -94,28 +110,37 @@ class WasmJsGpuParticleRenderer {
     private var stateBufferB: GPUBuffer? = null
     private var spawnBuffer: GPUBuffer? = null
     private var computeUniformBuffer: GPUBuffer? = null
+    private var collisionSignalBuffer: GPUBuffer? = null
+    private var collisionSignalReadbackBuffer: GPUBuffer? = null
     private var renderUniformBuffer: GPUBuffer? = null
     private var mapItemSampler: GPUSampler? = null
     private var mapItemTextureView: GPUTextureView? = null
 
     private var computePipeline: GPUComputePipeline? = null
-    private var renderPipeline: GPURenderPipeline? = null
+    private var renderPipelineNonDust: GPURenderPipeline? = null
+    private var renderPipelineDust: GPURenderPipeline? = null
 
     private var computeBindGroupAtoB: GPUBindGroup? = null
     private var computeBindGroupBtoA: GPUBindGroup? = null
-    private var renderBindGroupA: GPUBindGroup? = null
-    private var renderBindGroupB: GPUBindGroup? = null
+    private var renderBindGroupNonDustA: GPUBindGroup? = null
+    private var renderBindGroupNonDustB: GPUBindGroup? = null
+    private var renderBindGroupDustA: GPUBindGroup? = null
+    private var renderBindGroupDustB: GPUBindGroup? = null
 
     private val computeUniformData = FloatArray(COMPUTE_UNIFORM_FLOATS)
     private val renderUniformData = FloatArray(RENDER_UNIFORM_FLOATS)
     private var uploadScratchBuffer: ArrayBuffer? = null
     private var uploadScratchView: DataView? = null
+    private var collisionResetScratchBuffer: ArrayBuffer? = null
+    private var collisionResetScratchView: DataView? = null
 
     suspend fun initialize(
         maxParticleCapacity: Int,
         particlesShaderSource: String,
         overlayCanvas: HTMLCanvasElement,
-        mapItemTextureBytes: ByteArray
+        mapItemTextureBytes: ByteArray,
+        mapItemFirstCellWidth: Int,
+        mapItemFirstCellHeight: Int
     ): Boolean {
         if (initialized) return true
         if (!hasWebGpuSupport()) {
@@ -153,12 +178,20 @@ class WasmJsGpuParticleRenderer {
         val createdStateB = createStorageBuffer(gpuDevice, particleBufferSize)
         val createdSpawn = createStorageBuffer(gpuDevice, particleBufferSize)
         val createdComputeUniform = createUniformBuffer(gpuDevice, computeUniformBytes)
+        val createdCollisionSignal = createStorageBuffer(gpuDevice, COLLISION_SIGNAL_BYTES)
+        val createdCollisionSignalReadback = createReadbackBuffer(gpuDevice, COLLISION_SIGNAL_BYTES)
         val createdRenderUniform = createUniformBuffer(gpuDevice, renderUniformBytes)
         val createdMapItemSampler = createLinearSampler(gpuDevice)
         val deviceQueue = getGpuQueue(gpuDevice)
         val createdMapItemTextureView = if (mapItemTextureBytes.isNotEmpty()) {
             try {
-                createTextureViewFromEncodedBytes(gpuDevice, deviceQueue, mapItemTextureBytes.toInt8Array()).await()
+                createTextureViewFromEncodedBytes(
+                    gpuDevice,
+                    deviceQueue,
+                    mapItemTextureBytes.toInt8Array(),
+                    mapItemFirstCellWidth.coerceAtLeast(1),
+                    mapItemFirstCellHeight.coerceAtLeast(1)
+                ).await()
             } catch (t: Throwable) {
                 logger.error(t) { "Failed to create map item return texture for WebGPU particles" }
                 return false
@@ -170,13 +203,21 @@ class WasmJsGpuParticleRenderer {
         val shaderModule = createShaderModule(gpuDevice, particlesShaderSource)
 
         val createdComputePipeline = createComputePipeline(gpuDevice, shaderModule, COMPUTE_ENTRY_POINT)
-        val createdRenderPipeline = createRenderPipeline(
+        val createdRenderPipelineNonDust = createRenderPipeline(
             gpuDevice,
             shaderModule,
             shaderModule,
             preferredFormat,
             VERTEX_ENTRY_POINT,
-            FRAGMENT_ENTRY_POINT
+            FRAGMENT_ENTRY_POINT_NON_DUST
+        )
+        val createdRenderPipelineDust = createRenderPipelineMaxBlend(
+            gpuDevice,
+            shaderModule,
+            shaderModule,
+            preferredFormat,
+            VERTEX_ENTRY_POINT,
+            FRAGMENT_ENTRY_POINT_DUST
         )
 
         val bindGroupAToB = createComputeBindGroup(
@@ -185,7 +226,8 @@ class WasmJsGpuParticleRenderer {
             createdStateA,
             createdStateB,
             createdSpawn,
-            createdComputeUniform
+            createdComputeUniform,
+            createdCollisionSignal
         )
         val bindGroupBToA = createComputeBindGroup(
             gpuDevice,
@@ -193,19 +235,36 @@ class WasmJsGpuParticleRenderer {
             createdStateB,
             createdStateA,
             createdSpawn,
-            createdComputeUniform
+            createdComputeUniform,
+            createdCollisionSignal
         )
-        val createdRenderBindGroupA = createRenderBindGroup(
+        val createdRenderBindGroupNonDustA = createRenderBindGroup(
             gpuDevice,
-            createdRenderPipeline,
+            createdRenderPipelineNonDust,
             createdStateA,
             createdRenderUniform,
             createdMapItemSampler,
             createdMapItemTextureView
         )
-        val createdRenderBindGroupB = createRenderBindGroup(
+        val createdRenderBindGroupNonDustB = createRenderBindGroup(
             gpuDevice,
-            createdRenderPipeline,
+            createdRenderPipelineNonDust,
+            createdStateB,
+            createdRenderUniform,
+            createdMapItemSampler,
+            createdMapItemTextureView
+        )
+        val createdRenderBindGroupDustA = createRenderBindGroup(
+            gpuDevice,
+            createdRenderPipelineDust,
+            createdStateA,
+            createdRenderUniform,
+            createdMapItemSampler,
+            createdMapItemTextureView
+        )
+        val createdRenderBindGroupDustB = createRenderBindGroup(
+            gpuDevice,
+            createdRenderPipelineDust,
             createdStateB,
             createdRenderUniform,
             createdMapItemSampler,
@@ -220,15 +279,20 @@ class WasmJsGpuParticleRenderer {
         stateBufferB = createdStateB
         spawnBuffer = createdSpawn
         computeUniformBuffer = createdComputeUniform
+        collisionSignalBuffer = createdCollisionSignal
+        collisionSignalReadbackBuffer = createdCollisionSignalReadback
         renderUniformBuffer = createdRenderUniform
         mapItemSampler = createdMapItemSampler
         mapItemTextureView = createdMapItemTextureView
         computePipeline = createdComputePipeline
-        renderPipeline = createdRenderPipeline
+        renderPipelineNonDust = createdRenderPipelineNonDust
+        renderPipelineDust = createdRenderPipelineDust
         computeBindGroupAtoB = bindGroupAToB
         computeBindGroupBtoA = bindGroupBToA
-        renderBindGroupA = createdRenderBindGroupA
-        renderBindGroupB = createdRenderBindGroupB
+        renderBindGroupNonDustA = createdRenderBindGroupNonDustA
+        renderBindGroupNonDustB = createdRenderBindGroupNonDustB
+        renderBindGroupDustA = createdRenderBindGroupDustA
+        renderBindGroupDustB = createdRenderBindGroupDustB
         initialized = true
         logger.info { "WebGPU particle renderer initialized with $maxParticles slots" }
         return true
@@ -239,6 +303,16 @@ class WasmJsGpuParticleRenderer {
         sourceBuffer: FloatArray,
         dirtySlotRanges: List<IntRange>,
         deltaTimeSeconds: Float,
+        player: Player,
+        gameMap: GameMap,
+        viewPort: ViewPort,
+        collision: Collision,
+        audioQueue: AudioQueue,
+        particles: Particles,
+        playerX: Float,
+        playerY: Float,
+        playerWidth: Float,
+        playerHeight: Float,
         gravity: Float,
         tickTargetPerSecond: Int,
         speedCoefficient: Float,
@@ -252,6 +326,8 @@ class WasmJsGpuParticleRenderer {
         val gpuQueue = queue ?: return
         val spawn = spawnBuffer ?: return
         val computeUniform = computeUniformBuffer ?: return
+        val collisionSignal = collisionSignalBuffer ?: return
+        val collisionSignalReadback = collisionSignalReadbackBuffer ?: return
         val pipeline = computePipeline ?: return
         val bindGroup = if (useStateAAsSource) computeBindGroupAtoB else computeBindGroupBtoA
         if (bindGroup == null) return
@@ -292,11 +368,18 @@ class WasmJsGpuParticleRenderer {
         computeUniformData[9] = projectileSpeed.coerceAtLeast(0f)
         computeUniformData[10] = mapItemReturnSpeed.coerceAtLeast(0f)
         computeUniformData[11] = mapItemReturnMinTravelDist.coerceAtLeast(0f)
-        computeUniformData[12] = 0f
-        computeUniformData[13] = 0f
-        computeUniformData[14] = 0f
-        computeUniformData[15] = 0f
+        computeUniformData[12] = playerX
+        computeUniformData[13] = playerY
+        computeUniformData[14] = playerWidth.coerceAtLeast(1f)
+        computeUniformData[15] = playerHeight.coerceAtLeast(1f)
         writeFloatArrayBuffer(gpuQueue, computeUniform, computeUniformData)
+
+        val (collisionResetBuffer, collisionResetView) = getOrCreateCollisionResetScratch()
+        collisionResetView.setUint32(0, 0, true)
+        collisionResetView.setUint32(4, 0, true)
+        collisionResetView.setUint32(8, 0, true)
+        collisionResetView.setUint32(12, 0, true)
+        queueWriteBuffer(gpuQueue, collisionSignal, 0, collisionResetBuffer, COLLISION_SIGNAL_BYTES)
 
         val encoder: GPUCommandEncoder = createCommandEncoder(gpuDevice)
         val computePass: GPUComputePassEncoder = beginComputePass(encoder)
@@ -304,10 +387,65 @@ class WasmJsGpuParticleRenderer {
         setComputeBindGroup(computePass, bindGroup)
         dispatchCompute(computePass, computeWorkgroupCount)
         endComputePass(computePass)
+        copyBufferToBuffer(encoder, collisionSignal, collisionSignalReadback, COLLISION_SIGNAL_BYTES)
 
         val commandBuffer: GPUCommandBuffer = finishCommandEncoder(encoder)
         submitCommandBuffer(gpuQueue, commandBuffer)
+        readProjectileHitSnapshotFromReadback(collisionSignalReadback).then { snapshot ->
+            val hitCount = snapshot.hitCount
+            if (hitCount > 0) {
+                logger.info { "[GPU] Projectile collision detected with player, count=$hitCount" }
+                applyGpuProjectileCollision(
+                    collision = collision,
+                    particles = particles,
+                    audioQueue = audioQueue,
+                    player = player,
+                    gameMap = gameMap,
+                    viewPort = viewPort,
+                    hitX = snapshot.hitX,
+                    hitY = snapshot.hitY,
+                    hitSize = snapshot.hitSize
+                )
+            }
+            null
+        }
         useStateAAsSource = !useStateAAsSource
+    }
+
+    private fun applyGpuProjectileCollision(
+        collision: Collision,
+        particles: Particles,
+        audioQueue: AudioQueue,
+        player: Player,
+        gameMap: GameMap,
+        viewPort: ViewPort,
+        hitX: Float,
+        hitY: Float,
+        hitSize: Float
+    ) {
+        val projectileSize = hitSize.coerceAtLeast(1f)
+        val projectileX = (hitX - (projectileSize * 0.5f)).toInt()
+        val projectileY = (hitY - (projectileSize * 0.5f)).toInt()
+        gameMap.particles.add(
+            Particle(
+                id = -1,
+                x = projectileX,
+                y = projectileY,
+                originX = projectileX,
+                originY = projectileY,
+                width = projectileSize.toInt(),
+                height = projectileSize.toInt(),
+                type = ParticleType.PROJECTILE,
+                frame = 0,
+                lifetime = 1,
+                xJitter = 0,
+                yJitter = 0,
+                radius = 1,
+                color = Color.White,
+                shape = ParticleShape.CIRCLE
+            )
+        )
+        collision.applyProjectileCollision(player, gameMap, viewPort, audioQueue, particles)
     }
 
     fun draw(viewPort: ViewPort, sizeMultiplier: Int) {
@@ -315,7 +453,8 @@ class WasmJsGpuParticleRenderer {
         val gpuDevice = device ?: return
         val webGpuContext = context ?: return
         val gpuQueue = queue ?: return
-        val pipeline = renderPipeline ?: return
+        val nonDustPipeline = renderPipelineNonDust ?: return
+        val dustPipeline = renderPipelineDust ?: return
         val targetCanvas = canvas ?: return
         if (targetCanvas.width <= 0 || targetCanvas.height <= 0) return
         if (targetCanvas.width != lastConfiguredCanvasWidth || targetCanvas.height != lastConfiguredCanvasHeight) {
@@ -337,13 +476,17 @@ class WasmJsGpuParticleRenderer {
         writeFloatArrayBuffer(gpuQueue, renderUniform, renderUniformData)
 
         val textureView: GPUTextureView = getCurrentTextureView(webGpuContext)
-        val renderBindGroup = if (useStateAAsSource) renderBindGroupA else renderBindGroupB
-        if (renderBindGroup == null) return
+        val nonDustBindGroup = if (useStateAAsSource) renderBindGroupNonDustA else renderBindGroupNonDustB
+        val dustBindGroup = if (useStateAAsSource) renderBindGroupDustA else renderBindGroupDustB
+        if (nonDustBindGroup == null || dustBindGroup == null) return
 
         val encoder: GPUCommandEncoder = createCommandEncoder(gpuDevice)
         val renderPass: GPURenderPassEncoder = beginRenderPass(encoder, textureView)
-        setRenderPipeline(renderPass, pipeline)
-        setRenderBindGroup(renderPass, renderBindGroup)
+        setRenderPipeline(renderPass, nonDustPipeline)
+        setRenderBindGroup(renderPass, nonDustBindGroup)
+        drawRenderPassInstanced(renderPass, 6, maxParticles)
+        setRenderPipeline(renderPass, dustPipeline)
+        setRenderBindGroup(renderPass, dustBindGroup)
         drawRenderPassInstanced(renderPass, 6, maxParticles)
         endRenderPass(renderPass)
 
@@ -392,6 +535,19 @@ class WasmJsGpuParticleRenderer {
         val resizedView = DataView(resizedBuffer)
         uploadScratchBuffer = resizedBuffer
         uploadScratchView = resizedView
+        return resizedBuffer to resizedView
+    }
+
+    private fun getOrCreateCollisionResetScratch(): Pair<ArrayBuffer, DataView> {
+        val currentBuffer = collisionResetScratchBuffer
+        val currentView = collisionResetScratchView
+        if (currentBuffer != null && currentView != null && currentBuffer.byteLength >= COLLISION_SIGNAL_BYTES) {
+            return currentBuffer to currentView
+        }
+        val resizedBuffer = ArrayBuffer(COLLISION_SIGNAL_BYTES)
+        val resizedView = DataView(resizedBuffer)
+        collisionResetScratchBuffer = resizedBuffer
+        collisionResetScratchView = resizedView
         return resizedBuffer to resizedView
     }
 

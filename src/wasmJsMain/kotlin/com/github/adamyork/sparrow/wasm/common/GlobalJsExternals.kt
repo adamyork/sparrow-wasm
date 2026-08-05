@@ -29,6 +29,12 @@ external interface GPURenderPassEncoder : JsAny
 external interface GPUCommandBuffer : JsAny
 external interface GPUTextureView : JsAny
 external interface GPUSampler : JsAny
+external interface ProjectileHitSnapshot : JsAny {
+    val hitCount: Int
+    val hitX: Float
+    val hitY: Float
+    val hitSize: Float
+}
 
 fun createBlobFromInt8Array(@Suppress("UNUSED_PARAMETER") int8Array: Int8Array): Blob =
     js("new Blob([int8Array])")
@@ -66,7 +72,14 @@ fun createStorageBuffer(
     @Suppress("UNUSED_PARAMETER") device: GPUDevice,
     @Suppress("UNUSED_PARAMETER") sizeBytes: Int
 ): GPUBuffer = js(
-    "device.createBuffer({ size: sizeBytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST })"
+    "device.createBuffer({ size: sizeBytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC })"
+)
+
+fun createReadbackBuffer(
+    @Suppress("UNUSED_PARAMETER") device: GPUDevice,
+    @Suppress("UNUSED_PARAMETER") sizeBytes: Int
+): GPUBuffer = js(
+    "device.createBuffer({ size: sizeBytes, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ })"
 )
 
 fun createUniformBuffer(
@@ -102,15 +115,27 @@ fun createRenderPipeline(
     "device.createRenderPipeline({ layout: 'auto', vertex: { module: vertexModule, entryPoint: vertexEntryPoint }, fragment: { module: fragmentModule, entryPoint: fragmentEntryPoint, targets: [{ format: format, blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' } } }] }, primitive: { topology: 'triangle-list' } })"
 )
 
+fun createRenderPipelineMaxBlend(
+    @Suppress("UNUSED_PARAMETER") device: GPUDevice,
+    @Suppress("UNUSED_PARAMETER") vertexModule: GPUShaderModule,
+    @Suppress("UNUSED_PARAMETER") fragmentModule: GPUShaderModule,
+    @Suppress("UNUSED_PARAMETER") format: String,
+    @Suppress("UNUSED_PARAMETER") vertexEntryPoint: String,
+    @Suppress("UNUSED_PARAMETER") fragmentEntryPoint: String
+): GPURenderPipeline = js(
+    "device.createRenderPipeline({ layout: 'auto', vertex: { module: vertexModule, entryPoint: vertexEntryPoint }, fragment: { module: fragmentModule, entryPoint: fragmentEntryPoint, targets: [{ format: format, blend: { color: { srcFactor: 'one', dstFactor: 'one', operation: 'max' }, alpha: { srcFactor: 'one', dstFactor: 'one', operation: 'max' } } }] }, primitive: { topology: 'triangle-list' } })"
+)
+
 fun createComputeBindGroup(
     @Suppress("UNUSED_PARAMETER") device: GPUDevice,
     @Suppress("UNUSED_PARAMETER") pipeline: GPUComputePipeline,
     @Suppress("UNUSED_PARAMETER") srcBuffer: GPUBuffer,
     @Suppress("UNUSED_PARAMETER") dstBuffer: GPUBuffer,
     @Suppress("UNUSED_PARAMETER") spawnBuffer: GPUBuffer,
-    @Suppress("UNUSED_PARAMETER") uniformBuffer: GPUBuffer
+    @Suppress("UNUSED_PARAMETER") uniformBuffer: GPUBuffer,
+    @Suppress("UNUSED_PARAMETER") collisionBuffer: GPUBuffer
 ): GPUBindGroup = js(
-    "device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: srcBuffer } }, { binding: 1, resource: { buffer: dstBuffer } }, { binding: 2, resource: { buffer: spawnBuffer } }, { binding: 3, resource: { buffer: uniformBuffer } }] })"
+    "device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: srcBuffer } }, { binding: 1, resource: { buffer: dstBuffer } }, { binding: 2, resource: { buffer: spawnBuffer } }, { binding: 3, resource: { buffer: uniformBuffer } }, { binding: 4, resource: { buffer: collisionBuffer } }] })"
 )
 
 fun createRenderBindGroup(
@@ -133,9 +158,11 @@ fun createLinearSampler(
 fun createTextureViewFromEncodedBytes(
     @Suppress("UNUSED_PARAMETER") device: GPUDevice,
     @Suppress("UNUSED_PARAMETER") queue: GPUQueue,
-    @Suppress("UNUSED_PARAMETER") bytes: Int8Array
+    @Suppress("UNUSED_PARAMETER") bytes: Int8Array,
+    @Suppress("UNUSED_PARAMETER") firstCellWidth: Int,
+    @Suppress("UNUSED_PARAMETER") firstCellHeight: Int
 ): Promise<GPUTextureView> = js(
-    "(async () => { const blob = new Blob([bytes]); const imageBitmap = await createImageBitmap(blob); const texture = device.createTexture({ size: { width: imageBitmap.width, height: imageBitmap.height, depthOrArrayLayers: 1 }, format: 'rgba8unorm', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT }); queue.copyExternalImageToTexture({ source: imageBitmap }, { texture: texture }, { width: imageBitmap.width, height: imageBitmap.height, depthOrArrayLayers: 1 }); imageBitmap.close(); return texture.createView(); })()"
+    "(async () => { const blob = new Blob([bytes]); const fullBitmap = await createImageBitmap(blob); const cellWidth = Math.max(1, Math.min(firstCellWidth || fullBitmap.width, fullBitmap.width)); const cellHeight = Math.max(1, Math.min(firstCellHeight || fullBitmap.height, fullBitmap.height)); const imageBitmap = (cellWidth === fullBitmap.width && cellHeight === fullBitmap.height) ? fullBitmap : await createImageBitmap(fullBitmap, 0, 0, cellWidth, cellHeight); if (imageBitmap !== fullBitmap) { fullBitmap.close(); } const texture = device.createTexture({ size: { width: imageBitmap.width, height: imageBitmap.height, depthOrArrayLayers: 1 }, format: 'rgba8unorm', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT }); queue.copyExternalImageToTexture({ source: imageBitmap }, { texture: texture }, { width: imageBitmap.width, height: imageBitmap.height, depthOrArrayLayers: 1 }); imageBitmap.close(); return texture.createView(); })()"
 )
 
 fun createSolidTextureView(
@@ -163,6 +190,27 @@ fun queueWriteBuffer(
 
 fun createCommandEncoder(@Suppress("UNUSED_PARAMETER") device: GPUDevice): GPUCommandEncoder =
     js("device.createCommandEncoder()")
+
+fun copyBufferToBuffer(
+    @Suppress("UNUSED_PARAMETER") encoder: GPUCommandEncoder,
+    @Suppress("UNUSED_PARAMETER") srcBuffer: GPUBuffer,
+    @Suppress("UNUSED_PARAMETER") dstBuffer: GPUBuffer,
+    @Suppress("UNUSED_PARAMETER") sizeBytes: Int
+) {
+    js("encoder.copyBufferToBuffer(srcBuffer, 0, dstBuffer, 0, sizeBytes)")
+}
+
+fun readProjectileHitCountFromReadback(
+    @Suppress("UNUSED_PARAMETER") readbackBuffer: GPUBuffer
+): Promise<JsAny?> = js(
+    "(async () => { try { await readbackBuffer.mapAsync(GPUMapMode.READ); const view = new Uint32Array(readbackBuffer.getMappedRange()); const hitCount = view[0] || 0; readbackBuffer.unmap(); return hitCount; } catch (_) { return 0; } })()"
+)
+
+fun readProjectileHitSnapshotFromReadback(
+    @Suppress("UNUSED_PARAMETER") readbackBuffer: GPUBuffer
+): Promise<ProjectileHitSnapshot> = js(
+    "(async () => { try { await readbackBuffer.mapAsync(GPUMapMode.READ); const raw = new Uint32Array(readbackBuffer.getMappedRange()); const floatView = new Float32Array(raw.buffer); const hitCount = raw[0] || 0; const hitX = floatView[1] || 0; const hitY = floatView[2] || 0; const hitSize = floatView[3] || 1; readbackBuffer.unmap(); return { hitCount, hitX, hitY, hitSize }; } catch (_) { return { hitCount: 0, hitX: 0, hitY: 0, hitSize: 1 }; } })()"
+)
 
 fun beginComputePass(@Suppress("UNUSED_PARAMETER") encoder: GPUCommandEncoder): GPUComputePassEncoder =
     js("encoder.beginComputePass()")

@@ -97,10 +97,28 @@ val prepareDevServer = tasks.register<Copy>("prepareDevServer") {
     into(layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
 }
 
+val stopWasmDevServer = tasks.register<Exec>("stopWasmDevServer") {
+    group = "wasm"
+    description = "Stops lingering wasm dev-server processes."
+    isIgnoreExitValue = true
+    commandLine(
+        "zsh", "-lc", $$"""
+        pids=$(lsof -ti tcp:8088 || true)
+        if [ -n "$pids" ]; then
+            kill $pids
+        fi
+        pkill -f "kotlin-webpack" || true
+        pkill -f "webpack-dev-server" || true
+        """.trimIndent()
+    )
+}
+
+
 tasks.named("prepareDevServer").configure {
     dependsOn("wasmJsProcessResources")
 }
 
 tasks.named("wasmJsBrowserDevelopmentRun").configure {
     dependsOn(prepareDevServer)
+    finalizedBy(stopWasmDevServer)
 }
