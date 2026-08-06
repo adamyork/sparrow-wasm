@@ -113,6 +113,21 @@ class AndroidAssetService(
         return source
     }
 
+    override suspend fun loadParticleGlShaders() {
+        val computeBytes = withContext(Dispatchers.IO) {
+            Res.readBytes("files/particles.comp.glsl")
+        }
+        val vertexBytes = withContext(Dispatchers.IO) {
+            Res.readBytes("files/particles.vert.glsl")
+        }
+        val fragmentBytes = withContext(Dispatchers.IO) {
+            Res.readBytes("files/particles.frag.glsl")
+        }
+        particleComputeShaderSource = computeBytes.decodeToString()
+        particleVertexShaderSource = vertexBytes.decodeToString()
+        particleFragmentShaderSource = fragmentBytes.decodeToString()
+    }
+
     override fun getBackgroundAudio(): String = backgroundAudio
 
     override fun getAudioPath(sound: Sounds): String {

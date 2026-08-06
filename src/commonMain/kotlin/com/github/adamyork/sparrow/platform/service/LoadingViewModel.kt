@@ -43,6 +43,7 @@ class LoadingViewModel : ViewModel(), LoadingProgressListener {
                 "ending" -> "ending"
                 "font" -> "font"
                 "particles", "particles.wgsl" -> "particle_shader"
+                "particles_gl" -> "particle_shader_gl"
                 else -> ""
             }
         }
@@ -68,7 +69,8 @@ class LoadingViewModel : ViewModel(), LoadingProgressListener {
             LoadingTask("splash", "Splash Image"),
             LoadingTask("ending", "Ending Image"),
             LoadingTask("font", "Font"),
-            LoadingTask("particle_shader", "Particle Shader")
+            LoadingTask("particle_shader", "Particle Shader"),
+            LoadingTask("particle_shader_gl", "Particle GL Shaders")
         )
     )
 

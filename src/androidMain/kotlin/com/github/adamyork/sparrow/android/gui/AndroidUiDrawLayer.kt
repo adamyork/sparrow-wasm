@@ -79,6 +79,11 @@ class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : UiD
         foregroundBitmap = image
     }
 
+    @Composable
+    override fun OverlayLayer() {
+        AndroidGpuParticleOverlay()
+    }
+
     override fun clearAllLayers() {
         splashImageBitmap = null
         farGroundBitmap = null

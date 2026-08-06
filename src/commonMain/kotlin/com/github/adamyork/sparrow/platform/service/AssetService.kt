@@ -19,6 +19,9 @@ interface AssetService {
     var applicationYamlFile: String
     var appProperties: AppProperties
     var particleShaderSource: String
+    var particleComputeShaderSource: String
+    var particleVertexShaderSource: String
+    var particleFragmentShaderSource: String
 
     suspend fun initialize(listener: LoadingProgressListener)
 
@@ -39,6 +42,8 @@ interface AssetService {
     suspend fun loadAudio(listener: LoadingProgressListener)
 
     suspend fun loadParticleShader(): String
+
+    suspend fun loadParticleGlShaders()
 
     fun getTotalEnemies(): Int
 

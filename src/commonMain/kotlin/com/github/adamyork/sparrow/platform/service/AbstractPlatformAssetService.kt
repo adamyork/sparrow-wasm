@@ -40,6 +40,9 @@ abstract class AbstractPlatformAssetService(
     override var backgroundMusicBytesMap: HashMap<Int, ByteArray> = HashMap()
     override lateinit var applicationYamlFile: String
     override var particleShaderSource: String = ""
+    override var particleComputeShaderSource: String = ""
+    override var particleVertexShaderSource: String = ""
+    override var particleFragmentShaderSource: String = ""
 
     protected val mapAssetMap: HashMap<Int, ImageAsset> = HashMap()
     protected var enemyInfoMap: HashMap<Int, MapElementYamlEntry> = HashMap()
@@ -47,6 +50,10 @@ abstract class AbstractPlatformAssetService(
     protected var audioMap: HashMap<Sounds, String> = HashMap()
 
     protected abstract suspend fun fetchImageAndBytes(path: String, width: Int, height: Int): ImageAsset
+
+    override suspend fun loadParticleGlShaders() {
+        // Default no-op for platforms that do not use the OpenGL ES shader triplet.
+    }
 
     override suspend fun initialize(listener: LoadingProgressListener) {
         logger.debug { "HTTP GET: application.yml" }

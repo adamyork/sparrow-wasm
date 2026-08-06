@@ -15,7 +15,7 @@ interface EngineConfig {
 
     @AppScope
     @Provides
-    fun provideEngine(impl: AndroidEngine): Engine = impl
+    fun provideEngine(impl: AndroidGpuEngine): Engine = impl
 
     @AppScope
     @Provides

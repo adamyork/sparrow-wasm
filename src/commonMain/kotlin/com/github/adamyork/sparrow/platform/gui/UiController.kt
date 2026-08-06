@@ -65,7 +65,8 @@ class UiController(
                 "shooter enemy" to { assetService.loadEnemy(1) },
                 "game audio" to { assetService.loadAudio(this@UiController) },
                 "font" to { assetService.prepareFont() },
-                "particles" to { assetService.loadParticleShader() }
+                "particles" to { assetService.loadParticleShader() },
+                "particles_gl" to { assetService.loadParticleGlShaders() }
             )
             val loadedAssets = coroutineScope {
                 loaders.map { (key, loader) ->

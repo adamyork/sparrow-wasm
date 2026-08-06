@@ -74,6 +74,7 @@ abstract class UiDrawLayer(
                 offsetX = collisionOffsetX,
                 offsetY = collisionOffsetY
             )
+            OverlayLayer()
         }
 
         LaunchedEffect(isRunning) {
@@ -129,6 +130,11 @@ abstract class UiDrawLayer(
     @Composable
     protected open fun ForegroundLayerCanvas(image: Any?) {
         throw RuntimeException("must implement")
+    }
+
+    @Composable
+    protected open fun OverlayLayer() {
+        // Optional platform-specific overlay layer (for example, a GPU particle surface).
     }
 
     fun drawSplash(image: ImageBitmap) {

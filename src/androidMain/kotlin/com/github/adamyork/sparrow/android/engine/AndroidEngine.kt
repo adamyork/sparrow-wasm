@@ -34,7 +34,7 @@ import com.github.adamyork.sparrow.platform.engine.EngineException
 
 @AppScope
 @Inject
-class AndroidEngine(
+open class AndroidEngine(
     physics: Physics,
     collision: Collision,
     particles: Particles,
@@ -233,7 +233,7 @@ class AndroidEngine(
         }
     }
 
-    private fun drawParticles(
+    protected open fun drawParticles(
         map: GameMap,
         viewPort: ViewPort,
         canvas: Canvas,
@@ -286,7 +286,7 @@ class AndroidEngine(
         }
     }
 
-    private fun particleColorArgb(particle: Particle, alphaMultiplier: Float): Int {
+    protected fun particleColorArgb(particle: Particle, alphaMultiplier: Float): Int {
         val alpha = (particle.color.alpha.coerceIn(0f, 1f) * alphaMultiplier * 255f).toInt().coerceIn(0, 255)
         val red = (particle.color.red * 255f).toInt().coerceIn(0, 255)
         val green = (particle.color.green * 255f).toInt().coerceIn(0, 255)
