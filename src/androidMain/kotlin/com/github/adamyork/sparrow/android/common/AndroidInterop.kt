@@ -27,6 +27,13 @@ class AndroidInterop : PlatformInterop {
     @Volatile
     private var lastFrameTimeMs: Double = 0.0
 
+    @Volatile
+    private var initializedActivityManager: ActivityManager? = null
+
+    fun initialize(context: Context) {
+        initializedActivityManager = resolveActivityManager(context)
+    }
+
     override fun onReady(action: () -> Unit) {
         action()
     }
@@ -69,11 +76,16 @@ class AndroidInterop : PlatformInterop {
     override fun isGpuEngineSupported(platformData: Any?): Boolean {
         val activityManager = when (platformData) {
             is ActivityManager -> platformData
-            is Context -> platformData.getSystemService(ActivityManager::class.java)
-            else -> null
+            is Context -> resolveActivityManager(platformData)
+            else -> initializedActivityManager
         } ?: return false
         val glEsVersion = activityManager.deviceConfigurationInfo?.reqGlEsVersion ?: 0
         return glEsVersion >= 0x00030001
+    }
+
+    private fun resolveActivityManager(context: Context): ActivityManager? {
+        return context.getSystemService(ActivityManager::class.java)
+            ?: (context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)
     }
 
     override fun <T> addEventListener(type: String, callback: (T) -> Unit) {

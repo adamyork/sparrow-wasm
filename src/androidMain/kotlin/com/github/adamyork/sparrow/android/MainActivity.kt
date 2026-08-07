@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.lifecycleScope
+import com.github.adamyork.sparrow.android.common.AndroidInterop
 import com.github.adamyork.sparrow.android.gui.AndroidPortraitGui
 import com.github.adamyork.sparrow.platform.LogConfig
 import com.github.adamyork.sparrow.platform.gui.Game
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
         LogConfig.initialize(minimumLevel = Level.INFO)
         logger.info { "MainActivity onCreate invoked" }
         val component = AppConfig::class.create()
+        (component.platformInterop as? AndroidInterop)?.initialize(this)
         val gameLayer = component.game
         val sparrowColorScheme = component.sparrowColorScheme
         setContent {
