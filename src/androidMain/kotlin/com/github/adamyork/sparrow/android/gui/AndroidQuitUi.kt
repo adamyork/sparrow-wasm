@@ -25,7 +25,7 @@ import me.tatarka.inject.annotations.Inject
  */
 @AppScope
 @Inject
-class AndroidPlatformQuitUi : QuitUi {
+class AndroidQuitUi : QuitUi {
     @Composable
     override fun BuildQuitButton(
         focusManager: FocusManager,
@@ -37,7 +37,7 @@ class AndroidPlatformQuitUi : QuitUi {
         Button(
             onClick = {
                 focusManager.clearFocus(force = true)
-                context.findActivity()?.finishAndRemoveTask()
+                findActivity(context)?.finishAndRemoveTask()
             },
             colors = disabledButtonColors,
             modifier = Modifier
@@ -48,11 +48,10 @@ class AndroidPlatformQuitUi : QuitUi {
             Text("Quit", color = textMainColor)
         }
     }
-}
 
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
+    private tailrec fun findActivity(context: Context): Activity? = when (context) {
+        is Activity -> context
+        is ContextWrapper -> findActivity(context.baseContext)
+        else -> null
+    }
 }
-

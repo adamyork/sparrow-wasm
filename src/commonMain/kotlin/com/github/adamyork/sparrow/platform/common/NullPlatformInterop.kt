@@ -26,6 +26,8 @@ object NullPlatformInterop : PlatformInterop {
 
     override fun isTouchDevice(): Boolean = unsupported("Touch interop")
 
+    override fun isGpuEngineSupported(platformData: Any?): Boolean = false
+
     override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
         unsupported<Unit>("Event interop")
     }
@@ -49,4 +51,3 @@ object NullPlatformInterop : PlatformInterop {
         throw UnsupportedOperationException("$label is not available for placeholder player")
     }
 }
-

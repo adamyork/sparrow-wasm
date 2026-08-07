@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.wasm.engine
 
 import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.common.data.enemy.CommonMapElementFactory
 import com.github.adamyork.sparrow.platform.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.platform.engine.Collision
@@ -19,7 +20,11 @@ interface EngineConfig {
 
     @AppScope
     @Provides
-    fun provideEngine(impl: WasmJsGpuEngine): Engine = impl
+    fun provideEngine(
+        platformInterop: PlatformInterop,
+        wasmJsEngine: WasmJsEngine,
+        wasmJsGpuEngine: WasmJsGpuEngine
+    ): Engine = if (platformInterop.isGpuEngineSupported()) wasmJsGpuEngine else wasmJsEngine
 
     @AppScope
     @Provides

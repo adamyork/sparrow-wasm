@@ -88,6 +88,7 @@ open class WasmJsEngine(
             }
 
     override suspend fun initialize(gameMap: GameMap, collisionImageAndBytes: ImageAndBytes, player: Player, font: Any) {
+        logger.info { "Initializing CPU engine" }
         flippedFrameCache.values.forEach { (it as WasmJsImage).image.close() }
         flippedFrameCache.clear()
         this.collision.collisionImage = collisionImageAndBytes

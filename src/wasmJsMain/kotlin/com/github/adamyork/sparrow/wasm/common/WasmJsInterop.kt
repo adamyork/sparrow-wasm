@@ -64,6 +64,9 @@ class WasmJsInterop : PlatformInterop {
         return window.navigator.maxTouchPoints > 0
     }
 
+    override fun isGpuEngineSupported(platformData: Any?): Boolean {
+        return hasWebGpuSupport()
+    }
 
     override fun <T> addEventListener(type: String, callback: (T) -> Unit) {
         val nativeCallback: (Event) -> Unit = { event ->

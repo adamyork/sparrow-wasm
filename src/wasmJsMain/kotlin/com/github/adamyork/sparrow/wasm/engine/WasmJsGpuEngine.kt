@@ -76,6 +76,7 @@ class WasmJsGpuEngine(
         player: Player,
         font: Any
     ) {
+        logger.info { "Initializing GPU engine" }
         super.initialize(gameMap, collisionImageAndBytes, player, font)
         val overlayCanvas = waitForOverlayCanvasReady()
             ?: throw IllegalStateException("WebGPU particle overlay canvas could not be created")
@@ -175,4 +176,3 @@ class WasmJsGpuEngine(
     }
 
 }
-

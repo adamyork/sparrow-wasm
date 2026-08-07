@@ -21,7 +21,7 @@ interface GuiConfig {
 
     @AppScope
     @Provides
-    fun providePlatformQuitUi(impl: AndroidPlatformQuitUi): QuitUi = impl
+    fun providePlatformQuitUi(impl: AndroidQuitUi): QuitUi = impl
 
 
     @AppScope

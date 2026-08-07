@@ -22,6 +22,8 @@ interface PlatformInterop {
 
     fun isTouchDevice(): Boolean
 
+    fun isGpuEngineSupported(platformData: Any? = null): Boolean
+
     fun requestKeyboardFocus() {}
 
     fun <T> addEventListener(type: String, callback: (T) -> Unit)

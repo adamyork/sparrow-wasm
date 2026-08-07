@@ -1,5 +1,7 @@
 package com.github.adamyork.sparrow.android.common
 
+import android.app.ActivityManager
+import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.SystemClock
@@ -62,6 +64,16 @@ class AndroidInterop : PlatformInterop {
 
     override fun isTouchDevice(): Boolean {
         return Resources.getSystem().configuration.touchscreen != Configuration.TOUCHSCREEN_NOTOUCH
+    }
+
+    override fun isGpuEngineSupported(platformData: Any?): Boolean {
+        val activityManager = when (platformData) {
+            is ActivityManager -> platformData
+            is Context -> platformData.getSystemService(ActivityManager::class.java)
+            else -> null
+        } ?: return false
+        val glEsVersion = activityManager.deviceConfigurationInfo?.reqGlEsVersion ?: 0
+        return glEsVersion >= 0x00030001
     }
 
     override fun <T> addEventListener(type: String, callback: (T) -> Unit) {

@@ -1,6 +1,7 @@
 package com.github.adamyork.sparrow.android.engine
 
 import com.github.adamyork.sparrow.platform.AppScope
+import com.github.adamyork.sparrow.platform.common.PlatformInterop
 import com.github.adamyork.sparrow.platform.common.data.enemy.CommonMapElementFactory
 import com.github.adamyork.sparrow.platform.common.data.enemy.MapElementFactory
 import com.github.adamyork.sparrow.platform.engine.Collision
@@ -15,7 +16,11 @@ interface EngineConfig {
 
     @AppScope
     @Provides
-    fun provideEngine(impl: AndroidGpuEngine): Engine = impl
+    fun provideEngine(
+        platformInterop: PlatformInterop,
+        androidEngine: AndroidEngine,
+        androidGpuEngine: AndroidGpuEngine
+    ): Engine = if (platformInterop.isGpuEngineSupported()) androidGpuEngine else androidEngine
 
     @AppScope
     @Provides
@@ -33,4 +38,3 @@ interface EngineConfig {
     @Provides
     fun provideMapElementFactory(impl: CommonMapElementFactory): MapElementFactory = impl
 }
-

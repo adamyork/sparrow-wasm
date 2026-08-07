@@ -75,6 +75,7 @@ class AndroidGpuEngine(
         player: Player,
         font: Any
     ) {
+        logger.info { "Initializing GPU engine" }
         super.initialize(gameMap, collisionImageAndBytes, player, font)
         assetService.loadParticleGlShaders()
         gpuParticleRuntime.enable(

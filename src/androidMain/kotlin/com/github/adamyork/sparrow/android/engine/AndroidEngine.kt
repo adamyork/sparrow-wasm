@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
 import androidx.core.graphics.withScale
 import com.github.adamyork.sparrow.platform.engine.EngineException
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 @AppScope
 @Inject
@@ -53,6 +54,8 @@ open class AndroidEngine(
     runtimeService,
     platformInterop
 ) {
+
+    private val logger = KotlinLogging.logger {}
 
     override var mapItem: Item = CommonItem()
     override var mapItemImage: CommonImage = AndroidImage(
@@ -105,6 +108,7 @@ open class AndroidEngine(
         player: Player,
         font: Any
     ) {
+        logger.info { "Initializing CPU engine" }
         withContext(Dispatchers.Default) {
             flippedFrameCache.clear()
             this@AndroidEngine.collision.collisionImage = collisionImageAndBytes

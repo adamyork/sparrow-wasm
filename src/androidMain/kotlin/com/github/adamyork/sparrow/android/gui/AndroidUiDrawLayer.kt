@@ -81,7 +81,7 @@ class AndroidUiDrawLayer(screenDimensionsService: ScreenDimensionsService) : UiD
 
     @Composable
     override fun OverlayLayer() {
-        AndroidGpuParticleOverlay()
+        AndroidGpuParticleOverlay().Build()
     }
 
     override fun clearAllLayers() {
